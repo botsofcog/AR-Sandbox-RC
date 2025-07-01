@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧊 Voxel AR Sandbox - Divine Voxel Engine Integration</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+            color: white;
+        }
+        
+        #voxel-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+        
+        #controls {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 10;
+            background: rgba(0,0,0,0.9);
+            padding: 20px;
+            border-radius: 10px;
+            border: 2px solid #00ff88;
+        }
+        
+        .control-group {
+            margin-bottom: 15px;
+        }
+        
+        .control-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #00ff88;
+            font-weight: bold;
+        }
+        
+        .voxel-btn {
+            background: rgba(0, 255, 136, 0.2);
+            border: 1px solid #00ff88;
+            color: #00ff88;
+            padding: 8px 16px;
+            margin: 2px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .voxel-btn:hover {
+            background: rgba(0, 255, 136, 0.4);
+            transform: translateY(-2px);
+        }
+        
+        .voxel-btn.active {
+            background: #00ff88;
+            color: #000;
+        }
+        
+        #status {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            z-index: 10;
+            background: rgba(0,0,0,0.9);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #ff6b6b;
+        }
+        
+        .status-item {
+            margin: 5px 0;
+            font-size: 14px;
+        }
+        
+        .status-value {
+            color: #00ff88;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="voxel-canvas"></canvas>
+    
+    <div id="controls">
+        <h3>🧊 VOXEL CONTROLS</h3>
+        
+        <div class="control-group">
+            <label>Voxel Type:</label>
+            <button class="voxel-btn active" onclick="setVoxelType('sand')">🏔️ Sand</button>
+            <button class="voxel-btn" onclick="setVoxelType('water')">💧 Water</button>
+            <button class="voxel-btn" onclick="setVoxelType('stone')">🗿 Stone</button>
+            <button class="voxel-btn" onclick="setVoxelType('grass')">🌱 Grass</button>
+        </div>
+        
+        <div class="control-group">
+            <label>Tools:</label>
+            <button class="voxel-btn" onclick="setTool('place')">➕ Place</button>
+            <button class="voxel-btn" onclick="setTool('remove')">➖ Remove</button>
+            <button class="voxel-btn" onclick="setTool('paint')">🎨 Paint</button>
+        </div>
+        
+        <div class="control-group">
+            <button class="voxel-btn" onclick="generateTerrain()">🌍 Generate Terrain</button>
+            <button class="voxel-btn" onclick="clearVoxels()">🗑️ Clear All</button>
+            <button class="voxel-btn" onclick="toggleKinectMode()">📷 Kinect Mode</button>
+        </div>
+    </div>
+    
+    <div id="status">
+        <h4>📊 VOXEL STATUS</h4>
+        <div class="status-item">Voxels: <span class="status-value" id="voxel-count">0</span></div>
+        <div class="status-item">Type: <span class="status-value" id="current-type">sand</span></div>
+        <div class="status-item">Tool: <span class="status-value" id="current-tool">place</span></div>
+        <div class="status-item">Kinect: <span class="status-value" id="kinect-status">Disconnected</span></div>
+    </div>
+
+    <!-- Divine Voxel Engine Integration -->
+    <script src="external_libs/divine-voxel-engine/dist/divine-voxel-engine.min.js"></script>
+    <script>
+        // Voxel AR Sandbox using Divine Voxel Engine
+        console.log('🧊 Initializing Voxel AR Sandbox with Divine Voxel Engine');
+        
+        let voxelEngine, currentVoxelType = 'sand', currentTool = 'place';
+        let kinectMode = false;
+        
+        class VoxelARSandbox {
+            constructor() {
+                this.canvas = document.getElementById('voxel-canvas');
+                this.canvas.width = window.innerWidth;
+                this.canvas.height = window.innerHeight;
+                
+                this.voxelCount = 0;
+                this.initializeVoxelEngine();
+                this.setupEventListeners();
+            }
+            
+            initializeVoxelEngine() {
+                if (typeof DVE !== 'undefined') {
+                    console.log('✅ Divine Voxel Engine loaded');
+                    
+                    // Initialize DVE
+                    voxelEngine = new DVE.VoxelEngine({
+                        canvas: this.canvas,
+                        chunkSize: 16,
+                        renderDistance: 8
+                    });
+                    
+                    // Set up voxel types
+                    voxelEngine.registerVoxelType('sand', {
+                        color: [194, 178, 128],
+                        physics: true,
+                        gravity: true
+                    });
+                    
+                    voxelEngine.registerVoxelType('water', {
+                        color: [64, 164, 223],
+                        physics: true,
+                        fluid: true
+                    });
+                    
+                    voxelEngine.registerVoxelType('stone', {
+                        color: [128, 128, 128],
+                        physics: false,
+                        solid: true
+                    });
+                    
+                    voxelEngine.registerVoxelType('grass', {
+                        color: [34, 139, 34],
+                        physics: false,
+                        organic: true
+                    });
+                    
+                    console.log('🎮 Voxel engine initialized');
+                } else {
+                    console.log('⚠️ Divine Voxel Engine not available - using fallback');
+                    this.initializeFallbackVoxelSystem();
+                }
+            }
+            
+            initializeFallbackVoxelSystem() {
+                // Simple fallback voxel system
+                console.log('🔧 Using fallback voxel system');
+                this.voxels = new Map();
+                this.ctx = this.canvas.getContext('2d');
+                this.startRenderLoop();
+            }
+            
+            setupEventListeners() {
+                this.canvas.addEventListener('click', (e) => {
+                    const rect = this.canvas.getBoundingClientRect();
+                    const x = Math.floor((e.clientX - rect.left) / 16);
+                    const y = Math.floor((e.clientY - rect.top) / 16);
+                    
+                    if (currentTool === 'place') {
+                        this.placeVoxel(x, y, currentVoxelType);
+                    } else if (currentTool === 'remove') {
+                        this.removeVoxel(x, y);
+                    }
+                });
+                
+                window.addEventListener('resize', () => {
+                    this.canvas.width = window.innerWidth;
+                    this.canvas.height = window.innerHeight;
+                });
+            }
+            
+            placeVoxel(x, y, type) {
+                if (voxelEngine && voxelEngine.setVoxel) {
+                    voxelEngine.setVoxel(x, y, 0, type);
+                } else {
+                    // Fallback
+                    const key = `${x},${y}`;
+                    this.voxels.set(key, { type, x, y });
+                }
+                
+                this.voxelCount++;
+                this.updateStatus();
+            }
+            
+            removeVoxel(x, y) {
+                if (voxelEngine && voxelEngine.removeVoxel) {
+                    voxelEngine.removeVoxel(x, y, 0);
+                } else {
+                    // Fallback
+                    const key = `${x},${y}`;
+                    if (this.voxels.has(key)) {
+                        this.voxels.delete(key);
+                        this.voxelCount--;
+                    }
+                }
+                
+                this.updateStatus();
+            }
+            
+            updateFromKinectData(frameData) {
+                if (!kinectMode || !frameData.kinect_depth) return;
+
+                console.log('📡 Processing Kinect frame data:', frameData.magic_sand_processed ? 'Magic Sand processed' : 'Raw data');
+
+                // Use Magic Sand processed depth data if available
+                const depthData = frameData.kinect_depth;
+                const width = Math.sqrt(depthData.length) || 640;
+                const height = Math.floor(depthData.length / width) || 480;
+
+                // Clear existing voxels for real-time update
+                this.voxels.clear();
+
+                // Magic Sand approach: Use processed elevation data
+                for (let y = 0; y < height; y += 3) {
+                    for (let x = 0; x < width; x += 3) {
+                        const index = y * width + x;
+                        const depthValue = depthData[index];
+
+                        if (depthValue > 500 && depthValue < 4000) { // Valid range
+                            // Magic Sand style elevation calculation
+                            // Lower depth values = higher elevation (closer to sensor)
+                            const elevation = this.calculateMagicSandElevation(depthValue);
+                            const voxelX = Math.floor(x / 3);
+                            const voxelY = Math.floor(y / 3);
+
+                            // Apply Magic Sand color mapping approach
+                            const material = this.getMaterialFromElevation(elevation);
+
+                            if (material) {
+                                this.placeVoxel(voxelX, voxelY, material);
+                            }
+                        }
+                    }
+                }
+
+                console.log(`🎨 Magic Sand topology: ${this.voxels.size} voxels with elevation colors`);
+            }
+
+            calculateMagicSandElevation(depthValue) {
+                // Magic Sand approach: Convert depth to elevation
+                // Depth range: 500-4000mm, elevation range: -200 to +220mm (from colormap)
+                const minDepth = 500;
+                const maxDepth = 4000;
+                const minElevation = -200; // Deep water
+                const maxElevation = 220;  // Snow peaks
+
+                // Invert depth to elevation (closer = higher)
+                const normalizedDepth = (depthValue - minDepth) / (maxDepth - minDepth);
+                const elevation = maxElevation - (normalizedDepth * (maxElevation - minElevation));
+
+                return elevation;
+            }
+
+            getMaterialFromElevation(elevation) {
+                // Magic Sand color map approach - elevation-based material selection
+                if (elevation <= -150) {
+                    return 'deep_water'; // Navy/Black - Deepest
+                } else if (elevation <= -50) {
+                    return 'water'; // Blue - Sea level
+                } else if (elevation <= -2) {
+                    return 'shore'; // Sand+Blue - Shores
+                } else if (elevation <= 15) {
+                    return 'sand'; // Sand - Base level
+                } else if (elevation <= 50) {
+                    return 'dirt'; // Orange - Low elevation
+                } else if (elevation <= 90) {
+                    return 'grass'; // Green - Medium elevation
+                } else if (elevation <= 130) {
+                    return 'sediment'; // Red/Orange - Sediment/Stone
+                } else if (elevation <= 170) {
+                    return 'rock'; // Yellow - Rock
+                } else {
+                    return 'snow'; // White - Snow peaks
+                }
+            }
+            
+            startRenderLoop() {
+                const render = () => {
+                    if (this.ctx) {
+                        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                        
+                        // Render voxels
+                        this.voxels.forEach(voxel => {
+                            const colors = {
+                                sand: '#c2b280',
+                                dirt: '#FF8C00',
+                                grass: '#228B22',
+                                sediment: '#FF4500',
+                                stone: '#FF6347',
+                                rock: '#FFD700',
+                                snow: '#FFFFFF',
+                                water: '#0000FF',
+                                deep_water: '#000080',
+                                shore: '#DEB887',
+                                stone: '#808080',
+                                grass: '#228b22'
+                            };
+                            
+                            this.ctx.fillStyle = colors[voxel.type] || '#ffffff';
+                            this.ctx.fillRect(voxel.x * 16, voxel.y * 16, 16, 16);
+                        });
+                    }
+                    
+                    requestAnimationFrame(render);
+                };
+                render();
+            }
+            
+            updateStatus() {
+                document.getElementById('voxel-count').textContent = this.voxelCount;
+                document.getElementById('current-type').textContent = currentVoxelType;
+                document.getElementById('current-tool').textContent = currentTool;
+            }
+        }
+        
+        // Global functions
+        function setVoxelType(type) {
+            currentVoxelType = type;
+            document.querySelectorAll('.voxel-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            voxelSandbox.updateStatus();
+        }
+        
+        function setTool(tool) {
+            currentTool = tool;
+            voxelSandbox.updateStatus();
+        }
+        
+        function generateTerrain() {
+            console.log('🌍 Generating voxel terrain');
+            // Generate random terrain
+            for (let i = 0; i < 1000; i++) {
+                const x = Math.floor(Math.random() * 50);
+                const y = Math.floor(Math.random() * 30);
+                voxelSandbox.placeVoxel(x, y, 'sand');
+            }
+        }
+        
+        function clearVoxels() {
+            if (voxelEngine && voxelEngine.clear) {
+                voxelEngine.clear();
+            } else {
+                voxelSandbox.voxels.clear();
+            }
+            voxelSandbox.voxelCount = 0;
+            voxelSandbox.updateStatus();
+        }
+        
+        function toggleKinectMode() {
+            kinectMode = !kinectMode;
+            const statusElement = document.getElementById('kinect-status');
+
+            if (kinectMode) {
+                statusElement.textContent = 'Active';
+                statusElement.style.color = '#4CAF50';
+                console.log('📷 Kinect mode: ON - Attempting to connect...');
+
+                // Try to connect to WebSocket if not already connected
+                if (typeof kinectIntegration !== 'undefined' && kinectIntegration) {
+                    try {
+                        kinectIntegration.connect();
+                    } catch (error) {
+                        console.warn('WebSocket connection failed:', error);
+                        statusElement.textContent = 'Connection Failed';
+                        statusElement.style.color = '#f44336';
+                    }
+                } else {
+                    console.warn('Kinect integration not available - running in demo mode');
+                    statusElement.textContent = 'Demo Mode';
+                    statusElement.style.color = '#ff9800';
+
+                    // Generate demo topology data
+                    generateDemoTopology();
+                }
+            } else {
+                statusElement.textContent = 'Disconnected';
+                statusElement.style.color = '#666';
+                console.log('📷 Kinect mode: OFF');
+
+                // Disconnect WebSocket if connected
+                if (typeof kinectIntegration !== 'undefined' && kinectIntegration) {
+                    try {
+                        kinectIntegration.disconnect();
+                    } catch (error) {
+                        console.warn('WebSocket disconnect failed:', error);
+                    }
+                }
+            }
+        }
+
+        function generateDemoTopology() {
+            console.log('🎯 Generating demo topology with elevation-based colors...');
+
+            if (!voxelSandbox) return;
+
+            // Clear existing voxels
+            voxelSandbox.voxels.clear();
+
+            // Create demo elevation data
+            const width = 50;
+            const height = 40;
+
+            for (let y = 0; y < height; y += 2) {
+                for (let x = 0; x < width; x += 2) {
+                    // Create elevation pattern (hills and valleys)
+                    const centerX = width / 2;
+                    const centerY = height / 2;
+                    const distance = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
+                    const elevation = Math.max(0, 1 - distance / 25) + Math.sin(x * 0.3) * 0.2 + Math.cos(y * 0.3) * 0.2;
+
+                    // Normalize elevation 0-1
+                    const normalizedElevation = Math.max(0, Math.min(1, elevation));
+
+                    // Apply elevation-based material selection (same as real Kinect processing)
+                    let material;
+                    if (normalizedElevation < 0.1) {
+                        material = 'deep_water'; // Navy - Lowest points
+                    } else if (normalizedElevation < 0.2) {
+                        material = 'water'; // Blue - Sea level
+                    } else if (normalizedElevation < 0.25) {
+                        material = 'shore'; // Sand mixed with blue - Shores
+                    } else if (normalizedElevation < 0.35) {
+                        material = 'sand'; // Sand - Base level
+                    } else if (normalizedElevation < 0.5) {
+                        material = 'dirt'; // Orange - Low elevation
+                    } else if (normalizedElevation < 0.65) {
+                        material = 'grass'; // Green - Medium elevation
+                    } else if (normalizedElevation < 0.8) {
+                        material = 'sediment'; // Red/Orange - Sediment/Stone
+                    } else if (normalizedElevation < 0.9) {
+                        material = 'rock'; // Yellow - Rock
+                    } else {
+                        material = 'snow'; // White - Snow peaks (highest)
+                    }
+
+                    voxelSandbox.placeVoxel(Math.floor(x / 2), Math.floor(y / 2), material);
+                }
+            }
+
+            console.log(`🎨 Demo topology created: ${voxelSandbox.voxels.size} voxels with elevation colors`);
+        }
+        
+        // Initialize
+        let voxelSandbox;
+        document.addEventListener('DOMContentLoaded', () => {
+            voxelSandbox = new VoxelARSandbox();
+        });
+    </script>
+    
+    <!-- Kinect WebSocket Integration -->
+    <script src="js/kinect_websocket_integration.js"></script>
+    <script>
+        // Connect voxel sandbox to Kinect
+        let kinectIntegration;
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            try {
+                // Check if KinectWebSocketIntegration is available
+                if (typeof KinectWebSocketIntegration !== 'undefined') {
+                    kinectIntegration = new KinectWebSocketIntegration({
+                        onConnect: () => {
+                            console.log('✅ Voxel AR Sandbox connected to Kinect streaming server');
+                            const statusElement = document.getElementById('kinect-status');
+                            statusElement.textContent = 'Connected';
+                            statusElement.style.color = '#4CAF50';
+                        },
+                        onDisconnect: () => {
+                            console.log('❌ Voxel AR Sandbox disconnected from Kinect');
+                            const statusElement = document.getElementById('kinect-status');
+                            statusElement.textContent = 'Disconnected';
+                            statusElement.style.color = '#666';
+                        },
+                        onError: (error) => {
+                            console.error('🔥 WebSocket error:', error);
+                            const statusElement = document.getElementById('kinect-status');
+                            statusElement.textContent = 'Connection Error';
+                            statusElement.style.color = '#f44336';
+                        },
+                        onFrameData: (frameData) => {
+                            if (voxelSandbox && kinectMode) {
+                                console.log('📡 Received Kinect frame data:', {
+                                    type: frameData.type,
+                                    timestamp: frameData.timestamp,
+                                    depthDataLength: frameData.kinect_depth ? frameData.kinect_depth.length : 0,
+                                    magicSandProcessed: frameData.magic_sand_processed
+                                });
+                                voxelSandbox.updateFromKinectData(frameData);
+
+                                // Force a render update
+                                voxelSandbox.render();
+                            }
+                        }
+                    });
+
+                    // Auto-connect if Kinect mode is enabled
+                    if (kinectMode) {
+                        kinectIntegration.connect();
+                    }
+
+                    console.log('🔗 Kinect WebSocket integration ready');
+                } else {
+                    console.warn('⚠️ KinectWebSocketIntegration not available - running in standalone mode');
+                    const statusElement = document.getElementById('kinect-status');
+                    statusElement.textContent = 'Standalone Mode';
+                    statusElement.style.color = '#ff9800';
+                }
+            } catch (error) {
+                console.error('🔥 Failed to initialize Kinect integration:', error);
+                const statusElement = document.getElementById('kinect-status');
+                statusElement.textContent = 'Initialization Failed';
+                statusElement.style.color = '#f44336';
+            }
+        });
+    </script>
+</body>
+</html>

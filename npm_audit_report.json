@@ -1,0 +1,880 @@
+{
+  "auditReportVersion": 2,
+  "vulnerabilities": {
+    "@tensorflow-models/blazeface": {
+      "name": "@tensorflow-models/blazeface",
+      "severity": "low",
+      "isDirect": false,
+      "via": [
+        "@tensorflow/tfjs-converter",
+        "@tensorflow/tfjs-core"
+      ],
+      "effects": [
+        "@tensorflow-models/facemesh"
+      ],
+      "range": "<=0.0.5",
+      "nodes": [
+        "node_modules/ml5/node_modules/@tensorflow-models/facemesh/node_modules/@tensorflow-models/blazeface"
+      ],
+      "fixAvailable": true
+    },
+    "@tensorflow-models/body-pix": {
+      "name": "@tensorflow-models/body-pix",
+      "severity": "low",
+      "isDirect": false,
+      "via": [
+        "@tensorflow/tfjs-converter",
+        "@tensorflow/tfjs-core"
+      ],
+      "effects": [],
+      "range": "1.1.0 - 2.0.5",
+      "nodes": [
+        "node_modules/@tensorflow-models/body-pix"
+      ],
+      "fixAvailable": true
+    },
+    "@tensorflow-models/facemesh": {
+      "name": "@tensorflow-models/facemesh",
+      "severity": "low",
+      "isDirect": false,
+      "via": [
+        "@tensorflow-models/blazeface",
+        "@tensorflow/tfjs-converter",
+        "@tensorflow/tfjs-core"
+      ],
+      "effects": [],
+      "range": "*",
+      "nodes": [
+        "node_modules/ml5/node_modules/@tensorflow-models/facemesh"
+      ],
+      "fixAvailable": true
+    },
+    "@tensorflow-models/handpose": {
+      "name": "@tensorflow-models/handpose",
+      "severity": "low",
+      "isDirect": false,
+      "via": [
+        "@tensorflow/tfjs-converter",
+        "@tensorflow/tfjs-core"
+      ],
+      "effects": [],
+      "range": "<=0.0.5",
+      "nodes": [
+        "node_modules/ml5/node_modules/@tensorflow-models/handpose"
+      ],
+      "fixAvailable": true
+    },
+    "@tensorflow-models/knn-classifier": {
+      "name": "@tensorflow-models/knn-classifier",
+      "severity": "low",
+      "isDirect": false,
+      "via": [
+        "@tensorflow/tfjs-core"
+      ],
+      "effects": [],
+      "range": "1.2.0 - 1.2.2",
+      "nodes": [
+        "node_modules/@tensorflow-models/knn-classifier"
+      ],
+      "fixAvailable": true
+    },
+    "@tensorflow-models/mobilenet": {
+      "name": "@tensorflow-models/mobilenet",
+      "severity": "low",
+      "isDirect": false,
+      "via": [
+        "@tensorflow/tfjs-converter",
+        "@tensorflow/tfjs-core"
+      ],
+      "effects": [],
+      "range": "2.0.2 - 2.0.4",
+      "nodes": [
+        "node_modules/@tensorflow-models/mobilenet"
+      ],
+      "fixAvailable": true
+    },
+    "@tensorflow-models/speech-commands": {
+      "name": "@tensorflow-models/speech-commands",
+      "severity": "low",
+      "isDirect": false,
+      "via": [
+        "@tensorflow/tfjs"
+      ],
+      "effects": [
+        "ml5"
+      ],
+      "range": "0.3.6 - 0.4.2",
+      "nodes": [
+        "node_modules/ml5/node_modules/@tensorflow-models/speech-commands"
+      ],
+      "fixAvailable": {
+        "name": "ml5",
+        "version": "1.2.1",
+        "isSemVerMajor": true
+      }
+    },
+    "@tensorflow/tfjs": {
+      "name": "@tensorflow/tfjs",
+      "severity": "low",
+      "isDirect": false,
+      "via": [
+        "@tensorflow/tfjs-converter",
+        "@tensorflow/tfjs-core",
+        "@tensorflow/tfjs-data",
+        "@tensorflow/tfjs-layers"
+      ],
+      "effects": [
+        "@tensorflow-models/speech-commands",
+        "ml5"
+      ],
+      "range": "0.14.0 - 2.4.0",
+      "nodes": [
+        "node_modules/@magenta/sketch/node_modules/@tensorflow/tfjs",
+        "node_modules/ml5/node_modules/@tensorflow/tfjs"
+      ],
+      "fixAvailable": {
+        "name": "ml5",
+        "version": "1.2.1",
+        "isSemVerMajor": true
+      }
+    },
+    "@tensorflow/tfjs-converter": {
+      "name": "@tensorflow/tfjs-converter",
+      "severity": "low",
+      "isDirect": false,
+      "via": [
+        "@tensorflow/tfjs-core"
+      ],
+      "effects": [],
+      "range": "1.1.0 - 2.4.0",
+      "nodes": [
+        "node_modules/@magenta/sketch/node_modules/@tensorflow/tfjs-converter",
+        "node_modules/@tensorflow/tfjs-converter",
+        "node_modules/ml5/node_modules/@tensorflow/tfjs/node_modules/@tensorflow/tfjs-converter"
+      ],
+      "fixAvailable": true
+    },
+    "@tensorflow/tfjs-core": {
+      "name": "@tensorflow/tfjs-core",
+      "severity": "low",
+      "isDirect": false,
+      "via": [
+        "node-fetch"
+      ],
+      "effects": [
+        "@tensorflow-models/blazeface",
+        "@tensorflow-models/body-pix",
+        "@tensorflow-models/facemesh",
+        "@tensorflow-models/handpose",
+        "@tensorflow-models/knn-classifier",
+        "@tensorflow-models/mobilenet",
+        "@tensorflow/tfjs",
+        "@tensorflow/tfjs-converter",
+        "@tensorflow/tfjs-data",
+        "@tensorflow/tfjs-layers",
+        "face-api.js"
+      ],
+      "range": "1.1.0 - 2.4.0",
+      "nodes": [
+        "node_modules/@magenta/sketch/node_modules/@tensorflow/tfjs-core",
+        "node_modules/@tensorflow/tfjs-core",
+        "node_modules/face-api.js/node_modules/@tensorflow/tfjs-core",
+        "node_modules/ml5/node_modules/@tensorflow/tfjs/node_modules/@tensorflow/tfjs-core"
+      ],
+      "fixAvailable": {
+        "name": "ml5",
+        "version": "1.2.1",
+        "isSemVerMajor": true
+      }
+    },
+    "@tensorflow/tfjs-data": {
+      "name": "@tensorflow/tfjs-data",
+      "severity": "low",
+      "isDirect": false,
+      "via": [
+        "@tensorflow/tfjs-core",
+        "node-fetch"
+      ],
+      "effects": [
+        "@tensorflow/tfjs"
+      ],
+      "range": "<=2.4.0",
+      "nodes": [
+        "node_modules/@magenta/sketch/node_modules/@tensorflow/tfjs-data",
+        "node_modules/ml5/node_modules/@tensorflow/tfjs/node_modules/@tensorflow/tfjs-data"
+      ],
+      "fixAvailable": {
+        "name": "ml5",
+        "version": "1.2.1",
+        "isSemVerMajor": true
+      }
+    },
+    "@tensorflow/tfjs-layers": {
+      "name": "@tensorflow/tfjs-layers",
+      "severity": "low",
+      "isDirect": false,
+      "via": [
+        "@tensorflow/tfjs-core"
+      ],
+      "effects": [],
+      "range": "1.1.0 - 2.4.0",
+      "nodes": [
+        "node_modules/@magenta/sketch/node_modules/@tensorflow/tfjs-layers",
+        "node_modules/ml5/node_modules/@tensorflow/tfjs/node_modules/@tensorflow/tfjs-layers"
+      ],
+      "fixAvailable": true
+    },
+    "@tensorflow/tfjs-vis": {
+      "name": "@tensorflow/tfjs-vis",
+      "severity": "high",
+      "isDirect": false,
+      "via": [
+        "glamor",
+        "vega"
+      ],
+      "effects": [],
+      "range": "*",
+      "nodes": [
+        "node_modules/@tensorflow/tfjs-vis"
+      ],
+      "fixAvailable": true
+    },
+    "@vitest/ui": {
+      "name": "@vitest/ui",
+      "severity": "moderate",
+      "isDirect": true,
+      "via": [
+        "vitest"
+      ],
+      "effects": [
+        "vitest"
+      ],
+      "range": "<=0.0.122 || 0.31.0 - 2.2.0-beta.2",
+      "nodes": [
+        "node_modules/@vitest/ui"
+      ],
+      "fixAvailable": {
+        "name": "@vitest/ui",
+        "version": "3.2.4",
+        "isSemVerMajor": true
+      }
+    },
+    "axios": {
+      "name": "axios",
+      "severity": "high",
+      "isDirect": false,
+      "via": [
+        {
+          "source": 1097679,
+          "name": "axios",
+          "dependency": "axios",
+          "title": "Axios Cross-Site Request Forgery Vulnerability",
+          "url": "https://github.com/advisories/GHSA-wf5p-g6vw-rhxx",
+          "severity": "moderate",
+          "cwe": [
+            "CWE-352"
+          ],
+          "cvss": {
+            "score": 6.5,
+            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:H/I:N/A:N"
+          },
+          "range": ">=0.8.1 <0.28.0"
+        },
+        {
+          "source": 1103617,
+          "name": "axios",
+          "dependency": "axios",
+          "title": "axios Requests Vulnerable To Possible SSRF and Credential Leakage via Absolute URL",
+          "url": "https://github.com/advisories/GHSA-jr5f-v2jv-69x6",
+          "severity": "high",
+          "cwe": [
+            "CWE-918"
+          ],
+          "cvss": {
+            "score": 0,
+            "vectorString": null
+          },
+          "range": "<0.30.0"
+        }
+      ],
+      "effects": [
+        "ml5"
+      ],
+      "range": "<=0.29.0",
+      "nodes": [
+        "node_modules/axios"
+      ],
+      "fixAvailable": {
+        "name": "ml5",
+        "version": "1.2.1",
+        "isSemVerMajor": true
+      }
+    },
+    "d3-color": {
+      "name": "d3-color",
+      "severity": "high",
+      "isDirect": false,
+      "via": [
+        {
+          "source": 1088594,
+          "name": "d3-color",
+          "dependency": "d3-color",
+          "title": "d3-color vulnerable to ReDoS",
+          "url": "https://github.com/advisories/GHSA-36jr-mh4h-2g58",
+          "severity": "high",
+          "cwe": [
+            "CWE-400"
+          ],
+          "cvss": {
+            "score": 0,
+            "vectorString": null
+          },
+          "range": "<3.1.0"
+        }
+      ],
+      "effects": [
+        "d3-interpolate",
+        "vega-functions",
+        "vega-geo"
+      ],
+      "range": "<3.1.0",
+      "nodes": [
+        "node_modules/d3-color"
+      ],
+      "fixAvailable": true
+    },
+    "d3-interpolate": {
+      "name": "d3-interpolate",
+      "severity": "high",
+      "isDirect": false,
+      "via": [
+        "d3-color"
+      ],
+      "effects": [
+        "d3-scale",
+        "vega-encode",
+        "vega-scale"
+      ],
+      "range": "0.1.3 - 2.0.1",
+      "nodes": [
+        "node_modules/d3-interpolate"
+      ],
+      "fixAvailable": true
+    },
+    "d3-scale": {
+      "name": "d3-scale",
+      "severity": "high",
+      "isDirect": false,
+      "via": [
+        "d3-interpolate"
+      ],
+      "effects": [
+        "vega-scale"
+      ],
+      "range": "0.1.5 - 3.3.0",
+      "nodes": [
+        "node_modules/d3-scale"
+      ],
+      "fixAvailable": true
+    },
+    "esbuild": {
+      "name": "esbuild",
+      "severity": "moderate",
+      "isDirect": false,
+      "via": [
+        {
+          "source": 1102341,
+          "name": "esbuild",
+          "dependency": "esbuild",
+          "title": "esbuild enables any website to send any requests to the development server and read the response",
+          "url": "https://github.com/advisories/GHSA-67mh-4wv8-2f99",
+          "severity": "moderate",
+          "cwe": [
+            "CWE-346"
+          ],
+          "cvss": {
+            "score": 5.3,
+            "vectorString": "CVSS:3.1/AV:N/AC:H/PR:N/UI:R/S:U/C:H/I:N/A:N"
+          },
+          "range": "<=0.24.2"
+        }
+      ],
+      "effects": [
+        "vite"
+      ],
+      "range": "<=0.24.2",
+      "nodes": [
+        "node_modules/esbuild"
+      ],
+      "fixAvailable": {
+        "name": "vite",
+        "version": "7.0.0",
+        "isSemVerMajor": true
+      }
+    },
+    "face-api.js": {
+      "name": "face-api.js",
+      "severity": "low",
+      "isDirect": false,
+      "via": [
+        "@tensorflow/tfjs-core"
+      ],
+      "effects": [
+        "ml5"
+      ],
+      "range": ">=0.20.1",
+      "nodes": [
+        "node_modules/face-api.js"
+      ],
+      "fixAvailable": {
+        "name": "ml5",
+        "version": "1.2.1",
+        "isSemVerMajor": true
+      }
+    },
+    "fbjs": {
+      "name": "fbjs",
+      "severity": "high",
+      "isDirect": false,
+      "via": [
+        "isomorphic-fetch"
+      ],
+      "effects": [
+        "glamor"
+      ],
+      "range": "0.7.0 - 1.0.0",
+      "nodes": [
+        "node_modules/fbjs"
+      ],
+      "fixAvailable": true
+    },
+    "glamor": {
+      "name": "glamor",
+      "severity": "high",
+      "isDirect": false,
+      "via": [
+        "fbjs"
+      ],
+      "effects": [
+        "@tensorflow/tfjs-vis"
+      ],
+      "range": ">=2.17.10",
+      "nodes": [
+        "node_modules/glamor"
+      ],
+      "fixAvailable": true
+    },
+    "isomorphic-fetch": {
+      "name": "isomorphic-fetch",
+      "severity": "high",
+      "isDirect": false,
+      "via": [
+        "node-fetch"
+      ],
+      "effects": [
+        "fbjs"
+      ],
+      "range": "2.0.0 - 2.2.1",
+      "nodes": [
+        "node_modules/isomorphic-fetch"
+      ],
+      "fixAvailable": true
+    },
+    "ml5": {
+      "name": "ml5",
+      "severity": "high",
+      "isDirect": true,
+      "via": [
+        "@tensorflow-models/body-pix",
+        "@tensorflow-models/facemesh",
+        "@tensorflow-models/handpose",
+        "@tensorflow-models/knn-classifier",
+        "@tensorflow-models/mobilenet",
+        "@tensorflow-models/speech-commands",
+        "@tensorflow/tfjs",
+        "@tensorflow/tfjs-converter",
+        "@tensorflow/tfjs-core",
+        "axios",
+        "face-api.js"
+      ],
+      "effects": [],
+      "range": "0.3.0 - 0.12.2",
+      "nodes": [
+        "node_modules/ml5"
+      ],
+      "fixAvailable": {
+        "name": "ml5",
+        "version": "1.2.1",
+        "isSemVerMajor": true
+      }
+    },
+    "node-fetch": {
+      "name": "node-fetch",
+      "severity": "high",
+      "isDirect": false,
+      "via": [
+        {
+          "source": 1095073,
+          "name": "node-fetch",
+          "dependency": "node-fetch",
+          "title": "node-fetch forwards secure headers to untrusted sites",
+          "url": "https://github.com/advisories/GHSA-r683-j2x4-v87g",
+          "severity": "high",
+          "cwe": [
+            "CWE-173",
+            "CWE-200",
+            "CWE-601"
+          ],
+          "cvss": {
+            "score": 8.8,
+            "vectorString": "CVSS:3.0/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:H"
+          },
+          "range": "<2.6.7"
+        },
+        {
+          "source": 1098225,
+          "name": "node-fetch",
+          "dependency": "node-fetch",
+          "title": "The `size` option isn't honored after following a redirect in node-fetch",
+          "url": "https://github.com/advisories/GHSA-w7rc-rwvf-8q5r",
+          "severity": "low",
+          "cwe": [
+            "CWE-20",
+            "CWE-770"
+          ],
+          "cvss": {
+            "score": 2.6,
+            "vectorString": "CVSS:3.1/AV:N/AC:H/PR:L/UI:R/S:U/C:N/I:N/A:L"
+          },
+          "range": ">=2.0.0 <2.6.1"
+        }
+      ],
+      "effects": [
+        "@tensorflow/tfjs-core",
+        "@tensorflow/tfjs-data",
+        "isomorphic-fetch"
+      ],
+      "range": "<=2.6.6",
+      "nodes": [
+        "node_modules/isomorphic-fetch/node_modules/node-fetch",
+        "node_modules/node-fetch"
+      ],
+      "fixAvailable": {
+        "name": "ml5",
+        "version": "1.2.1",
+        "isSemVerMajor": true
+      }
+    },
+    "vega": {
+      "name": "vega",
+      "severity": "high",
+      "isDirect": false,
+      "via": [
+        {
+          "source": 1091316,
+          "name": "vega",
+          "dependency": "vega",
+          "title": "Vega Expression Language `scale` expression function Cross Site Scripting",
+          "url": "https://github.com/advisories/GHSA-4vq7-882g-wcg4",
+          "severity": "moderate",
+          "cwe": [
+            "CWE-79"
+          ],
+          "cvss": {
+            "score": 6.1,
+            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N"
+          },
+          "range": "<5.23.0"
+        },
+        {
+          "source": 1091331,
+          "name": "vega",
+          "dependency": "vega",
+          "title": "Vega has Cross-site Scripting vulnerability in `lassoAppend` function",
+          "url": "https://github.com/advisories/GHSA-w5m3-xh75-mp55",
+          "severity": "moderate",
+          "cwe": [
+            "CWE-79"
+          ],
+          "cvss": {
+            "score": 6.1,
+            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N"
+          },
+          "range": "<5.23.0"
+        },
+        {
+          "source": 1102263,
+          "name": "vega",
+          "dependency": "vega",
+          "title": "Vega allows Cross-site Scripting via the vlSelectionTuples function",
+          "url": "https://github.com/advisories/GHSA-mp7w-mhcv-673j",
+          "severity": "moderate",
+          "cwe": [
+            "CWE-79"
+          ],
+          "cvss": {
+            "score": 0,
+            "vectorString": null
+          },
+          "range": "<5.26.0"
+        },
+        {
+          "source": 1103604,
+          "name": "vega",
+          "dependency": "vega",
+          "title": "Vega vulnerable to Cross-site Scripting via RegExp.prototype[@@replace]",
+          "url": "https://github.com/advisories/GHSA-963h-3v39-3pqf",
+          "severity": "moderate",
+          "cwe": [
+            "CWE-79",
+            "CWE-87"
+          ],
+          "cvss": {
+            "score": 0,
+            "vectorString": null
+          },
+          "range": "<5.32.0"
+        },
+        {
+          "source": 1103894,
+          "name": "vega",
+          "dependency": "vega",
+          "title": "Vega Cross-Site Scripting (XSS) via event filter when not using CSP mode expressionInterpeter",
+          "url": "https://github.com/advisories/GHSA-rcw3-wmx7-cphr",
+          "severity": "moderate",
+          "cwe": [
+            "CWE-79"
+          ],
+          "cvss": {
+            "score": 6.1,
+            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N"
+          },
+          "range": "<5.31.0"
+        },
+        "vega-encode",
+        "vega-functions",
+        "vega-geo",
+        "vega-scale"
+      ],
+      "effects": [
+        "@tensorflow/tfjs-vis"
+      ],
+      "range": "<=5.31.0",
+      "nodes": [
+        "node_modules/vega"
+      ],
+      "fixAvailable": true
+    },
+    "vega-encode": {
+      "name": "vega-encode",
+      "severity": "high",
+      "isDirect": false,
+      "via": [
+        "d3-interpolate"
+      ],
+      "effects": [
+        "vega"
+      ],
+      "range": "<=4.8.3",
+      "nodes": [
+        "node_modules/vega-encode"
+      ],
+      "fixAvailable": true
+    },
+    "vega-functions": {
+      "name": "vega-functions",
+      "severity": "high",
+      "isDirect": false,
+      "via": [
+        {
+          "source": 1091317,
+          "name": "vega-functions",
+          "dependency": "vega-functions",
+          "title": "Vega Expression Language `scale` expression function Cross Site Scripting",
+          "url": "https://github.com/advisories/GHSA-4vq7-882g-wcg4",
+          "severity": "moderate",
+          "cwe": [
+            "CWE-79"
+          ],
+          "cvss": {
+            "score": 6.1,
+            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N"
+          },
+          "range": "<5.13.1"
+        },
+        {
+          "source": 1091330,
+          "name": "vega-functions",
+          "dependency": "vega-functions",
+          "title": "Vega has Cross-site Scripting vulnerability in `lassoAppend` function",
+          "url": "https://github.com/advisories/GHSA-w5m3-xh75-mp55",
+          "severity": "moderate",
+          "cwe": [
+            "CWE-79"
+          ],
+          "cvss": {
+            "score": 6.1,
+            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N"
+          },
+          "range": "<5.13.1"
+        },
+        {
+          "source": 1103603,
+          "name": "vega-functions",
+          "dependency": "vega-functions",
+          "title": "Vega vulnerable to Cross-site Scripting via RegExp.prototype[@@replace]",
+          "url": "https://github.com/advisories/GHSA-963h-3v39-3pqf",
+          "severity": "moderate",
+          "cwe": [
+            "CWE-79",
+            "CWE-87"
+          ],
+          "cvss": {
+            "score": 0,
+            "vectorString": null
+          },
+          "range": "<5.17.0"
+        },
+        {
+          "source": 1103893,
+          "name": "vega-functions",
+          "dependency": "vega-functions",
+          "title": "Vega Cross-Site Scripting (XSS) via event filter when not using CSP mode expressionInterpeter",
+          "url": "https://github.com/advisories/GHSA-rcw3-wmx7-cphr",
+          "severity": "moderate",
+          "cwe": [
+            "CWE-79"
+          ],
+          "cvss": {
+            "score": 6.1,
+            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N"
+          },
+          "range": "<5.16.0"
+        },
+        "d3-color"
+      ],
+      "effects": [
+        "vega"
+      ],
+      "range": "<=5.16.0",
+      "nodes": [
+        "node_modules/vega-functions"
+      ],
+      "fixAvailable": true
+    },
+    "vega-geo": {
+      "name": "vega-geo",
+      "severity": "high",
+      "isDirect": false,
+      "via": [
+        "d3-color"
+      ],
+      "effects": [
+        "vega"
+      ],
+      "range": "4.2.0 - 4.3.8",
+      "nodes": [
+        "node_modules/vega-geo"
+      ],
+      "fixAvailable": true
+    },
+    "vega-scale": {
+      "name": "vega-scale",
+      "severity": "high",
+      "isDirect": false,
+      "via": [
+        "d3-interpolate",
+        "d3-scale"
+      ],
+      "effects": [
+        "vega"
+      ],
+      "range": "<=7.1.1",
+      "nodes": [
+        "node_modules/vega-scale"
+      ],
+      "fixAvailable": true
+    },
+    "vite": {
+      "name": "vite",
+      "severity": "moderate",
+      "isDirect": true,
+      "via": [
+        "esbuild"
+      ],
+      "effects": [
+        "vite-node",
+        "vitest"
+      ],
+      "range": "0.11.0 - 6.1.6",
+      "nodes": [
+        "node_modules/vite"
+      ],
+      "fixAvailable": {
+        "name": "vite",
+        "version": "7.0.0",
+        "isSemVerMajor": true
+      }
+    },
+    "vite-node": {
+      "name": "vite-node",
+      "severity": "moderate",
+      "isDirect": false,
+      "via": [
+        "vite"
+      ],
+      "effects": [
+        "vitest"
+      ],
+      "range": "<=2.2.0-beta.2",
+      "nodes": [
+        "node_modules/vite-node"
+      ],
+      "fixAvailable": {
+        "name": "vitest",
+        "version": "3.2.4",
+        "isSemVerMajor": true
+      }
+    },
+    "vitest": {
+      "name": "vitest",
+      "severity": "moderate",
+      "isDirect": true,
+      "via": [
+        "@vitest/ui",
+        "vite",
+        "vite-node"
+      ],
+      "effects": [
+        "@vitest/ui"
+      ],
+      "range": "0.0.1 - 0.0.12 || 0.0.29 - 0.0.122 || 0.3.3 - 2.2.0-beta.2",
+      "nodes": [
+        "node_modules/vitest"
+      ],
+      "fixAvailable": {
+        "name": "vitest",
+        "version": "3.2.4",
+        "isSemVerMajor": true
+      }
+    }
+  },
+  "metadata": {
+    "vulnerabilities": {
+      "info": 0,
+      "low": 13,
+      "moderate": 5,
+      "high": 15,
+      "critical": 0,
+      "total": 33
+    },
+    "dependencies": {
+      "prod": 326,
+      "dev": 281,
+      "optional": 44,
+      "peer": 4,
+      "peerOptional": 0,
+      "total": 611
+    }
+  }
+}

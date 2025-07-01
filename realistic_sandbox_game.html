@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Realistic AR Sandbox - RC Construction Site</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #2c3e50;
+            font-family: 'Arial', sans-serif;
+            overflow: hidden;
+            color: #ecf0f1;
+        }
+        
+        #gameContainer {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        #webcamVideo {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 1;
+            opacity: 0.8;
+        }
+        
+        #sandboxCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+            cursor: crosshair;
+        }
+        
+        .hud {
+            position: absolute;
+            background: rgba(44, 62, 80, 0.9);
+            border: 2px solid #3498db;
+            border-radius: 8px;
+            padding: 12px;
+            z-index: 10;
+            font-size: 14px;
+        }
+        
+        #topHUD {
+            top: 20px;
+            left: 20px;
+            width: 300px;
+        }
+        
+        #toolPanel {
+            top: 20px;
+            right: 20px;
+            width: 200px;
+        }
+        
+        #vehiclePanel {
+            bottom: 20px;
+            left: 20px;
+            width: 250px;
+        }
+        
+        #statusPanel {
+            bottom: 20px;
+            right: 20px;
+            width: 200px;
+        }
+        
+        .tool-btn {
+            background: #34495e;
+            border: 1px solid #7f8c8d;
+            color: #ecf0f1;
+            padding: 8px 12px;
+            margin: 3px;
+            border-radius: 4px;
+            cursor: pointer;
+            display: inline-block;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+        
+        .tool-btn:hover {
+            background: #3498db;
+            border-color: #2980b9;
+        }
+        
+        .tool-btn.active {
+            background: #e74c3c;
+            border-color: #c0392b;
+        }
+        
+        .vehicle-item {
+            background: #2c3e50;
+            border: 1px solid #34495e;
+            padding: 8px;
+            margin: 4px 0;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .vehicle-item:hover {
+            background: #34495e;
+            border-color: #3498db;
+        }
+        
+        .vehicle-item.working {
+            background: #27ae60;
+            border-color: #2ecc71;
+        }
+        
+        .status-bar {
+            width: 100%;
+            height: 8px;
+            background: #34495e;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 5px 0;
+        }
+        
+        .status-fill {
+            height: 100%;
+            background: #2ecc71;
+            transition: width 0.3s ease;
+        }
+        
+        h4 {
+            margin: 0 0 10px 0;
+            color: #3498db;
+            font-size: 16px;
+        }
+        
+        .info-line {
+            margin: 5px 0;
+            font-size: 12px;
+        }
+        
+        .coordinates {
+            font-family: 'Courier New', monospace;
+            color: #f39c12;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <!-- Webcam background -->
+        <video id="webcamVideo" autoplay muted playsinline></video>
+        
+        <!-- Sandbox canvas -->
+        <canvas id="sandboxCanvas"></canvas>
+        
+        <!-- HUD Panels -->
+        <div id="topHUD" class="hud">
+            <h4>🏗️ RC CONSTRUCTION SITE</h4>
+            <div class="info-line">Mode: <span id="currentTool">Sand</span></div>
+            <div class="info-line">Brush Size: <span id="brushSize">20</span>px</div>
+            <div class="info-line coordinates">X: <span id="mouseX">0</span> Y: <span id="mouseY">0</span></div>
+            <div class="info-line">Active Vehicles: <span id="activeVehicles">0</span>/5</div>
+            <div class="info-line">FPS: <span id="fpsDisplay">--</span></div>
+        </div>
+        
+        <div id="toolPanel" class="hud">
+            <h4>🛠️ TOOLS</h4>
+            <div class="tool-btn active" onclick="selectTool('sand')">🏔️ Add Sand</div>
+            <div class="tool-btn" onclick="selectTool('dig')">⛏️ Dig</div>
+            <div class="tool-btn" onclick="selectTool('water')">💧 Water</div>
+            <div class="tool-btn" onclick="selectTool('road')">🛣️ Road</div>
+            <div class="tool-btn" onclick="selectTool('fire')">🔥 Fire</div>
+            <br><br>
+            <div>Brush Size:</div>
+            <input type="range" min="5" max="50" value="20" id="brushSlider" 
+                   onchange="updateBrushSize(this.value)" style="width: 100%;">
+            <br><br>
+            <div class="tool-btn" onclick="clearSandbox()">🗑️ Clear All</div>
+            <div class="tool-btn" onclick="saveSnapshot()">📸 Save</div>
+        </div>
+        
+        <div id="vehiclePanel" class="hud">
+            <h4>🚛 RC VEHICLES</h4>
+            <div class="vehicle-item" onclick="toggleVehicle('excavator')">
+                <div>🚜 Excavator</div>
+                <div style="font-size: 10px;">Status: <span id="excavator-status">IDLE</span></div>
+            </div>
+            <div class="vehicle-item" onclick="toggleVehicle('bulldozer')">
+                <div>🚛 Bulldozer</div>
+                <div style="font-size: 10px;">Status: <span id="bulldozer-status">IDLE</span></div>
+            </div>
+            <div class="vehicle-item" onclick="toggleVehicle('dumptruck')">
+                <div>🚚 Dump Truck</div>
+                <div style="font-size: 10px;">Status: <span id="dumptruck-status">IDLE</span></div>
+            </div>
+            <div class="vehicle-item" onclick="toggleVehicle('crane')">
+                <div>🏗️ Crane</div>
+                <div style="font-size: 10px;">Status: <span id="crane-status">IDLE</span></div>
+            </div>
+            <div class="vehicle-item" onclick="toggleVehicle('compactor')">
+                <div>🚧 Compactor</div>
+                <div style="font-size: 10px;">Status: <span id="compactor-status">IDLE</span></div>
+            </div>
+        </div>
+        
+        <div id="statusPanel" class="hud">
+            <h4>📊 STATUS</h4>
+            <div class="info-line">Sand Volume:</div>
+            <div class="status-bar">
+                <div class="status-fill" id="sandVolume" style="width: 0%"></div>
+            </div>
+            <div class="info-line">Water Level:</div>
+            <div class="status-bar">
+                <div class="status-fill" id="waterLevel" style="width: 0%"></div>
+            </div>
+            <div class="info-line">Road Coverage:</div>
+            <div class="status-bar">
+                <div class="status-fill" id="roadCoverage" style="width: 0%"></div>
+            </div>
+            <div class="info-line">Project Progress:</div>
+            <div class="status-bar">
+                <div class="status-fill" id="projectProgress" style="width: 0%"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Game state - much simpler and more realistic
+        const gameState = {
+            currentTool: 'sand',
+            brushSize: 20,
+            isDrawing: false,
+            mouseX: 0,
+            mouseY: 0,
+            
+            // Terrain data as a simple 2D grid
+            terrainGrid: [],
+            gridWidth: 100,
+            gridHeight: 75,
+            
+            // Vehicle states with physics
+            vehicles: {
+                excavator: { x: 100, y: 100, active: false, speed: 2.0, vx: 0, vy: 0, targetX: 100, targetY: 100, task: 'idle' },
+                bulldozer: { x: 150, y: 100, active: false, speed: 1.8, vx: 0, vy: 0, targetX: 150, targetY: 150, task: 'idle' },
+                dumptruck: { x: 200, y: 100, active: false, speed: 2.5, vx: 0, vy: 0, targetX: 200, targetY: 200, task: 'idle' },
+                crane: { x: 250, y: 100, active: false, speed: 1.0, vx: 0, vy: 0, targetX: 250, targetY: 250, task: 'idle' },
+                compactor: { x: 300, y: 100, active: false, speed: 1.5, vx: 0, vy: 0, targetX: 300, targetY: 300, task: 'idle' }
+            },
+
+            // Physics simulation
+            physics: {
+                gravity: 0.1,
+                waterFlow: true,
+                erosion: true,
+                settling: true
+            },
+            
+            // Statistics
+            stats: {
+                sandVolume: 0,
+                waterLevel: 0,
+                roadCoverage: 0,
+                projectProgress: 0
+            }
+        };
+        
+        let canvas, ctx, video;
+        let frameCount = 0;
+        let lastTime = Date.now();
+        
+        // Initialize the realistic sandbox
+        async function initSandbox() {
+            console.log('🏗️ Initializing Realistic AR Sandbox...');
+            
+            canvas = document.getElementById('sandboxCanvas');
+            ctx = canvas.getContext('2d');
+            video = document.getElementById('webcamVideo');
+            
+            // Set canvas size
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+            
+            // Initialize terrain grid
+            initTerrainGrid();
+            
+            // Start webcam
+            await startWebcam();
+            
+            // Set up mouse/touch events
+            setupInputEvents();
+            
+            // Start game loop
+            gameLoop();
+            
+            console.log('✅ Realistic sandbox ready!');
+        }
+        
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        
+        function initTerrainGrid() {
+            // Initialize empty terrain grid
+            gameState.terrainGrid = [];
+            for (let y = 0; y < gameState.gridHeight; y++) {
+                gameState.terrainGrid[y] = [];
+                for (let x = 0; x < gameState.gridWidth; x++) {
+                    gameState.terrainGrid[y][x] = {
+                        height: 0,           // 0-100 height
+                        type: 'empty',       // empty, sand, water, road, fire
+                        lastModified: 0,
+                        waterLevel: 0,       // 0-100 water amount
+                        temperature: 20,     // temperature for fire/steam
+                        stability: 100,      // structural stability
+                        flowVelocity: { x: 0, y: 0 }  // water flow direction
+                    };
+                }
+            }
+        }
+        
+        async function startWebcam() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { width: 1280, height: 720, facingMode: 'environment' }
+                });
+                video.srcObject = stream;
+                console.log('📹 Webcam started');
+            } catch (error) {
+                console.log('📹 Webcam not available, using solid background');
+                video.style.display = 'none';
+                document.body.style.background = 'linear-gradient(45deg, #2c3e50, #34495e)';
+            }
+        }
+        
+        function setupInputEvents() {
+            // Mouse events
+            canvas.addEventListener('mousedown', startDrawing);
+            canvas.addEventListener('mousemove', handleMouseMove);
+            canvas.addEventListener('mouseup', stopDrawing);
+            canvas.addEventListener('mouseout', stopDrawing);
+            
+            // Touch events
+            canvas.addEventListener('touchstart', handleTouch);
+            canvas.addEventListener('touchmove', handleTouch);
+            canvas.addEventListener('touchend', stopDrawing);
+            
+            // Keyboard shortcuts
+            document.addEventListener('keydown', handleKeyboard);
+        }
+        
+        function handleMouseMove(e) {
+            const rect = canvas.getBoundingClientRect();
+            gameState.mouseX = Math.round(e.clientX - rect.left);
+            gameState.mouseY = Math.round(e.clientY - rect.top);
+            
+            updateMouseDisplay();
+            
+            if (gameState.isDrawing) {
+                applyTool(gameState.mouseX, gameState.mouseY);
+            }
+        }
+        
+        function startDrawing(e) {
+            gameState.isDrawing = true;
+            handleMouseMove(e);
+        }
+        
+        function stopDrawing() {
+            gameState.isDrawing = false;
+        }
+        
+        function handleTouch(e) {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const rect = canvas.getBoundingClientRect();
+            const x = touch.clientX - rect.left;
+            const y = touch.clientY - rect.top;
+            
+            gameState.mouseX = Math.round(x);
+            gameState.mouseY = Math.round(y);
+            updateMouseDisplay();
+            
+            if (e.type === 'touchstart') {
+                gameState.isDrawing = true;
+            }
+            
+            if (gameState.isDrawing) {
+                applyTool(x, y);
+            }
+        }
+        
+        function handleKeyboard(e) {
+            switch(e.key) {
+                case '1': selectTool('sand'); break;
+                case '2': selectTool('dig'); break;
+                case '3': selectTool('water'); break;
+                case '4': selectTool('road'); break;
+                case 'c': case 'C': clearSandbox(); break;
+                case ' ': e.preventDefault(); clearSandbox(); break;
+            }
+        }
+        
+        function applyTool(x, y) {
+            // Convert screen coordinates to grid coordinates
+            const gridX = Math.floor((x / canvas.width) * gameState.gridWidth);
+            const gridY = Math.floor((y / canvas.height) * gameState.gridHeight);
+            
+            if (gridX < 0 || gridX >= gameState.gridWidth || gridY < 0 || gridY >= gameState.gridHeight) {
+                return;
+            }
+            
+            // Apply tool effect in a brush area
+            const brushRadius = Math.floor(gameState.brushSize / 10);
+            
+            for (let dy = -brushRadius; dy <= brushRadius; dy++) {
+                for (let dx = -brushRadius; dx <= brushRadius; dx++) {
+                    const gx = gridX + dx;
+                    const gy = gridY + dy;
+                    
+                    if (gx >= 0 && gx < gameState.gridWidth && gy >= 0 && gy < gameState.gridHeight) {
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+                        if (distance <= brushRadius) {
+                            applyToolToCell(gx, gy);
+                        }
+                    }
+                }
+            }
+            
+            updateStatistics();
+        }
+        
+        function applyToolToCell(gridX, gridY) {
+            const cell = gameState.terrainGrid[gridY][gridX];
+            
+            switch(gameState.currentTool) {
+                case 'sand':
+                    cell.height = Math.min(100, cell.height + 10);
+                    cell.type = 'sand';
+                    break;
+                case 'dig':
+                    cell.height = Math.max(0, cell.height - 15);
+                    if (cell.height === 0) cell.type = 'empty';
+                    break;
+                case 'water':
+                    cell.type = 'water';
+                    cell.height = Math.max(5, cell.height);
+                    break;
+                case 'road':
+                    cell.type = 'road';
+                    cell.height = Math.max(2, Math.min(10, cell.height));
+                    break;
+            }
+            
+            cell.lastModified = Date.now();
+        }
+        
+        function gameLoop() {
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw terrain
+            drawTerrain();
+            
+            // Update and draw vehicles
+            updateVehicles();
+            drawVehicles();
+            
+            // Update FPS
+            updateFPS();
+            
+            requestAnimationFrame(gameLoop);
+        }
+        
+        function drawTerrain() {
+            const cellWidth = canvas.width / gameState.gridWidth;
+            const cellHeight = canvas.height / gameState.gridHeight;
+            
+            for (let y = 0; y < gameState.gridHeight; y++) {
+                for (let x = 0; x < gameState.gridWidth; x++) {
+                    const cell = gameState.terrainGrid[y][x];
+                    
+                    if (cell.type !== 'empty' && cell.height > 0) {
+                        const screenX = x * cellWidth;
+                        const screenY = y * cellHeight;
+                        
+                        // Choose color based on type and height
+                        let color;
+                        switch(cell.type) {
+                            case 'sand':
+                                const intensity = 0.3 + (cell.height / 100) * 0.7;
+                                color = `rgba(194, 154, 108, ${intensity})`;
+                                break;
+                            case 'water':
+                                color = 'rgba(52, 152, 219, 0.7)';
+                                break;
+                            case 'road':
+                                color = 'rgba(52, 73, 94, 0.8)';
+                                break;
+                            default:
+                                color = 'rgba(127, 140, 141, 0.3)';
+                        }
+                        
+                        ctx.fillStyle = color;
+                        ctx.fillRect(screenX, screenY, cellWidth, cellHeight);
+                        
+                        // Add height shading for sand
+                        if (cell.type === 'sand' && cell.height > 20) {
+                            ctx.fillStyle = `rgba(255, 255, 255, ${(cell.height - 20) / 200})`;
+                            ctx.fillRect(screenX, screenY, cellWidth, cellHeight);
+                        }
+                    }
+                }
+            }
+        }
+        
+        function updateVehicles() {
+            Object.keys(gameState.vehicles).forEach(vehicleId => {
+                const vehicle = gameState.vehicles[vehicleId];
+
+                if (vehicle.active) {
+                    // Update target if reached or none set
+                    const distToTarget = Math.sqrt(
+                        Math.pow(vehicle.targetX - vehicle.x, 2) +
+                        Math.pow(vehicle.targetY - vehicle.y, 2)
+                    );
+
+                    if (distToTarget < 30 || !vehicle.targetX) {
+                        // Set new random target
+                        vehicle.targetX = 50 + Math.random() * (canvas.width - 100);
+                        vehicle.targetY = 50 + Math.random() * (canvas.height - 100);
+                        vehicle.task = ['exploring', 'working', 'patrolling'][Math.floor(Math.random() * 3)];
+                    }
+
+                    // Move towards target with realistic physics
+                    const dx = vehicle.targetX - vehicle.x;
+                    const dy = vehicle.targetY - vehicle.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+
+                    if (distance > 5) {
+                        // Normalize direction and apply speed
+                        const moveX = (dx / distance) * vehicle.speed;
+                        const moveY = (dy / distance) * vehicle.speed;
+
+                        // Add some momentum/inertia
+                        vehicle.vx = vehicle.vx * 0.8 + moveX * 0.2;
+                        vehicle.vy = vehicle.vy * 0.8 + moveY * 0.2;
+
+                        // Apply movement
+                        vehicle.x += vehicle.vx;
+                        vehicle.y += vehicle.vy;
+
+                        // Add slight random variation for realism
+                        vehicle.x += (Math.random() - 0.5) * 0.5;
+                        vehicle.y += (Math.random() - 0.5) * 0.5;
+                    }
+
+                    // Keep vehicles on screen with buffer
+                    vehicle.x = Math.max(30, Math.min(canvas.width - 30, vehicle.x));
+                    vehicle.y = Math.max(30, Math.min(canvas.height - 30, vehicle.y));
+
+                    // Vehicle-specific behavior
+                    updateVehicleSpecificBehavior(vehicleId, vehicle);
+                }
+            });
+        }
+
+        function updateVehicleSpecificBehavior(vehicleId, vehicle) {
+            switch(vehicleId) {
+                case 'excavator':
+                    // Excavator works on sand areas
+                    if (vehicle.task === 'working' && Math.random() < 0.1) {
+                        digAtPosition(vehicle.x, vehicle.y, 5);
+                    }
+                    break;
+
+                case 'bulldozer':
+                    // Bulldozer moves sand around
+                    if (vehicle.task === 'working' && Math.random() < 0.08) {
+                        pushSandAtPosition(vehicle.x, vehicle.y);
+                    }
+                    break;
+
+                case 'dumptruck':
+                    // Dump truck moves faster between points
+                    vehicle.speed = vehicle.active ? 3.0 : 1.0;
+                    break;
+
+                case 'crane':
+                    // Crane moves slowly and precisely
+                    vehicle.vx *= 0.5;
+                    vehicle.vy *= 0.5;
+                    break;
+
+                case 'compactor':
+                    // Compactor follows roads when possible
+                    if (Math.random() < 0.05) {
+                        const roadTarget = findNearestRoad(vehicle.x, vehicle.y);
+                        if (roadTarget) {
+                            vehicle.targetX = roadTarget.x;
+                            vehicle.targetY = roadTarget.y;
+                        }
+                    }
+                    break;
+            }
+        }
+
+        function digAtPosition(x, y, radius) {
+            const gridX = Math.floor((x / canvas.width) * gameState.gridWidth);
+            const gridY = Math.floor((y / canvas.height) * gameState.gridHeight);
+
+            for (let dy = -radius; dy <= radius; dy++) {
+                for (let dx = -radius; dx <= radius; dx++) {
+                    const gx = gridX + dx;
+                    const gy = gridY + dy;
+
+                    if (gx >= 0 && gx < gameState.gridWidth && gy >= 0 && gy < gameState.gridHeight) {
+                        const cell = gameState.terrainGrid[gy][gx];
+                        if (cell.type === 'sand' && cell.height > 0) {
+                            cell.height = Math.max(0, cell.height - 2);
+                            if (cell.height === 0) cell.type = 'empty';
+                        }
+                    }
+                }
+            }
+        }
+
+        function pushSandAtPosition(x, y) {
+            const gridX = Math.floor((x / canvas.width) * gameState.gridWidth);
+            const gridY = Math.floor((y / canvas.height) * gameState.gridHeight);
+
+            // Move sand from current position to adjacent areas
+            if (gridX >= 1 && gridX < gameState.gridWidth - 1 && gridY >= 1 && gridY < gameState.gridHeight - 1) {
+                const currentCell = gameState.terrainGrid[gridY][gridX];
+                if (currentCell.type === 'sand' && currentCell.height > 5) {
+                    // Push sand to random adjacent cell
+                    const directions = [[-1,0], [1,0], [0,-1], [0,1]];
+                    const dir = directions[Math.floor(Math.random() * directions.length)];
+                    const targetCell = gameState.terrainGrid[gridY + dir[1]][gridX + dir[0]];
+
+                    const sandAmount = 3;
+                    currentCell.height -= sandAmount;
+                    targetCell.height += sandAmount;
+                    targetCell.type = 'sand';
+                }
+            }
+        }
+
+        function findNearestRoad(x, y) {
+            const gridX = Math.floor((x / canvas.width) * gameState.gridWidth);
+            const gridY = Math.floor((y / canvas.height) * gameState.gridHeight);
+
+            // Search in expanding radius for road
+            for (let radius = 1; radius < 20; radius++) {
+                for (let dy = -radius; dy <= radius; dy++) {
+                    for (let dx = -radius; dx <= radius; dx++) {
+                        const gx = gridX + dx;
+                        const gy = gridY + dy;
+
+                        if (gx >= 0 && gx < gameState.gridWidth && gy >= 0 && gy < gameState.gridHeight) {
+                            const cell = gameState.terrainGrid[gy][gx];
+                            if (cell.type === 'road') {
+                                return {
+                                    x: (gx / gameState.gridWidth) * canvas.width,
+                                    y: (gy / gameState.gridHeight) * canvas.height
+                                };
+                            }
+                        }
+                    }
+                }
+            }
+            return null;
+        }
+        
+        function drawVehicles() {
+            const vehicleEmojis = {
+                excavator: '🚜',
+                bulldozer: '🚛', 
+                dumptruck: '🚚',
+                crane: '🏗️',
+                compactor: '🚧'
+            };
+            
+            Object.keys(gameState.vehicles).forEach(vehicleId => {
+                const vehicle = gameState.vehicles[vehicleId];
+                
+                ctx.font = '24px Arial';
+                ctx.fillText(vehicleEmojis[vehicleId], vehicle.x, vehicle.y);
+                
+                // Draw status indicator
+                if (vehicle.active) {
+                    ctx.fillStyle = '#2ecc71';
+                    ctx.beginPath();
+                    ctx.arc(vehicle.x + 20, vehicle.y - 10, 4, 0, 2 * Math.PI);
+                    ctx.fill();
+                }
+            });
+        }
+        
+        // UI Functions
+        function selectTool(tool) {
+            gameState.currentTool = tool;
+            document.getElementById('currentTool').textContent = tool.charAt(0).toUpperCase() + tool.slice(1);
+            
+            // Update button states
+            document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+        }
+        
+        function updateBrushSize(size) {
+            gameState.brushSize = parseInt(size);
+            document.getElementById('brushSize').textContent = size;
+        }
+        
+        function toggleVehicle(vehicleId) {
+            const vehicle = gameState.vehicles[vehicleId];
+            vehicle.active = !vehicle.active;
+            
+            const statusElement = document.getElementById(vehicleId + '-status');
+            statusElement.textContent = vehicle.active ? 'WORKING' : 'IDLE';
+            
+            const vehicleElement = event.target.closest('.vehicle-item');
+            if (vehicle.active) {
+                vehicleElement.classList.add('working');
+            } else {
+                vehicleElement.classList.remove('working');
+            }
+            
+            updateActiveVehicleCount();
+        }
+        
+        function updateActiveVehicleCount() {
+            const activeCount = Object.values(gameState.vehicles).filter(v => v.active).length;
+            document.getElementById('activeVehicles').textContent = activeCount;
+        }
+        
+        function updateMouseDisplay() {
+            document.getElementById('mouseX').textContent = gameState.mouseX;
+            document.getElementById('mouseY').textContent = gameState.mouseY;
+        }
+        
+        function updateStatistics() {
+            let sandCount = 0, waterCount = 0, roadCount = 0, totalCells = 0;
+            
+            for (let y = 0; y < gameState.gridHeight; y++) {
+                for (let x = 0; x < gameState.gridWidth; x++) {
+                    const cell = gameState.terrainGrid[y][x];
+                    totalCells++;
+                    
+                    if (cell.type === 'sand') sandCount++;
+                    else if (cell.type === 'water') waterCount++;
+                    else if (cell.type === 'road') roadCount++;
+                }
+            }
+            
+            gameState.stats.sandVolume = Math.round((sandCount / totalCells) * 100);
+            gameState.stats.waterLevel = Math.round((waterCount / totalCells) * 100);
+            gameState.stats.roadCoverage = Math.round((roadCount / totalCells) * 100);
+            gameState.stats.projectProgress = Math.round(((sandCount + waterCount + roadCount) / totalCells) * 100);
+            
+            // Update UI
+            document.getElementById('sandVolume').style.width = gameState.stats.sandVolume + '%';
+            document.getElementById('waterLevel').style.width = gameState.stats.waterLevel + '%';
+            document.getElementById('roadCoverage').style.width = gameState.stats.roadCoverage + '%';
+            document.getElementById('projectProgress').style.width = gameState.stats.projectProgress + '%';
+        }
+        
+        function clearSandbox() {
+            initTerrainGrid();
+            updateStatistics();
+            console.log('🗑️ Sandbox cleared');
+        }
+        
+        function saveSnapshot() {
+            const dataURL = canvas.toDataURL('image/png');
+            const link = document.createElement('a');
+            link.download = `sandbox_${Date.now()}.png`;
+            link.href = dataURL;
+            link.click();
+            console.log('📸 Snapshot saved');
+        }
+        
+        function updateFPS() {
+            frameCount++;
+            const now = Date.now();
+            
+            if (now - lastTime >= 1000) {
+                const fps = Math.round(frameCount * 1000 / (now - lastTime));
+                document.getElementById('fpsDisplay').textContent = fps;
+                frameCount = 0;
+                lastTime = now;
+            }
+        }
+        
+        // Initialize when page loads
+        window.addEventListener('load', initSandbox);
+        
+        console.log('🏗️ Realistic AR Sandbox - Ready to initialize');
+    </script>
+</body>
+</html>

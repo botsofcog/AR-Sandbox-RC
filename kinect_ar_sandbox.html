@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>🎮 KINECT AR SANDBOX - Real Depth Sensing + RC Vehicles</title>
+  <style>
+    body { 
+      margin: 0; 
+      overflow: hidden; 
+      background: #001122;
+      font-family: 'Courier New', monospace;
+    }
+    #container { 
+      position: relative; 
+      width: 100vw; 
+      height: 100vh; 
+    }
+    #kinectCanvas, #simCanvas { 
+      position: absolute; 
+      top: 0; 
+      left: 0; 
+      width: 100%;
+      height: 100%;
+    }
+    #simCanvas { 
+      pointer-events: auto; 
+      opacity: 0.9;
+    }
+    #controls {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(0,0,0,0.9);
+      color: #00ff00;
+      padding: 15px;
+      border-radius: 8px;
+      border: 1px solid #00ff00;
+      font-size: 12px;
+      z-index: 100;
+    }
+    #status {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+      background: rgba(0,0,0,0.9);
+      color: #ffff00;
+      padding: 10px;
+      border-radius: 5px;
+      font-size: 11px;
+    }
+    .kinect-active {
+      border-color: #00ff00 !important;
+      box-shadow: 0 0 10px #00ff00;
+    }
+  </style>
+</head>
+<body>
+  <div id="container">
+    <canvas id="kinectCanvas"></canvas>
+    <canvas id="simCanvas"></canvas>
+  </div>
+  
+  <div id="controls">
+    <strong>🎮 KINECT AR SANDBOX</strong><br>
+    📡 <span id="kinectStatus">Connecting to Kinect...</span><br>
+    🖱️ Left Click: Add Sand<br>
+    🖱️ Right Click: Remove Sand<br>
+    ⌨️ Space: Reset Terrain<br>
+    ⌨️ +/-: Brush Size<br>
+    ⌨️ K: Toggle Kinect Mode<br>
+    ⌨️ V: Spawn Vehicle<br>
+    <br>
+    <span id="brushInfo">Brush: 3px | Mode: Sand</span><br>
+    <span id="vehicleInfo">Vehicles: 0</span>
+  </div>
+  
+  <div id="status">
+    <span id="fps">FPS: --</span><br>
+    <span id="depthRange">Depth: --</span><br>
+    <span id="kinectRes">Resolution: --</span>
+  </div>
+
+  <script>
+    // KINECT AR SANDBOX - Real depth sensing + RC vehicles
+    const kCanvas = document.getElementById('kinectCanvas');
+    const kCtx = kCanvas.getContext('2d');
+    const sCanvas = document.getElementById('simCanvas');
+    const sCtx = sCanvas.getContext('2d');
+    
+    // Resize canvases to full screen
+    function resizeCanvases() {
+      kCanvas.width = window.innerWidth;
+      kCanvas.height = window.innerHeight;
+      sCanvas.width = window.innerWidth;
+      sCanvas.height = window.innerHeight;
+    }
+    resizeCanvases();
+    window.addEventListener('resize', resizeCanvases);
+
+    // Kinect connection
+    let kinectConnected = false;
+    let kinectData = null;
+    let useKinectData = true;
+    
+    // Terrain system
+    const cols = 128, rows = 96;
+    let heightmap = Array.from({ length: rows }, () => Array(cols).fill(0));
+    let kinectHeightmap = Array.from({ length: rows }, () => Array(cols).fill(0));
+    
+    // RC Vehicle System
+    let vehicles = [];
+    let nextVehicleId = 1;
+    
+    const VEHICLE_SPECS = {
+      excavator: { speed: 0.5, digPower: 3, color: '#FFD700', size: 4 },
+      bulldozer: { speed: 0.8, digPower: 2, color: '#FF6B35', size: 3 },
+      dumptruck: { speed: 1.2, digPower: 0.5, color: '#4ECDC4', size: 3 },
+      compactor: { speed: 0.6, digPower: 1, color: '#45B7D1', size: 2 }
+    };
+    
+    // Initialize vehicles
+    function spawnVehicle(type, x, y) {
+      const spec = VEHICLE_SPECS[type];
+      vehicles.push({
+        id: nextVehicleId++,
+        type: type,
+        x: x || Math.random() * cols,
+        y: y || Math.random() * rows,
+        targetX: x || Math.random() * cols,
+        targetY: y || Math.random() * rows,
+        angle: Math.random() * Math.PI * 2,
+        speed: spec.speed,
+        digPower: spec.digPower,
+        color: spec.color,
+        size: spec.size,
+        mode: 'idle',
+        task: null,
+        actionCooldown: 0
+      });
+      updateVehicleInfo();
+    }
+    
+    // Spawn initial vehicles
+    spawnVehicle('excavator', 30, 30);
+    spawnVehicle('bulldozer', 90, 30);
+    spawnVehicle('dumptruck', 30, 70);
+    
+    // Kinect data fetching
+    async function fetchKinectData() {
+      try {
+        const response = await fetch('http://localhost:8080/depth');
+        if (response.ok) {
+          const data = await response.json();
+          kinectData = data;
+          kinectConnected = true;
+          document.getElementById('kinectStatus').textContent = 'Kinect Connected ✅';
+          document.getElementById('controls').classList.add('kinect-active');
+          document.getElementById('kinectRes').textContent = `Resolution: ${data.width}x${data.height}`;
+          
+          // Convert Kinect depth data to heightmap
+          if (data.data && data.data.length > 0) {
+            updateHeightmapFromKinect(data);
+          }
+        } else {
+          throw new Error('Kinect server not responding');
+        }
+      } catch (error) {
+        kinectConnected = false;
+        document.getElementById('kinectStatus').textContent = 'Kinect Disconnected ❌';
+        document.getElementById('controls').classList.remove('kinect-active');
+        console.log('Kinect connection failed:', error.message);
+      }
+    }
+    
+    function updateHeightmapFromKinect(data) {
+      // Convert Kinect depth data to our heightmap format
+      const depthArray = data.data;
+      let minDepth = Math.min(...depthArray.filter(d => d > 0));
+      let maxDepth = Math.max(...depthArray);
+      
+      document.getElementById('depthRange').textContent = `Depth: ${minDepth}-${maxDepth}`;
+      
+      // Map Kinect data to our grid
+      for (let y = 0; y < rows; y++) {
+        for (let x = 0; x < cols; x++) {
+          const kinectX = Math.floor((x / cols) * data.width);
+          const kinectY = Math.floor((y / rows) * data.height);
+          const kinectIndex = kinectY * data.width + kinectX;
+          
+          if (kinectIndex < depthArray.length) {
+            const depth = depthArray[kinectIndex];
+            // Convert depth to height (invert and normalize)
+            const height = depth > 0 ? Math.max(0, (maxDepth - depth) / (maxDepth - minDepth) * 50) : 0;
+            kinectHeightmap[y][x] = height;
+          }
+        }
+      }
+    }
+    
+    // Enhanced controls
+    let brushSize = 3;
+    let isMouseDown = false;
+    
+    // Mouse interaction
+    sCanvas.addEventListener('mousedown', (e) => {
+      isMouseDown = true;
+      handleTerrainEdit(e);
+    });
+    
+    sCanvas.addEventListener('mouseup', () => {
+      isMouseDown = false;
+    });
+    
+    sCanvas.addEventListener('mousemove', (e) => {
+      if (isMouseDown) {
+        handleTerrainEdit(e);
+      }
+    });
+    
+    function handleTerrainEdit(e) {
+      const rect = sCanvas.getBoundingClientRect();
+      const x = Math.floor((e.clientX - rect.left) / sCanvas.width * cols);
+      const y = Math.floor((e.clientY - rect.top) / sCanvas.height * rows);
+      
+      const isRightClick = e.button === 2;
+      const strength = isRightClick ? -15 : 15;
+      
+      for (let dx = -brushSize; dx <= brushSize; dx++) {
+        for (let dy = -brushSize; dy <= brushSize; dy++) {
+          const distance = Math.sqrt(dx*dx + dy*dy);
+          if (distance <= brushSize && 
+              y + dy >= 0 && y + dy < rows && 
+              x + dx >= 0 && x + dx < cols) {
+            
+            const influence = Math.cos((distance / brushSize) * Math.PI * 0.5);
+            const change = strength * influence;
+            heightmap[y + dy][x + dx] = Math.max(0, heightmap[y + dy][x + dx] + change);
+          }
+        }
+      }
+    }
+    
+    // Keyboard controls
+    document.addEventListener('keydown', (e) => {
+      switch(e.key) {
+        case '+':
+        case '=':
+          brushSize = Math.min(brushSize + 1, 10);
+          updateBrushInfo();
+          break;
+        case '-':
+          brushSize = Math.max(brushSize - 1, 1);
+          updateBrushInfo();
+          break;
+        case ' ':
+          heightmap = Array.from({ length: rows }, () => Array(cols).fill(0));
+          e.preventDefault();
+          break;
+        case 'k':
+        case 'K':
+          useKinectData = !useKinectData;
+          updateBrushInfo();
+          break;
+        case 'v':
+        case 'V':
+          const types = Object.keys(VEHICLE_SPECS);
+          const randomType = types[Math.floor(Math.random() * types.length)];
+          spawnVehicle(randomType);
+          break;
+      }
+    });
+    
+    function updateBrushInfo() {
+      document.getElementById('brushInfo').textContent = 
+        `Brush: ${brushSize}px | Mode: ${useKinectData ? 'Kinect+Manual' : 'Manual Only'}`;
+    }
+    
+    function updateVehicleInfo() {
+      document.getElementById('vehicleInfo').textContent = `Vehicles: ${vehicles.length}`;
+    }
+    
+    // Topographic color mapping
+    function getTopoColor(height) {
+      if (height < 5) return [194, 178, 128, 0.6];   // Sand
+      if (height < 15) return [34, 139, 34, 0.7];    // Grass  
+      if (height < 30) return [139, 69, 19, 0.8];    // Hills
+      return [255, 255, 255, 0.9];                   // Snow
+    }
+    
+    // Main rendering loop
+    let frameCount = 0;
+    let lastTime = performance.now();
+    
+    function update() {
+      // Fetch Kinect data
+      if (frameCount % 10 === 0) { // Every 10 frames
+        fetchKinectData();
+      }
+      
+      // Combine Kinect and manual heightmaps
+      const finalHeightmap = Array.from({ length: rows }, () => Array(cols).fill(0));
+      for (let y = 0; y < rows; y++) {
+        for (let x = 0; x < cols; x++) {
+          if (useKinectData && kinectConnected) {
+            finalHeightmap[y][x] = Math.max(kinectHeightmap[y][x], heightmap[y][x]);
+          } else {
+            finalHeightmap[y][x] = heightmap[y][x];
+          }
+        }
+      }
+      
+      // Render terrain
+      sCtx.clearRect(0, 0, sCanvas.width, sCanvas.height);
+      const cellW = sCanvas.width / cols;
+      const cellH = sCanvas.height / rows;
+      
+      for (let y = 0; y < rows; y++) {
+        for (let x = 0; x < cols; x++) {
+          const h = finalHeightmap[y][x];
+          
+          if (h > 0.5) {
+            const [r, g, b, a] = getTopoColor(h);
+            sCtx.fillStyle = `rgba(${r},${g},${b},${a})`;
+            sCtx.fillRect(x * cellW, y * cellH, cellW, cellH);
+          }
+        }
+      }
+      
+      // Render vehicles
+      vehicles.forEach(vehicle => {
+        const screenX = (vehicle.x / cols) * sCanvas.width;
+        const screenY = (vehicle.y / rows) * sCanvas.height;
+        const size = vehicle.size * 3;
+        
+        sCtx.save();
+        sCtx.translate(screenX, screenY);
+        sCtx.rotate(vehicle.angle);
+        
+        sCtx.fillStyle = vehicle.color;
+        sCtx.fillRect(-size/2, -size/2, size, size);
+        
+        sCtx.fillStyle = '#000000';
+        sCtx.fillRect(size/4, -size/4, size/2, size/2);
+        
+        sCtx.restore();
+        
+        sCtx.fillStyle = '#FFFFFF';
+        sCtx.font = '10px monospace';
+        sCtx.textAlign = 'center';
+        sCtx.fillText(vehicle.type.toUpperCase(), screenX, screenY - size);
+      });
+      
+      // FPS counter
+      frameCount++;
+      const now = performance.now();
+      if (now - lastTime > 1000) {
+        document.getElementById('fps').textContent = `FPS: ${frameCount}`;
+        frameCount = 0;
+        lastTime = now;
+      }
+
+      requestAnimationFrame(update);
+    }
+
+    // Initialize
+    updateBrushInfo();
+    updateVehicleInfo();
+    sCanvas.addEventListener('contextmenu', (e) => e.preventDefault());
+    
+    // Start the system
+    console.log('🎮 Kinect AR Sandbox Started - Real depth sensing + RC vehicles!');
+    update();
+  </script>
+
+  <!-- Kinect WebSocket Integration -->
+  <script src="js/kinect_websocket_integration.js"></script>
+  <script>
+    // Initialize Kinect WebSocket connection for kinect-ar-sandbox
+    let kinectIntegration;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      kinectIntegration = new KinectWebSocketIntegration({
+        onConnect: () => {
+          console.log('✅ Kinect AR Sandbox connected to depth server');
+          document.getElementById('status').innerHTML += '<br>🔗 Kinect Connected';
+        },
+        onDisconnect: () => {
+          console.log('❌ Kinect AR Sandbox disconnected from depth server');
+          document.getElementById('status').innerHTML += '<br>❌ Kinect Disconnected';
+        },
+        onFrameData: (frameData) => {
+          // Update terrain with real Kinect data
+          if (frameData.mesh_data && frameData.mesh_data.data) {
+            updateTerrainFromKinectData(frameData.mesh_data);
+          }
+        },
+        onTopographyData: (topographyData) => {
+          // Update status with AI analysis
+          if (topographyData.ai_metadata) {
+            updateStatusWithAI(topographyData.ai_metadata);
+          }
+        }
+      });
+
+      kinectIntegration.connect();
+    });
+
+    function updateTerrainFromKinectData(meshData) {
+      // Update the terrain heightmap with real Kinect data
+      const data = meshData.data;
+      const meshWidth = meshData.width || 100;
+      const meshHeight = meshData.height || 75;
+
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          const meshX = Math.floor((x / width) * meshWidth);
+          const meshY = Math.floor((y / height) * meshHeight);
+          const meshIndex = meshY * meshWidth + meshX;
+
+          if (meshIndex < data.length) {
+            const terrainIndex = y * width + x;
+            heightMap[terrainIndex] = data[meshIndex] / 255.0; // Normalize to 0-1
+          }
+        }
+      }
+    }
+
+    function updateStatusWithAI(aiMetadata) {
+      const statusEl = document.getElementById('status');
+      if (aiMetadata.terrain_stats) {
+        const stats = aiMetadata.terrain_stats;
+        statusEl.innerHTML = `
+          🏔️ Elevation: ${stats.min_elevation.toFixed(2)} - ${stats.max_elevation.toFixed(2)}<br>
+          📊 Roughness: ${stats.terrain_roughness.toFixed(3)}<br>
+          🎯 Vehicles: ${vehicles.length}
+        `;
+      }
+    }
+  </script>
+</body>
+</html>

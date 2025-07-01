@@ -1,0 +1,81 @@
+{
+  "name": "ar-sandbox-rc",
+  "version": "1.0.0",
+  "description": "Revolutionary AR Sandbox RC - Construction-themed sandbox with advanced physics, AI, and museum-quality experience",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0 --port 3000",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:watch": "vitest --watch",
+    "lint": "eslint src/ --ext .js,.ts",
+    "lint:fix": "eslint src/ --ext .js,.ts --fix",
+    "format": "prettier --write src/",
+    "format:check": "prettier --check src/",
+    "integrate:noise": "node scripts/integrate-noise.js",
+    "integrate:gui": "node scripts/integrate-lil-gui.js",
+    "integrate:audio": "node scripts/integrate-tone.js",
+    "integrate:physics": "node scripts/integrate-matter.js",
+    "integrate:3d": "node scripts/integrate-three.js",
+    "integrate:sandboxels": "node scripts/integrate-sandboxels.js",
+    "integrate:vehicles": "node scripts/integrate-vehicles.js",
+    "integrate:ai": "node scripts/integrate-ai.js",
+    "integrate:voxels": "node scripts/integrate-voxels.js",
+    "integrate:creative": "node scripts/integrate-creative.js",
+    "performance": "node scripts/performance-test.js",
+    "deploy:staging": "npm run build && node scripts/deploy-staging.js",
+    "deploy:production": "npm run build && node scripts/deploy-production.js"
+  },
+  "dependencies": {
+    "@tensorflow/tfjs": "^4.15.0",
+    "cannon-es": "^0.20.0",
+    "lil-gui": "^0.19.0",
+    "matter-js": "^0.19.0",
+    "ml5": "^0.12.2",
+    "three": "^0.160.0",
+    "tone": "^14.7.77"
+  },
+  "devDependencies": {
+    "@types/three": "^0.160.0",
+    "@vitest/ui": "^1.0.0",
+    "eslint": "^8.0.0",
+    "husky": "^8.0.0",
+    "jsdom": "^23.0.0",
+    "lint-staged": "^15.0.0",
+    "patch-package": "^8.0.0",
+    "prettier": "^3.0.0",
+    "vite": "^5.0.0",
+    "vitest": "^1.0.0"
+  },
+  "lint-staged": {
+    "*.{js,ts}": [
+      "eslint --fix",
+      "prettier --write"
+    ]
+  },
+  "keywords": [
+    "ar-sandbox",
+    "construction",
+    "physics-simulation",
+    "machine-learning",
+    "three.js",
+    "webgl",
+    "educational",
+    "museum",
+    "interactive",
+    "rc-vehicles"
+  ],
+  "author": "AR Sandbox RC Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ar-sandbox-rc/ar-sandbox-rc.git"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  }
+}

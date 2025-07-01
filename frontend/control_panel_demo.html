@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RC Sandbox - Control Panel Demo</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+        }
+        
+        #main-display {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 400px;
+            bottom: 0;
+            background: linear-gradient(45deg, #001122, #002244);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        #terrain-canvas {
+            border: 2px solid #4CAF50;
+            border-radius: 5px;
+        }
+        
+        .demo-info {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: #4CAF50;
+            background: rgba(0,0,0,0.8);
+            padding: 15px;
+            border-radius: 5px;
+            border: 1px solid #4CAF50;
+        }
+        
+        .demo-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .demo-instructions {
+            font-size: 12px;
+            line-height: 1.4;
+        }
+        
+        .status-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 400px;
+            height: 40px;
+            background: #333;
+            border-top: 2px solid #4CAF50;
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            color: #4CAF50;
+            font-size: 12px;
+        }
+        
+        .status-item {
+            margin-right: 30px;
+        }
+        
+        @keyframes slideDown {
+            from {
+                transform: translateX(-50%) translateY(-100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(-50%) translateY(0);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="main-display">
+        <canvas id="terrain-canvas" width="800" height="600"></canvas>
+        
+        <div class="demo-info">
+            <div class="demo-title">🎮 CONTROL PANEL DEMO</div>
+            <div class="demo-instructions">
+                • Select vehicles from the control panel<br>
+                • Enable FPV mode for immersive operation<br>
+                • Use WASD keys for movement control<br>
+                • Press F to toggle first-person view<br>
+                • Press H to enable head tracking<br>
+                • Emergency stop button for safety
+            </div>
+        </div>
+    </div>
+    
+    <div class="status-bar">
+        <div class="status-item">System: <span id="system-status">ONLINE</span></div>
+        <div class="status-item">Vehicles: <span id="vehicle-count">5</span></div>
+        <div class="status-item">Active: <span id="active-vehicle">None</span></div>
+        <div class="status-item">Mode: <span id="control-mode">Overview</span></div>
+        <div class="status-item">FPV: <span id="fpv-status">OFF</span></div>
+    </div>
+
+    <!-- Include required scripts -->
+    <script src="js/terrain.js"></script>
+    <script src="js/vehicle_fleet.js"></script>
+    <script src="js/control_panel.js"></script>
+    
+    <script>
+        // Initialize demo system
+        class ControlPanelDemo {
+            constructor() {
+                this.canvas = document.getElementById('terrain-canvas');
+                this.ctx = this.canvas.getContext('2d');
+                
+                // Initialize terrain engine
+                this.terrainEngine = new TerrainEngine(this.canvas);
+                
+                // Initialize vehicle fleet
+                this.vehicleFleet = new VehicleFleetManager(this.terrainEngine);
+                
+                // Initialize control panel
+                this.controlPanel = new ControlPanelInterface(this.vehicleFleet, this.terrainEngine);
+                
+                // Demo vehicles
+                this.setupDemoVehicles();
+                
+                // Start demo loop
+                this.startDemo();
+                
+                // Setup status updates
+                this.setupStatusUpdates();
+                
+                console.log('🎮 Control Panel Demo initialized');
+            }
+            
+            setupDemoVehicles() {
+                // Add demo vehicles to the fleet
+                const vehicles = [
+                    { id: 'EX001', type: 'excavator', x: 100, y: 100 },
+                    { id: 'BD001', type: 'bulldozer', x: 200, y: 150 },
+                    { id: 'DT001', type: 'dump_truck', x: 300, y: 200 },
+                    { id: 'CR001', type: 'crane', x: 150, y: 250 },
+                    { id: 'CP001', type: 'compactor', x: 250, y: 100 }
+                ];
+                
+                vehicles.forEach(vehicleData => {
+                    const vehicle = this.vehicleFleet.addVehicle(
+                        vehicleData.id,
+                        vehicleData.type,
+                        vehicleData.x,
+                        vehicleData.y
+                    );
+                    
+                    // Set random initial properties
+                    vehicle.batteryLevel = 80 + Math.random() * 20;
+                    vehicle.taskStatus = 'idle';
+                    vehicle.vx = 0;
+                    vehicle.vy = 0;
+                    vehicle.rotation = Math.random() * Math.PI * 2;
+                });
+                
+                // Update control panel vehicle grid
+                this.controlPanel.populateVehicleGrid();
+            }
+            
+            startDemo() {
+                // Demo animation loop
+                const animate = () => {
+                    this.update();
+                    this.render();
+                    requestAnimationFrame(animate);
+                };
+                
+                animate();
+                
+                // Simulate vehicle movement
+                setInterval(() => {
+                    this.simulateVehicleActivity();
+                }, 2000);
+            }
+            
+            update() {
+                // Update terrain engine
+                this.terrainEngine.render();
+                
+                // Update vehicle fleet
+                this.vehicleFleet.update();
+                
+                // Update control panel instruments
+                this.controlPanel.updateInstrumentCluster();
+            }
+            
+            render() {
+                // Clear canvas
+                this.ctx.fillStyle = '#001122';
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                // Render terrain
+                this.terrainEngine.render();
+                
+                // Render vehicles
+                this.renderVehicles();
+                
+                // Render UI overlays
+                this.renderOverlays();
+            }
+            
+            renderVehicles() {
+                const vehicles = this.vehicleFleet.getAllVehicles();
+                
+                vehicles.forEach(vehicle => {
+                    const screenX = vehicle.x * 2; // Scale for demo
+                    const screenY = vehicle.y * 2;
+                    
+                    // Vehicle body
+                    this.ctx.fillStyle = this.getVehicleColor(vehicle.type);
+                    this.ctx.fillRect(screenX - 10, screenY - 10, 20, 20);
+                    
+                    // Vehicle ID
+                    this.ctx.fillStyle = 'white';
+                    this.ctx.font = '12px monospace';
+                    this.ctx.fillText(vehicle.id, screenX - 15, screenY - 15);
+                    
+                    // Selection indicator
+                    if (vehicle.id === this.controlPanel.activeVehicle) {
+                        this.ctx.strokeStyle = '#4CAF50';
+                        this.ctx.lineWidth = 3;
+                        this.ctx.strokeRect(screenX - 15, screenY - 15, 30, 30);
+                    }
+                    
+                    // Direction indicator
+                    const dirX = Math.cos(vehicle.rotation) * 15;
+                    const dirY = Math.sin(vehicle.rotation) * 15;
+                    
+                    this.ctx.strokeStyle = '#FFFF00';
+                    this.ctx.lineWidth = 2;
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(screenX, screenY);
+                    this.ctx.lineTo(screenX + dirX, screenY + dirY);
+                    this.ctx.stroke();
+                });
+            }
+            
+            renderOverlays() {
+                // Render grid
+                this.ctx.strokeStyle = 'rgba(76, 175, 80, 0.2)';
+                this.ctx.lineWidth = 1;
+                
+                for (let x = 0; x < this.canvas.width; x += 50) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(x, 0);
+                    this.ctx.lineTo(x, this.canvas.height);
+                    this.ctx.stroke();
+                }
+                
+                for (let y = 0; y < this.canvas.height; y += 50) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(0, y);
+                    this.ctx.lineTo(this.canvas.width, y);
+                    this.ctx.stroke();
+                }
+                
+                // Render scale
+                this.ctx.fillStyle = '#4CAF50';
+                this.ctx.font = '12px monospace';
+                this.ctx.fillText('Scale: 1:16 (50px = 1m)', 10, this.canvas.height - 10);
+            }
+            
+            getVehicleColor(type) {
+                const colors = {
+                    excavator: '#FFD700',
+                    bulldozer: '#FF6347',
+                    dump_truck: '#32CD32',
+                    crane: '#FF69B4',
+                    compactor: '#8A2BE2'
+                };
+                return colors[type] || '#FFFFFF';
+            }
+            
+            simulateVehicleActivity() {
+                const vehicles = this.vehicleFleet.getAllVehicles();
+                
+                vehicles.forEach(vehicle => {
+                    // Simulate battery drain
+                    vehicle.batteryLevel = Math.max(0, vehicle.batteryLevel - Math.random() * 2);
+                    
+                    // Simulate random movement
+                    if (Math.random() < 0.3) {
+                        vehicle.x += (Math.random() - 0.5) * 10;
+                        vehicle.y += (Math.random() - 0.5) * 10;
+                        vehicle.rotation += (Math.random() - 0.5) * 0.5;
+                        
+                        // Keep vehicles in bounds
+                        vehicle.x = Math.max(50, Math.min(350, vehicle.x));
+                        vehicle.y = Math.max(50, Math.min(250, vehicle.y));
+                    }
+                    
+                    // Simulate task changes
+                    if (Math.random() < 0.1) {
+                        const tasks = ['idle', 'moving', 'working', 'loading', 'unloading'];
+                        vehicle.taskStatus = tasks[Math.floor(Math.random() * tasks.length)];
+                    }
+                });
+            }
+            
+            setupStatusUpdates() {
+                setInterval(() => {
+                    this.updateStatusBar();
+                }, 1000);
+            }
+            
+            updateStatusBar() {
+                // Update vehicle count
+                const vehicleCount = document.getElementById('vehicle-count');
+                if (vehicleCount) {
+                    vehicleCount.textContent = this.vehicleFleet.getAllVehicles().length;
+                }
+                
+                // Update active vehicle
+                const activeVehicle = document.getElementById('active-vehicle');
+                if (activeVehicle) {
+                    activeVehicle.textContent = this.controlPanel.activeVehicle || 'None';
+                }
+                
+                // Update control mode
+                const controlMode = document.getElementById('control-mode');
+                if (controlMode) {
+                    controlMode.textContent = this.controlPanel.controlMode;
+                }
+                
+                // Update FPV status
+                const fpvStatus = document.getElementById('fpv-status');
+                if (fpvStatus) {
+                    fpvStatus.textContent = this.controlPanel.fpvMode ? 'ON' : 'OFF';
+                }
+            }
+        }
+        
+        // Global control panel reference for button callbacks
+        let controlPanel;
+        
+        // Initialize demo when page loads
+        window.addEventListener('load', () => {
+            const demo = new ControlPanelDemo();
+            controlPanel = demo.controlPanel;
+            
+            // Make demo globally accessible
+            window.controlPanelDemo = demo;
+        });
+        
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (event) => {
+            switch (event.code) {
+                case 'F1':
+                    event.preventDefault();
+                    if (controlPanel) controlPanel.selectVehicle('EX001');
+                    break;
+                case 'F2':
+                    event.preventDefault();
+                    if (controlPanel) controlPanel.selectVehicle('BD001');
+                    break;
+                case 'F3':
+                    event.preventDefault();
+                    if (controlPanel) controlPanel.selectVehicle('DT001');
+                    break;
+                case 'F4':
+                    event.preventDefault();
+                    if (controlPanel) controlPanel.selectVehicle('CR001');
+                    break;
+                case 'F5':
+                    event.preventDefault();
+                    if (controlPanel) controlPanel.selectVehicle('CP001');
+                    break;
+                case 'Escape':
+                    event.preventDefault();
+                    if (controlPanel) controlPanel.emergencyStop();
+                    break;
+            }
+        });
+    </script>
+</body>
+</html>

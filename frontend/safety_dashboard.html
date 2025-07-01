@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RC Sandbox - Safety Monitoring Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Courier New', monospace;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+            color: #ffffff;
+            overflow-x: hidden;
+        }
+        
+        .dashboard-header {
+            background: #1a1a1a;
+            border-bottom: 3px solid #4CAF50;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .dashboard-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #4CAF50;
+        }
+        
+        .system-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .status-indicator {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        
+        .status-healthy { background: #4CAF50; }
+        .status-degraded { background: #FF9800; }
+        .status-critical { background: #F44336; }
+        .status-offline { background: #666; }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            padding: 20px;
+        }
+        
+        .dashboard-panel {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .panel-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #4CAF50;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+        
+        .metric-item {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid #444;
+            border-radius: 5px;
+            padding: 15px;
+            text-align: center;
+        }
+        
+        .metric-label {
+            font-size: 12px;
+            color: #999;
+            margin-bottom: 5px;
+        }
+        
+        .metric-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #4CAF50;
+        }
+        
+        .metric-unit {
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .service-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .service-item {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid #444;
+            border-radius: 5px;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .service-name {
+            font-weight: bold;
+        }
+        
+        .service-status {
+            padding: 5px 10px;
+            border-radius: 3px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .status-online { background: #4CAF50; color: white; }
+        .status-offline { background: #F44336; color: white; }
+        .status-warning { background: #FF9800; color: white; }
+        
+        .alert-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .alert-item {
+            background: rgba(0, 0, 0, 0.3);
+            border-left: 4px solid #4CAF50;
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 0 5px 5px 0;
+        }
+        
+        .alert-critical { border-left-color: #F44336; }
+        .alert-error { border-left-color: #FF5722; }
+        .alert-warning { border-left-color: #FF9800; }
+        .alert-info { border-left-color: #2196F3; }
+        
+        .alert-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        
+        .alert-level {
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+            font-weight: bold;
+        }
+        
+        .alert-timestamp {
+            font-size: 11px;
+            color: #999;
+        }
+        
+        .alert-message {
+            font-size: 13px;
+            line-height: 1.4;
+        }
+        
+        .chart-container {
+            height: 200px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid #444;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #666;
+        }
+        
+        .emergency-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .emergency-btn {
+            flex: 1;
+            background: #F44336;
+            border: none;
+            color: white;
+            padding: 15px;
+            border-radius: 5px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+        
+        .emergency-btn:hover {
+            background: #D32F2F;
+        }
+        
+        .control-btn {
+            background: #2196F3;
+            border: none;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background 0.3s;
+        }
+        
+        .control-btn:hover {
+            background: #1976D2;
+        }
+        
+        .footer {
+            background: #1a1a1a;
+            border-top: 2px solid #4CAF50;
+            padding: 15px 20px;
+            text-align: center;
+            color: #666;
+            font-size: 12px;
+        }
+        
+        .refresh-indicator {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(76, 175, 80, 0.9);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 5px;
+            font-size: 12px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .refresh-indicator.show {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-header">
+        <div class="dashboard-title">🛡️ RC SANDBOX SAFETY MONITORING</div>
+        <div class="system-status">
+            <div class="status-indicator status-healthy" id="system-status-indicator"></div>
+            <span id="system-status-text">HEALTHY</span>
+        </div>
+    </div>
+    
+    <div class="dashboard-grid">
+        <!-- System Metrics Panel -->
+        <div class="dashboard-panel">
+            <div class="panel-title">📊 SYSTEM METRICS</div>
+            <div class="metrics-grid">
+                <div class="metric-item">
+                    <div class="metric-label">CPU Usage</div>
+                    <div class="metric-value" id="cpu-usage">0</div>
+                    <div class="metric-unit">%</div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-label">Memory Usage</div>
+                    <div class="metric-value" id="memory-usage">0</div>
+                    <div class="metric-unit">%</div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-label">Disk Usage</div>
+                    <div class="metric-value" id="disk-usage">0</div>
+                    <div class="metric-unit">%</div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-label">Network Latency</div>
+                    <div class="metric-value" id="network-latency">0</div>
+                    <div class="metric-unit">ms</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Service Status Panel -->
+        <div class="dashboard-panel">
+            <div class="panel-title">🔧 SERVICE STATUS</div>
+            <div class="service-list" id="service-list">
+                <!-- Services will be populated dynamically -->
+            </div>
+        </div>
+        
+        <!-- Sensor Status Panel -->
+        <div class="dashboard-panel">
+            <div class="panel-title">📡 SENSOR STATUS</div>
+            <div class="service-list" id="sensor-list">
+                <!-- Sensors will be populated dynamically -->
+            </div>
+        </div>
+        
+        <!-- Recent Alerts Panel -->
+        <div class="dashboard-panel">
+            <div class="panel-title">🚨 RECENT ALERTS</div>
+            <div class="alert-list" id="alert-list">
+                <!-- Alerts will be populated dynamically -->
+            </div>
+        </div>
+        
+        <!-- Performance Chart Panel -->
+        <div class="dashboard-panel">
+            <div class="panel-title">📈 PERFORMANCE TRENDS</div>
+            <div class="chart-container">
+                <canvas id="performance-chart" width="400" height="180"></canvas>
+            </div>
+        </div>
+        
+        <!-- Emergency Controls Panel -->
+        <div class="dashboard-panel">
+            <div class="panel-title">🚨 EMERGENCY CONTROLS</div>
+            <div class="emergency-controls">
+                <button class="emergency-btn" onclick="emergencyStop()">
+                    🛑 EMERGENCY STOP
+                </button>
+            </div>
+            <div style="margin-top: 10px; display: flex; gap: 10px;">
+                <button class="control-btn" onclick="enableDegradationMode()">
+                    ⚠️ DEGRADATION MODE
+                </button>
+                <button class="control-btn" onclick="restartServices()">
+                    🔄 RESTART SERVICES
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="footer">
+        RC Sandbox Safety Monitoring Dashboard | Last Updated: <span id="last-update">Never</span> | 
+        Uptime: <span id="system-uptime">0h 0m</span>
+    </div>
+    
+    <div class="refresh-indicator" id="refresh-indicator">
+        Refreshing data...
+    </div>
+    
+    <script>
+        class SafetyDashboard {
+            constructor() {
+                this.updateInterval = 5000; // 5 seconds
+                this.performanceData = [];
+                this.maxDataPoints = 60; // 5 minutes of data
+                
+                this.initializeChart();
+                this.startDataUpdates();
+                
+                console.log('🛡️ Safety Dashboard initialized');
+            }
+            
+            initializeChart() {
+                this.canvas = document.getElementById('performance-chart');
+                this.ctx = this.canvas.getContext('2d');
+                
+                // Initialize with empty data
+                for (let i = 0; i < this.maxDataPoints; i++) {
+                    this.performanceData.push({
+                        timestamp: Date.now() - (this.maxDataPoints - i) * 5000,
+                        cpu: 0,
+                        memory: 0,
+                        latency: 0
+                    });
+                }
+            }
+            
+            startDataUpdates() {
+                this.updateData();
+                setInterval(() => {
+                    this.updateData();
+                }, this.updateInterval);
+            }
+            
+            async updateData() {
+                try {
+                    this.showRefreshIndicator();
+                    
+                    // Simulate API call to safety monitoring system
+                    const data = await this.fetchSafetyData();
+                    
+                    this.updateSystemMetrics(data.metrics);
+                    this.updateServiceStatus(data.services);
+                    this.updateSensorStatus(data.sensors);
+                    this.updateAlerts(data.alerts);
+                    this.updateSystemStatus(data.system_status);
+                    this.updatePerformanceChart(data.metrics);
+                    
+                    document.getElementById('last-update').textContent = new Date().toLocaleTimeString();
+                    
+                } catch (error) {
+                    console.error('Failed to update dashboard data:', error);
+                } finally {
+                    this.hideRefreshIndicator();
+                }
+            }
+            
+            async fetchSafetyData() {
+                // Simulate API response
+                return {
+                    system_status: 'healthy',
+                    metrics: {
+                        cpu_usage: 45 + Math.random() * 20,
+                        memory_usage: 60 + Math.random() * 15,
+                        disk_usage: 35 + Math.random() * 10,
+                        network_latency: 20 + Math.random() * 30,
+                        uptime: 3600 + Math.random() * 1000
+                    },
+                    services: {
+                        depth_server: { status: 'online', error_count: 0 },
+                        telemetry_server: { status: 'online', error_count: 0 },
+                        streaming_server: { status: Math.random() > 0.1 ? 'online' : 'offline', error_count: 1 },
+                        physics_engine: { status: 'online', error_count: 0 }
+                    },
+                    sensors: {
+                        kinect: { status: 'online', error_count: 0 },
+                        projector: { status: 'online', error_count: 0 },
+                        webcam: { status: Math.random() > 0.2 ? 'online' : 'warning', error_count: 2 }
+                    },
+                    alerts: this.generateSampleAlerts()
+                };
+            }
+            
+            generateSampleAlerts() {
+                const alerts = [];
+                const levels = ['info', 'warning', 'error', 'critical'];
+                const components = ['depth_server', 'kinect', 'system', 'network'];
+                const messages = [
+                    'Service restarted successfully',
+                    'High CPU usage detected',
+                    'Sensor connection lost',
+                    'Network latency increased',
+                    'Memory usage above threshold'
+                ];
+                
+                for (let i = 0; i < 5; i++) {
+                    alerts.push({
+                        level: levels[Math.floor(Math.random() * levels.length)],
+                        component: components[Math.floor(Math.random() * components.length)],
+                        message: messages[Math.floor(Math.random() * messages.length)],
+                        timestamp: Date.now() - Math.random() * 3600000
+                    });
+                }
+                
+                return alerts;
+            }
+            
+            updateSystemMetrics(metrics) {
+                document.getElementById('cpu-usage').textContent = metrics.cpu_usage.toFixed(1);
+                document.getElementById('memory-usage').textContent = metrics.memory_usage.toFixed(1);
+                document.getElementById('disk-usage').textContent = metrics.disk_usage.toFixed(1);
+                document.getElementById('network-latency').textContent = metrics.network_latency.toFixed(0);
+                
+                // Update uptime
+                const hours = Math.floor(metrics.uptime / 3600);
+                const minutes = Math.floor((metrics.uptime % 3600) / 60);
+                document.getElementById('system-uptime').textContent = `${hours}h ${minutes}m`;
+            }
+            
+            updateServiceStatus(services) {
+                const serviceList = document.getElementById('service-list');
+                serviceList.innerHTML = '';
+                
+                Object.entries(services).forEach(([name, info]) => {
+                    const serviceItem = document.createElement('div');
+                    serviceItem.className = 'service-item';
+                    
+                    const statusClass = info.status === 'online' ? 'status-online' : 
+                                       info.status === 'warning' ? 'status-warning' : 'status-offline';
+                    
+                    serviceItem.innerHTML = `
+                        <div class="service-name">${name.replace('_', ' ').toUpperCase()}</div>
+                        <div class="service-status ${statusClass}">${info.status.toUpperCase()}</div>
+                    `;
+                    
+                    serviceList.appendChild(serviceItem);
+                });
+            }
+            
+            updateSensorStatus(sensors) {
+                const sensorList = document.getElementById('sensor-list');
+                sensorList.innerHTML = '';
+                
+                Object.entries(sensors).forEach(([name, info]) => {
+                    const sensorItem = document.createElement('div');
+                    sensorItem.className = 'service-item';
+                    
+                    const statusClass = info.status === 'online' ? 'status-online' : 
+                                       info.status === 'warning' ? 'status-warning' : 'status-offline';
+                    
+                    sensorItem.innerHTML = `
+                        <div class="service-name">${name.toUpperCase()}</div>
+                        <div class="service-status ${statusClass}">${info.status.toUpperCase()}</div>
+                    `;
+                    
+                    sensorList.appendChild(sensorItem);
+                });
+            }
+            
+            updateAlerts(alerts) {
+                const alertList = document.getElementById('alert-list');
+                alertList.innerHTML = '';
+                
+                alerts.sort((a, b) => b.timestamp - a.timestamp).slice(0, 10).forEach(alert => {
+                    const alertItem = document.createElement('div');
+                    alertItem.className = `alert-item alert-${alert.level}`;
+                    
+                    const timestamp = new Date(alert.timestamp).toLocaleTimeString();
+                    
+                    alertItem.innerHTML = `
+                        <div class="alert-header">
+                            <div class="alert-level alert-${alert.level}">${alert.level.toUpperCase()}</div>
+                            <div class="alert-timestamp">${timestamp}</div>
+                        </div>
+                        <div class="alert-message">
+                            <strong>${alert.component}:</strong> ${alert.message}
+                        </div>
+                    `;
+                    
+                    alertList.appendChild(alertItem);
+                });
+            }
+            
+            updateSystemStatus(status) {
+                const indicator = document.getElementById('system-status-indicator');
+                const text = document.getElementById('system-status-text');
+                
+                indicator.className = `status-indicator status-${status}`;
+                text.textContent = status.toUpperCase();
+            }
+            
+            updatePerformanceChart(metrics) {
+                // Add new data point
+                this.performanceData.push({
+                    timestamp: Date.now(),
+                    cpu: metrics.cpu_usage,
+                    memory: metrics.memory_usage,
+                    latency: metrics.network_latency
+                });
+                
+                // Remove old data
+                if (this.performanceData.length > this.maxDataPoints) {
+                    this.performanceData.shift();
+                }
+                
+                this.drawChart();
+            }
+            
+            drawChart() {
+                const ctx = this.ctx;
+                const width = this.canvas.width;
+                const height = this.canvas.height;
+                
+                // Clear canvas
+                ctx.fillStyle = '#000';
+                ctx.fillRect(0, 0, width, height);
+                
+                // Draw grid
+                ctx.strokeStyle = '#333';
+                ctx.lineWidth = 1;
+                
+                for (let i = 0; i <= 10; i++) {
+                    const y = (height / 10) * i;
+                    ctx.beginPath();
+                    ctx.moveTo(0, y);
+                    ctx.lineTo(width, y);
+                    ctx.stroke();
+                }
+                
+                // Draw CPU line
+                this.drawLine(this.performanceData.map(d => d.cpu), '#4CAF50', 100);
+                
+                // Draw Memory line
+                this.drawLine(this.performanceData.map(d => d.memory), '#2196F3', 100);
+                
+                // Draw Latency line (scaled)
+                this.drawLine(this.performanceData.map(d => d.latency), '#FF9800', 200);
+                
+                // Draw legend
+                ctx.fillStyle = '#4CAF50';
+                ctx.fillRect(10, 10, 10, 10);
+                ctx.fillStyle = '#FFF';
+                ctx.font = '12px monospace';
+                ctx.fillText('CPU', 25, 20);
+                
+                ctx.fillStyle = '#2196F3';
+                ctx.fillRect(70, 10, 10, 10);
+                ctx.fillStyle = '#FFF';
+                ctx.fillText('Memory', 85, 20);
+                
+                ctx.fillStyle = '#FF9800';
+                ctx.fillRect(150, 10, 10, 10);
+                ctx.fillStyle = '#FFF';
+                ctx.fillText('Latency', 165, 20);
+            }
+            
+            drawLine(data, color, maxValue) {
+                const ctx = this.ctx;
+                const width = this.canvas.width;
+                const height = this.canvas.height;
+                
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                
+                data.forEach((value, index) => {
+                    const x = (width / (data.length - 1)) * index;
+                    const y = height - (height * (value / maxValue));
+                    
+                    if (index === 0) {
+                        ctx.moveTo(x, y);
+                    } else {
+                        ctx.lineTo(x, y);
+                    }
+                });
+                
+                ctx.stroke();
+            }
+            
+            showRefreshIndicator() {
+                document.getElementById('refresh-indicator').classList.add('show');
+            }
+            
+            hideRefreshIndicator() {
+                setTimeout(() => {
+                    document.getElementById('refresh-indicator').classList.remove('show');
+                }, 500);
+            }
+        }
+        
+        // Emergency control functions
+        function emergencyStop() {
+            if (confirm('Are you sure you want to trigger an EMERGENCY STOP? This will halt all operations.')) {
+                alert('🚨 EMERGENCY STOP ACTIVATED - All systems halted');
+                console.log('Emergency stop triggered');
+            }
+        }
+        
+        function enableDegradationMode() {
+            if (confirm('Enable degradation mode? This will reduce system performance to maintain stability.')) {
+                alert('⚠️ Degradation mode enabled');
+                console.log('Degradation mode enabled');
+            }
+        }
+        
+        function restartServices() {
+            if (confirm('Restart all services? This may cause temporary interruption.')) {
+                alert('🔄 Services restarting...');
+                console.log('Services restart initiated');
+            }
+        }
+        
+        // Initialize dashboard when page loads
+        window.addEventListener('load', () => {
+            new SafetyDashboard();
+        });
+    </script>
+</body>
+</html>

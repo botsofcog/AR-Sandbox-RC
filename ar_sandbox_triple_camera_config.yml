@@ -1,0 +1,109 @@
+# AR Sandbox RC Triple Camera Configuration
+# Based on MC-Calib overlapping multicamera setup
+# Cameras: Kinect depth + Kinect RGB + Logitech C925e
+
+%YAML:1.0
+
+######################################## Boards Parameters ###################################################
+number_x_square: 7  # number of squares in the X direction (increased for better calibration)
+number_y_square: 5  # number of squares the Y direction
+resolution_x: 640  # horizontal resolution in pixel (matching our cameras)
+resolution_y: 480  # vertical resolution in pixel (matching our cameras)
+length_square: 0.04  # parameters on the marker (can be kept as it is)
+length_marker: 0.03  # parameters on the marker (can be kept as it is)
+number_board: 1 # number of boards used for calibration (for overlapping camera 1 is enough)
+boards_index: [0] # board index 0
+square_size: 25.0  # size of each square of the board in mm (standard chessboard)
+
+############# Boards Parameters for different board size #################
+number_x_square_per_board: []
+number_y_square_per_board: []
+square_size_per_board: []
+
+######################################## Camera Parameters ###################################################
+distortion_model: 0 # 0:Brown (perspective) // 1: Kannala (fisheye)
+distortion_per_camera : [] # specify the model per camera, leave empty if all follow same model
+number_camera: 3  # AR Sandbox Triple Camera Setup
+refine_corner: 1  # activate corner refinement
+min_perc_pts: 0.4  # min percentage of points visible (lowered for better detection)
+
+cam_params_path: "None" # no initial camera parameters
+fix_intrinsic: 0 # estimate intrinsic parameters
+
+######################################## Images Parameters ###################################################
+root_path: "ar_sandbox_calibration_images" # path for calibration images
+cam_prefix: "cam_"
+keypoints_path: "ar_sandbox_calibration_images/detected_keypoints_data.yml" 
+
+######################################## Optimization Parameters ###################################################
+quaternion_averaging: 1    # use Quaternion Averaging
+ransac_threshold: 2        # RANSAC threshold in pixel (tighter for better accuracy)
+number_iterations: 2000    # Max iterations for non linear refinement (increased for accuracy)
+
+######################################## Hand-eye method #############################################
+he_approach: 0 # bootstrapped hand-eye technique
+
+######################################## Output Parameters ###################################################
+save_path: "ar_sandbox_calibration_results"
+save_detection: 1
+save_reprojection: 1
+camera_params_file_name: "ar_sandbox_triple_camera_params.yml"
+
+######################################## AR Sandbox Specific Parameters ###################################################
+# Camera assignments for AR Sandbox RC
+# Camera 0: Kinect depth sensor (axis 1)
+# Camera 1: Kinect RGB camera (axis 1) 
+# Camera 2: Logitech C925e webcam (axis 2)
+
+camera_roles:
+  - name: "kinect_depth"
+    index: 0
+    type: "depth"
+    axis: 1
+    resolution: [240, 320]  # Kinect depth resolution
+    
+  - name: "kinect_rgb" 
+    index: 1
+    type: "rgb"
+    axis: 1
+    resolution: [640, 480]  # Kinect RGB resolution
+    
+  - name: "logitech_c925e"
+    index: 2
+    type: "rgb"
+    axis: 2
+    resolution: [1920, 1080]  # Logitech C925e max resolution
+
+# Multi-axis configuration
+multi_axis_setup: true
+primary_axis: 1  # Kinect axis
+secondary_axis: 2  # Logitech axis
+depth_camera_index: 0  # Kinect depth
+primary_rgb_index: 1   # Kinect RGB
+secondary_rgb_index: 2 # Logitech C925e
+
+# AR Sandbox specific calibration targets
+sandbox_dimensions:
+  width: 600   # sandbox width in mm
+  height: 400  # sandbox height in mm
+  depth: 100   # sandbox depth in mm
+
+# Camera positioning (approximate)
+camera_positions:
+  kinect_position:
+    x: 300  # side position
+    y: 200  # center
+    z: 400  # height above sandbox
+    angle: 45  # degrees from horizontal
+    
+  logitech_position:
+    x: 300  # center position  
+    y: 200  # center
+    z: 600  # height above sandbox
+    angle: 90  # degrees from horizontal (overhead)
+
+# Calibration quality targets
+quality_targets:
+  reprojection_error_max: 1.0  # pixels
+  coverage_min: 0.8  # 80% coverage required
+  detection_success_min: 0.9  # 90% detection success required

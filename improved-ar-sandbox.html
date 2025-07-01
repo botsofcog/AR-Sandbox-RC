@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏗️ Improved AR Sandbox</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            color: white;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+        }
+        
+        #container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        #video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 1;
+            opacity: 0.3;
+        }
+        
+        #terrain-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            cursor: crosshair;
+        }
+        
+        #controls {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 20px;
+            border-radius: 15px;
+            border: 2px solid #00ff00;
+            z-index: 30;
+            width: 280px;
+        }
+        
+        .control-section {
+            margin-bottom: 15px;
+            padding: 12px;
+            background: rgba(50, 50, 50, 0.8);
+            border-radius: 8px;
+        }
+        
+        .section-title {
+            color: #00ff00;
+            font-weight: bold;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        
+        .big-btn {
+            width: 100%;
+            padding: 12px;
+            margin: 6px 0;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .big-btn:hover {
+            transform: scale(1.02);
+        }
+        
+        .big-btn.active {
+            box-shadow: 0 0 15px currentColor;
+        }
+        
+        #calibrate-btn { background: #ff6b6b; color: white; }
+        #live-mode-btn { background: #4ecdc4; color: white; }
+        #manual-mode-btn { background: #ffa500; color: white; }
+        #reset-btn { background: #a29bfe; color: white; }
+        
+        .tool-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        
+        .tool-btn {
+            padding: 10px;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .tool-btn:hover {
+            transform: scale(1.05);
+        }
+        
+        .tool-btn.active {
+            box-shadow: 0 0 10px currentColor;
+        }
+        
+        #dig-tool { background: #ff6b6b; color: white; }
+        #build-tool { background: #4ecdc4; color: white; }
+        #water-tool { background: #74b9ff; color: white; }
+        #fire-tool { background: #fd79a8; color: white; }
+        
+        .slider-group {
+            margin: 8px 0;
+        }
+        
+        .slider-label {
+            display: block;
+            margin-bottom: 4px;
+            font-size: 12px;
+            color: #ccc;
+        }
+        
+        .slider {
+            width: 100%;
+            height: 6px;
+            margin-bottom: 4px;
+        }
+        
+        .value-display {
+            font-size: 12px;
+            color: #00ff00;
+            text-align: right;
+        }
+        
+        #status {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 15px;
+            border-radius: 10px;
+            border: 2px solid #00ff00;
+            z-index: 30;
+            font-size: 14px;
+        }
+        
+        .status-item {
+            margin: 4px 0;
+        }
+        
+        .status-value {
+            color: #00ff00;
+            font-weight: bold;
+        }
+        
+        #mode-indicator {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 15px;
+            border-radius: 10px;
+            border: 2px solid #4ecdc4;
+            z-index: 30;
+            text-align: center;
+            font-size: 16px;
+            font-weight: bold;
+            color: #4ecdc4;
+        }
+        
+        .processing-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.95);
+            padding: 30px 50px;
+            border-radius: 15px;
+            font-size: 20px;
+            font-weight: bold;
+            color: #00ff00;
+            z-index: 100;
+            border: 3px solid #00ff00;
+            text-align: center;
+            display: none;
+        }
+        
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(0, 255, 0, 0.3);
+            border-radius: 50%;
+            border-top-color: #00ff00;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 10px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <video id="video" autoplay muted playsinline></video>
+        <canvas id="terrain-canvas"></canvas>
+        
+        <div id="controls">
+            <div class="control-section">
+                <div class="section-title">📷 Webcam Calibration</div>
+                <button class="big-btn" id="calibrate-btn" onclick="calibrateWebcam()">
+                    🎯 CALIBRATE TERRAIN
+                </button>
+                <div class="slider-group">
+                    <label class="slider-label">Depth Sensitivity:</label>
+                    <input type="range" class="slider" id="depth-sensitivity" min="1" max="10" value="5">
+                    <div class="value-display" id="depth-value">5</div>
+                </div>
+                <div class="slider-group">
+                    <label class="slider-label">Smoothing:</label>
+                    <input type="range" class="slider" id="smoothing" min="1" max="10" value="3">
+                    <div class="value-display" id="smoothing-value">3</div>
+                </div>
+            </div>
+            
+            <div class="control-section">
+                <div class="section-title">🎮 Interaction Mode</div>
+                <button class="big-btn active" id="live-mode-btn" onclick="setLiveMode()">
+                    📹 LIVE WEBCAM MODE
+                </button>
+                <button class="big-btn" id="manual-mode-btn" onclick="setManualMode()">
+                    ✋ MANUAL SAND MODE
+                </button>
+            </div>
+            
+            <div class="control-section">
+                <div class="section-title">🛠️ Sand Tools</div>
+                <div class="tool-grid">
+                    <button class="tool-btn active" id="dig-tool" onclick="setTool('dig')">
+                        ⛏️ DIG
+                    </button>
+                    <button class="tool-btn" id="build-tool" onclick="setTool('build')">
+                        🏗️ BUILD
+                    </button>
+                    <button class="tool-btn" id="water-tool" onclick="setTool('water')">
+                        💧 WATER
+                    </button>
+                    <button class="tool-btn" id="fire-tool" onclick="setTool('fire')">
+                        🔥 FIRE
+                    </button>
+                </div>
+                
+                <div class="slider-group">
+                    <label class="slider-label">Brush Size:</label>
+                    <input type="range" class="slider" id="brush-size" min="10" max="50" value="25">
+                    <div class="value-display" id="brush-value">25</div>
+                </div>
+                
+                <div class="slider-group">
+                    <label class="slider-label">Tool Strength:</label>
+                    <input type="range" class="slider" id="tool-strength" min="1" max="10" value="3">
+                    <div class="value-display" id="strength-value">3</div>
+                </div>
+            </div>
+            
+            <div class="control-section">
+                <div class="section-title">🌊 Environment</div>
+                <div class="slider-group">
+                    <label class="slider-label">Sea Level:</label>
+                    <input type="range" class="slider" id="sea-level" min="0" max="100" value="55">
+                    <div class="value-display" id="sea-value">55</div>
+                </div>
+                <div class="slider-group">
+                    <label class="slider-label">Contour Lines:</label>
+                    <input type="range" class="slider" id="contour-distance" min="5" max="20" value="10">
+                    <div class="value-display" id="contour-value">10</div>
+                </div>
+            </div>
+            
+            <div class="control-section">
+                <div class="section-title">🔄 System</div>
+                <button class="big-btn" id="reset-btn" onclick="resetSystem()">
+                    🔄 RESET & RECALIBRATE
+                </button>
+            </div>
+        </div>
+        
+        <div id="mode-indicator">
+            📹 LIVE WEBCAM MODE
+        </div>
+        
+        <div id="status">
+            <div class="status-item">📷 Camera: <span class="status-value" id="camera-status">Starting...</span></div>
+            <div class="status-item">🎯 Calibration: <span class="status-value" id="calibration-status">Not calibrated</span></div>
+            <div class="status-item">🗺️ Terrain Points: <span class="status-value" id="terrain-count">0</span></div>
+            <div class="status-item">🛠️ Current Tool: <span class="status-value" id="current-tool">DIG</span></div>
+            <div class="status-item">📍 Mouse: <span class="status-value" id="mouse-pos">--</span></div>
+        </div>
+        
+        <div id="processing-overlay" class="processing-overlay">
+            <div class="spinner"></div>
+            <span id="processing-text">Processing...</span>
+        </div>
+    </div>
+
+    <script>
+        // Based on your working sample code
+        const CANVAS_RESOLUTION = 512;
+        const DIG_STRENGTH = 2;
+        const SLUMP_FACTOR = 0.15; // Gentler slumping for realistic sand
+        const TALUS_ANGLE = 8;     // Sand angle of repose
+        const FLOW_SPEED = 0.3;    
+        const EROSION_FACTOR = 0.001;
+        const EROSION_FLOW_THRESHOLD = 0.05;
+        
+        // Color map from your constants
+        const DEFAULT_COLOR_MAP = [
+            { height: 255, color: '#FFFFFF' }, // Snow
+            { height: 200, color: '#A0A0A0' }, // Rock
+            { height: 120, color: '#3A912C' }, // High Grass
+            { height: 80, color: '#57C146' },  // Low Grass
+            { height: 60, color: '#D2B48C' },  // Sand
+            { height: 50, color: '#3E83C9' },  // Shallow Water
+            { height: 0, color: '#1E4A94' },   // Deep Water
+        ];
+        
+        class ImprovedARSandbox {
+            constructor() {
+                this.video = document.getElementById('video');
+                this.canvas = document.getElementById('terrain-canvas');
+                this.ctx = this.canvas.getContext('2d');
+                
+                // Processing canvas for computer vision
+                this.processCanvas = document.createElement('canvas');
+                this.processCtx = this.processCanvas.getContext('2d');
+                
+                // Terrain data - using your working system
+                this.R = CANVAS_RESOLUTION;
+                this.landMap = new Float32Array(this.R * this.R);
+                this.waterMap = new Float32Array(this.R * this.R);
+                this.fireMap = new Float32Array(this.R * this.R);
+                this.baselineFrame = null;
+                
+                // Settings
+                this.isCalibrated = false;
+                this.isLiveMode = true;
+                this.currentTool = 'dig';
+                this.brushSize = 25;
+                this.toolStrength = 3;
+                this.depthSensitivity = 5;
+                this.smoothing = 3;
+                this.seaLevel = 55;
+                this.contourDistance = 10;
+                this.isDrawing = false;
+
+                // Processing
+                this.lastProcessTime = 0;
+                this.frameCount = 0;
+
+                this.initialize();
+            }
+        }
+
+        // Initialize Improved AR Sandbox
+        let improvedSandbox;
+        document.addEventListener('DOMContentLoaded', () => {
+            improvedSandbox = new ImprovedARSandbox();
+        });
+    </script>
+
+    <!-- Kinect WebSocket Integration -->
+    <script src="js/kinect_websocket_integration.js"></script>
+    <script>
+        // Initialize Kinect WebSocket connection for Improved AR Sandbox
+        let kinectIntegration;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            kinectIntegration = new KinectWebSocketIntegration({
+                onConnect: () => {
+                    console.log('✅ Improved AR Sandbox connected to Kinect');
+                    updateImprovedStatus('Kinect depth sensor connected');
+                },
+                onDisconnect: () => {
+                    console.log('❌ Improved AR Sandbox disconnected from Kinect');
+                    updateImprovedStatus('Kinect depth sensor disconnected');
+                },
+                onFrameData: (frameData) => {
+                    if (improvedSandbox && improvedSandbox.updateFromKinectData) {
+                        improvedSandbox.updateFromKinectData(frameData);
+                    }
+                },
+                onTopographyData: (topographyData) => {
+                    if (improvedSandbox && improvedSandbox.enhanceWithTopography) {
+                        improvedSandbox.enhanceWithTopography(topographyData);
+                    }
+                }
+            });
+
+            kinectIntegration.connect();
+        });
+
+        function updateImprovedStatus(message) {
+            const controls = document.getElementById('controls');
+            if (controls) {
+                const statusDiv = controls.querySelector('.kinect-improved-status') || document.createElement('div');
+                statusDiv.className = 'kinect-improved-status';
+                statusDiv.innerHTML = `<div style="margin-top: 10px; padding: 5px; background: rgba(0,255,0,0.2); border-radius: 3px; font-size: 12px;">🔗 ${message}</div>`;
+                if (!controls.contains(statusDiv)) {
+                    controls.appendChild(statusDiv);
+                }
+            }
+        }
+    </script>
+</body>
+</html>

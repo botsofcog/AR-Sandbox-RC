@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RC Sandbox - WORKING Terrain Demo</title>
+    <style>
+        body { 
+            margin: 0; 
+            padding: 0; 
+            background: #000; 
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+        }
+        
+        #container { 
+            position: relative; 
+            width: 100vw; 
+            height: 100vh; 
+        }
+        
+        #videoCanvas, #terrainCanvas { 
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+            width: 100%;
+            height: 100%;
+        }
+        
+        #terrainCanvas { 
+            pointer-events: auto; 
+            z-index: 2;
+        }
+        
+        .controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 10;
+            background: rgba(0,0,0,0.8);
+            padding: 15px;
+            border-radius: 10px;
+            color: white;
+        }
+        
+        .controls button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        .controls button:hover {
+            background: #45a049;
+        }
+        
+        .status {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            z-index: 10;
+            background: rgba(0,0,0,0.8);
+            padding: 10px;
+            border-radius: 5px;
+            color: white;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <canvas id="videoCanvas"></canvas>
+        <canvas id="terrainCanvas"></canvas>
+        
+        <div class="controls">
+            <h3>🏗️ RC Sandbox Controls</h3>
+            <button onclick="addSand()">🏖️ Add Sand</button>
+            <button onclick="addWater()">💧 Add Water</button>
+            <button onclick="resetTerrain()">🔄 Reset</button>
+            <button onclick="togglePhysics()" id="physicsBtn">⚛️ Physics ON</button>
+        </div>
+        
+        <div class="status" id="status">
+            Click and drag to sculpt terrain • WASD to move • Space for physics
+        </div>
+    </div>
+
+    <script>
+        // Get video stream
+        const video = document.createElement('video');
+        video.autoplay = true;
+        video.muted = true;
+        
+        navigator.mediaDevices.getUserMedia({ 
+            video: { width: 640, height: 480 } 
+        })
+        .then(stream => { 
+            video.srcObject = stream; 
+            console.log('📹 Webcam connected successfully');
+        })
+        .catch(err => { 
+            console.error("❌ Webcam access error:", err);
+            document.getElementById('status').textContent = 'Webcam access denied - using demo mode';
+        });
+
+        // Canvas setup
+        const videoCanvas = document.getElementById('videoCanvas');
+        const terrainCanvas = document.getElementById('terrainCanvas');
+        const vCtx = videoCanvas.getContext('2d');
+        const tCtx = terrainCanvas.getContext('2d');
+        
+        // Resize canvases to window
+        function resizeCanvases() {
+            videoCanvas.width = window.innerWidth;
+            videoCanvas.height = window.innerHeight;
+            terrainCanvas.width = window.innerWidth;
+            terrainCanvas.height = window.innerHeight;
+        }
+        resizeCanvases();
+        window.addEventListener('resize', resizeCanvases);
+
+        // Terrain simulation
+        const cols = 80, rows = 60;
+        let heightmap = Array.from({ length: rows }, () => Array(cols).fill(0));
+        let watermap = Array.from({ length: rows }, () => Array(cols).fill(0));
+        let physicsEnabled = true;
+        let isMouseDown = false;
+        let brushSize = 3;
+
+        // Mouse/touch interaction
+        function getGridPos(clientX, clientY) {
+            const rect = terrainCanvas.getBoundingClientRect();
+            const x = Math.floor((clientX - rect.left) / rect.width * cols);
+            const y = Math.floor((clientY - rect.top) / rect.height * rows);
+            return { x, y };
+        }
+
+        function modifyTerrain(x, y, amount) {
+            for (let dx = -brushSize; dx <= brushSize; dx++) {
+                for (let dy = -brushSize; dy <= brushSize; dy++) {
+                    const nx = x + dx;
+                    const ny = y + dy;
+                    if (nx >= 0 && nx < cols && ny >= 0 && ny < rows) {
+                        const dist = Math.sqrt(dx*dx + dy*dy);
+                        if (dist <= brushSize) {
+                            const strength = 1 - (dist / brushSize);
+                            heightmap[ny][nx] += amount * strength;
+                            heightmap[ny][nx] = Math.max(0, Math.min(100, heightmap[ny][nx]));
+                        }
+                    }
+                }
+            }
+        }
+
+        // Event listeners
+        terrainCanvas.addEventListener('mousedown', (e) => {
+            isMouseDown = true;
+            const pos = getGridPos(e.clientX, e.clientY);
+            modifyTerrain(pos.x, pos.y, 5);
+        });
+
+        terrainCanvas.addEventListener('mousemove', (e) => {
+            if (isMouseDown) {
+                const pos = getGridPos(e.clientX, e.clientY);
+                modifyTerrain(pos.x, pos.y, 2);
+            }
+        });
+
+        terrainCanvas.addEventListener('mouseup', () => {
+            isMouseDown = false;
+        });
+
+        // Touch support
+        terrainCanvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const pos = getGridPos(touch.clientX, touch.clientY);
+            modifyTerrain(pos.x, pos.y, 5);
+        });
+
+        terrainCanvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const pos = getGridPos(touch.clientX, touch.clientY);
+            modifyTerrain(pos.x, pos.y, 2);
+        });
+
+        // Physics simulation
+        function updatePhysics() {
+            if (!physicsEnabled) return;
+            
+            // Simple diffusion for sand
+            const newHeightmap = heightmap.map(row => row.slice());
+            for (let y = 1; y < rows - 1; y++) {
+                for (let x = 1; x < cols - 1; x++) {
+                    const current = heightmap[y][x];
+                    const neighbors = [
+                        heightmap[y-1][x], heightmap[y+1][x],
+                        heightmap[y][x-1], heightmap[y][x+1]
+                    ];
+                    const avg = neighbors.reduce((a, b) => a + b, 0) / 4;
+                    newHeightmap[y][x] = current * 0.9 + avg * 0.1;
+                }
+            }
+            heightmap = newHeightmap;
+            
+            // Water flow simulation
+            for (let y = 1; y < rows - 1; y++) {
+                for (let x = 1; x < cols - 1; x++) {
+                    if (watermap[y][x] > 0.1) {
+                        const flow = watermap[y][x] * 0.1;
+                        watermap[y][x] -= flow;
+                        
+                        // Flow to lowest neighbor
+                        const neighbors = [
+                            {x: x, y: y-1}, {x: x, y: y+1},
+                            {x: x-1, y: y}, {x: x+1, y: y}
+                        ];
+                        
+                        let lowest = null;
+                        let lowestHeight = heightmap[y][x] + watermap[y][x];
+                        
+                        neighbors.forEach(n => {
+                            const totalHeight = heightmap[n.y][n.x] + watermap[n.y][n.x];
+                            if (totalHeight < lowestHeight) {
+                                lowest = n;
+                                lowestHeight = totalHeight;
+                            }
+                        });
+                        
+                        if (lowest) {
+                            watermap[lowest.y][lowest.x] += flow;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Rendering
+        function render() {
+            // Draw video background
+            if (video.readyState >= 2) {
+                vCtx.drawImage(video, 0, 0, videoCanvas.width, videoCanvas.height);
+            }
+            
+            // Clear terrain canvas
+            tCtx.clearRect(0, 0, terrainCanvas.width, terrainCanvas.height);
+            
+            // Draw terrain
+            const cellW = terrainCanvas.width / cols;
+            const cellH = terrainCanvas.height / rows;
+            
+            for (let y = 0; y < rows; y++) {
+                for (let x = 0; x < cols; x++) {
+                    const height = heightmap[y][x];
+                    const water = watermap[y][x];
+                    
+                    if (height > 0 || water > 0) {
+                        // Topographic coloring
+                        let color;
+                        if (water > 0.5) {
+                            color = `rgba(0, 100, 255, ${Math.min(water / 10, 0.8)})`;
+                        } else if (height < 10) {
+                            color = `rgba(194, 178, 128, ${Math.min(height / 20, 0.8)})`; // Sand
+                        } else if (height < 30) {
+                            color = `rgba(34, 139, 34, ${Math.min(height / 40, 0.8)})`; // Grass
+                        } else {
+                            color = `rgba(139, 69, 19, ${Math.min(height / 60, 0.8)})`; // Rock
+                        }
+                        
+                        tCtx.fillStyle = color;
+                        tCtx.fillRect(x * cellW, y * cellH, cellW, cellH);
+                    }
+                }
+            }
+            
+            // Draw contour lines
+            tCtx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+            tCtx.lineWidth = 1;
+            for (let y = 0; y < rows - 1; y++) {
+                for (let x = 0; x < cols - 1; x++) {
+                    const h1 = heightmap[y][x];
+                    const h2 = heightmap[y][x + 1];
+                    const h3 = heightmap[y + 1][x];
+                    
+                    if (Math.abs(h1 - h2) > 5 || Math.abs(h1 - h3) > 5) {
+                        tCtx.beginPath();
+                        tCtx.moveTo(x * cellW, y * cellH);
+                        tCtx.lineTo((x + 1) * cellW, (y + 1) * cellH);
+                        tCtx.stroke();
+                    }
+                }
+            }
+        }
+
+        // Animation loop
+        function animate() {
+            updatePhysics();
+            render();
+            requestAnimationFrame(animate);
+        }
+
+        // Control functions
+        function addSand() {
+            const centerX = Math.floor(cols / 2);
+            const centerY = Math.floor(rows / 2);
+            modifyTerrain(centerX, centerY, 15);
+        }
+
+        function addWater() {
+            const centerX = Math.floor(cols / 2);
+            const centerY = Math.floor(rows / 2);
+            for (let dx = -2; dx <= 2; dx++) {
+                for (let dy = -2; dy <= 2; dy++) {
+                    const x = centerX + dx;
+                    const y = centerY + dy;
+                    if (x >= 0 && x < cols && y >= 0 && y < rows) {
+                        watermap[y][x] += 5;
+                    }
+                }
+            }
+        }
+
+        function resetTerrain() {
+            heightmap = Array.from({ length: rows }, () => Array(cols).fill(0));
+            watermap = Array.from({ length: rows }, () => Array(cols).fill(0));
+        }
+
+        function togglePhysics() {
+            physicsEnabled = !physicsEnabled;
+            const btn = document.getElementById('physicsBtn');
+            btn.textContent = physicsEnabled ? '⚛️ Physics ON' : '⚛️ Physics OFF';
+            btn.style.background = physicsEnabled ? '#4CAF50' : '#f44336';
+        }
+
+        // Keyboard controls
+        document.addEventListener('keydown', (e) => {
+            switch(e.code) {
+                case 'Space':
+                    e.preventDefault();
+                    togglePhysics();
+                    break;
+                case 'KeyS':
+                    addSand();
+                    break;
+                case 'KeyW':
+                    addWater();
+                    break;
+                case 'KeyR':
+                    resetTerrain();
+                    break;
+            }
+        });
+
+        // Start animation when video is ready
+        video.addEventListener('loadeddata', () => {
+            console.log('🎮 Starting terrain simulation...');
+            animate();
+        });
+
+        // Start immediately if no video
+        setTimeout(() => {
+            if (video.readyState < 2) {
+                console.log('🎮 Starting in demo mode...');
+                animate();
+            }
+        }, 2000);
+
+        console.log('🏗️ RC Sandbox - Working Terrain Demo Loaded!');
+        console.log('Controls: Click/drag to sculpt, S=sand, W=water, R=reset, Space=physics');
+    </script>
+
+    <!-- Kinect WebSocket Integration -->
+    <script src="js/kinect_websocket_integration.js"></script>
+    <script>
+        // Initialize Kinect WebSocket connection for Working Terrain Demo
+        let kinectIntegration;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            kinectIntegration = new KinectWebSocketIntegration({
+                onConnect: () => {
+                    console.log('✅ Working Terrain Demo connected to Kinect');
+                    updateTerrainStatus('Kinect depth sensor connected');
+                },
+                onDisconnect: () => {
+                    console.log('❌ Working Terrain Demo disconnected from Kinect');
+                    updateTerrainStatus('Kinect depth sensor disconnected');
+                },
+                onFrameData: (frameData) => {
+                    if (frameData.mesh_data && frameData.mesh_data.data) {
+                        updateTerrainFromKinectMesh(frameData.mesh_data);
+                    }
+                },
+                onTopographyData: (topographyData) => {
+                    if (topographyData.ai_metadata) {
+                        enhanceTerrainWithAI(topographyData.ai_metadata);
+                    }
+                }
+            });
+
+            kinectIntegration.connect();
+        });
+
+        function updateTerrainFromKinectMesh(meshData) {
+            // Update terrain heightmap with real Kinect data
+            const data = meshData.data;
+            const meshWidth = meshData.width || 100;
+            const meshHeight = meshData.height || 75;
+
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    const meshX = Math.floor((x / width) * meshWidth);
+                    const meshY = Math.floor((y / height) * meshHeight);
+                    const meshIndex = meshY * meshWidth + meshX;
+
+                    if (meshIndex < data.length) {
+                        const terrainIndex = y * width + x;
+                        heightMap[terrainIndex] = data[meshIndex] / 255.0; // Normalize
+                    }
+                }
+            }
+            console.log('✅ Updated terrain from Kinect mesh data');
+        }
+
+        function enhanceTerrainWithAI(aiMetadata) {
+            if (aiMetadata.terrain_stats) {
+                console.log(`🤖 AI Analysis: Elevation ${aiMetadata.terrain_stats.min_elevation.toFixed(2)}-${aiMetadata.terrain_stats.max_elevation.toFixed(2)}`);
+            }
+        }
+
+        function updateTerrainStatus(message) {
+            const controls = document.querySelector('.controls');
+            if (controls) {
+                const statusDiv = controls.querySelector('.kinect-terrain-status') || document.createElement('div');
+                statusDiv.className = 'kinect-terrain-status';
+                statusDiv.innerHTML = `<div style="margin-top: 8px; font-size: 12px; color: #00ff00;">🔗 ${message}</div>`;
+                if (!controls.contains(statusDiv)) {
+                    controls.appendChild(statusDiv);
+                }
+            }
+        }
+    </script>
+</body>
+</html>

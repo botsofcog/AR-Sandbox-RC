@@ -1,0 +1,248 @@
+{
+  "_metadata": {
+    "version": "2.1.0",
+    "updated": "2025-06-27",
+    "description": "Enhanced safety configuration with improved monitoring and recovery"
+  },
+  "thresholds": {
+    "cpu_usage": 80.0,
+    "memory_usage": 85.0,
+    "disk_usage": 90.0,
+    "network_latency": 100.0,
+    "error_rate": 5.0,
+    "response_time": 1000.0,
+    "temperature": 70.0,
+    "battery_level": 20.0,
+    "fps_minimum": 15.0,
+    "frame_drop_rate": 10.0
+  },
+  "monitoring": {
+    "interval": 5.0,
+    "health_check_interval": 30.0,
+    "metrics_retention_hours": 24,
+    "alert_cooldown": 300,
+    "max_alerts_per_hour": 20,
+    "enable_predictive_monitoring": true
+  },
+  "recovery": {
+    "auto_restart_services": true,
+    "max_restart_attempts": 3,
+    "restart_delay": 10.0,
+    "graceful_degradation": true,
+    "emergency_shutdown_threshold": 5,
+    "auto_recovery_enabled": true,
+    "recovery_timeout": 300
+  },
+  "notifications": {
+    "email_enabled": false,
+    "webhook_enabled": false,
+    "console_enabled": true,
+    "sms_enabled": false,
+    "slack_enabled": false
+  },
+  "email": {
+    "enabled": false,
+    "smtp_server": "smtp.gmail.com",
+    "smtp_port": 587,
+    "from_address": "alerts@rc-sandbox.com",
+    "to_address": "admin@rc-sandbox.com",
+    "username": "",
+    "password": ""
+  },
+  "webhook": {
+    "enabled": false,
+    "url": "https://hooks.slack.com/services/YOUR/WEBHOOK/URL",
+    "timeout": 10,
+    "retry_attempts": 3
+  },
+  "services": {
+    "depth_server": {
+      "port": 8765,
+      "critical": true,
+      "health_check_endpoint": "/health",
+      "restart_command": ["python", "backend/depth_server.py"],
+      "dependencies": ["kinect"],
+      "max_response_time": 1000
+    },
+    "telemetry_server": {
+      "port": 8766,
+      "critical": true,
+      "health_check_endpoint": "/health",
+      "restart_command": ["python", "backend/telemetry_server.py"],
+      "dependencies": ["vehicle_fleet"],
+      "max_response_time": 500
+    },
+    "streaming_server": {
+      "port": 8767,
+      "critical": false,
+      "health_check_endpoint": "/health",
+      "restart_command": ["python", "backend/streaming_server.py"],
+      "dependencies": ["ffmpeg"],
+      "max_response_time": 2000
+    },
+    "physics_engine": {
+      "port": 8768,
+      "critical": false,
+      "health_check_endpoint": "/health",
+      "restart_command": ["python", "backend/physics_server.py"],
+      "dependencies": [],
+      "max_response_time": 100
+    }
+  },
+  "sensors": {
+    "kinect": {
+      "type": "depth_sensor",
+      "critical": true,
+      "auto_reconnect": true,
+      "max_reconnect_attempts": 5,
+      "reconnect_delay": 5.0,
+      "data_timeout": 30.0,
+      "calibration_required": true
+    },
+    "projector": {
+      "type": "display",
+      "critical": false,
+      "auto_reconnect": false,
+      "max_reconnect_attempts": 3,
+      "reconnect_delay": 10.0,
+      "data_timeout": 60.0,
+      "calibration_required": true
+    },
+    "webcam": {
+      "type": "camera",
+      "critical": false,
+      "auto_reconnect": true,
+      "max_reconnect_attempts": 3,
+      "reconnect_delay": 5.0,
+      "data_timeout": 15.0,
+      "calibration_required": false
+    }
+  },
+  "vehicles": {
+    "EX001": {
+      "type": "excavator",
+      "critical": false,
+      "battery_threshold": 20.0,
+      "communication_timeout": 10.0,
+      "max_idle_time": 300.0
+    },
+    "BD001": {
+      "type": "bulldozer",
+      "critical": false,
+      "battery_threshold": 20.0,
+      "communication_timeout": 10.0,
+      "max_idle_time": 300.0
+    },
+    "DT001": {
+      "type": "dump_truck",
+      "critical": false,
+      "battery_threshold": 20.0,
+      "communication_timeout": 10.0,
+      "max_idle_time": 300.0
+    },
+    "CR001": {
+      "type": "crane",
+      "critical": false,
+      "battery_threshold": 20.0,
+      "communication_timeout": 10.0,
+      "max_idle_time": 300.0
+    },
+    "CP001": {
+      "type": "compactor",
+      "critical": false,
+      "battery_threshold": 20.0,
+      "communication_timeout": 10.0,
+      "max_idle_time": 300.0
+    }
+  },
+  "safety_rules": {
+    "emergency_stop_conditions": [
+      "critical_service_failure",
+      "sensor_malfunction",
+      "high_error_rate",
+      "system_overload",
+      "manual_trigger"
+    ],
+    "degradation_triggers": [
+      "non_critical_service_failure",
+      "high_resource_usage",
+      "sensor_degradation",
+      "network_issues"
+    ],
+    "auto_recovery_conditions": [
+      "service_restart_success",
+      "sensor_reconnect_success",
+      "error_rate_normalized",
+      "resource_usage_normal"
+    ]
+  },
+  "logging": {
+    "level": "INFO",
+    "file": "logs/safety_monitoring.log",
+    "max_file_size": "10MB",
+    "backup_count": 5,
+    "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  },
+  "security": {
+    "enable_authentication": false,
+    "api_key": "",
+    "allowed_ips": ["127.0.0.1", "localhost"],
+    "rate_limiting": {
+      "enabled": true,
+      "max_requests_per_minute": 60
+    }
+  },
+  "performance": {
+    "enable_profiling": false,
+    "profile_interval": 300,
+    "memory_leak_detection": true,
+    "performance_baseline": {
+      "cpu_usage": 30.0,
+      "memory_usage": 40.0,
+      "response_time": 100.0
+    }
+  },
+  "maintenance": {
+    "scheduled_maintenance_window": {
+      "enabled": false,
+      "start_time": "02:00",
+      "duration_hours": 2,
+      "days": ["sunday"]
+    },
+    "auto_cleanup": {
+      "enabled": true,
+      "log_retention_days": 30,
+      "metrics_retention_days": 7,
+      "alert_retention_days": 30
+    },
+    "health_checks": {
+      "disk_space_check": true,
+      "memory_leak_check": true,
+      "service_dependency_check": true,
+      "configuration_validation": true
+    }
+  },
+  "integration": {
+    "prometheus": {
+      "enabled": false,
+      "port": 9090,
+      "metrics_endpoint": "/metrics"
+    },
+    "grafana": {
+      "enabled": false,
+      "dashboard_url": "http://localhost:3000"
+    },
+    "elasticsearch": {
+      "enabled": false,
+      "host": "localhost",
+      "port": 9200,
+      "index": "rc-sandbox-logs"
+    }
+  },
+  "experimental": {
+    "ai_anomaly_detection": false,
+    "predictive_maintenance": false,
+    "auto_scaling": false,
+    "load_balancing": false
+  }
+}

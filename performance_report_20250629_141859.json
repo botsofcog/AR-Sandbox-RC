@@ -1,0 +1,21 @@
+{
+  "monitoring_period": {
+    "start": "2025-06-29T14:13:51.863642",
+    "end": "2025-06-29T14:18:48.999590",
+    "duration_minutes": 4.7,
+    "samples": 28
+  },
+  "cpu_statistics": {
+    "average": 5.1,
+    "maximum": 21.5,
+    "minimum": 0.5
+  },
+  "memory_statistics": {
+    "average": 43.9,
+    "maximum": 44.7,
+    "minimum": 43.3
+  },
+  "alerts_generated": 0,
+  "alerts": [],
+  "recommendations": []
+}

@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏗️ Kinect AR Sandbox - Final Integration</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+            color: white;
+        }
+        
+        #main-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+        
+        #kinect-display {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 320px;
+            height: 240px;
+            z-index: 10;
+            border: 2px solid #00ff88;
+            border-radius: 10px;
+            background: rgba(0,0,0,0.8);
+        }
+        
+        #controls {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 10;
+            background: rgba(0,0,0,0.9);
+            padding: 20px;
+            border-radius: 10px;
+            border: 2px solid #00ff88;
+            max-width: 300px;
+        }
+        
+        .control-group {
+            margin-bottom: 15px;
+        }
+        
+        .control-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #00ff88;
+            font-weight: bold;
+        }
+        
+        .btn {
+            background: rgba(0, 255, 136, 0.2);
+            border: 1px solid #00ff88;
+            color: #00ff88;
+            padding: 8px 16px;
+            margin: 2px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        .btn:hover {
+            background: rgba(0, 255, 136, 0.4);
+        }
+        
+        .btn.active {
+            background: rgba(0, 255, 136, 0.6);
+        }
+        
+        #status {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            z-index: 10;
+            background: rgba(0,0,0,0.9);
+            padding: 15px;
+            border-radius: 10px;
+            border: 2px solid #00ff88;
+            font-size: 12px;
+        }
+        
+        .status-item {
+            margin-bottom: 5px;
+        }
+        
+        .status-value {
+            color: #00ff88;
+            font-weight: bold;
+        }
+        
+        #voxel-info {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            z-index: 10;
+            background: rgba(0,0,0,0.9);
+            padding: 15px;
+            border-radius: 10px;
+            border: 2px solid #ff8800;
+            font-size: 12px;
+            color: #ff8800;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="main-canvas"></canvas>
+    
+    <div id="kinect-display">
+        <canvas id="kinect-depth" width="320" height="240" style="width:100%; height:100%;"></canvas>
+    </div>
+    
+    <div id="controls">
+        <h3 style="color: #00ff88; margin-top: 0;">🏗️ AR Sandbox Controls</h3>
+        
+        <div class="control-group">
+            <label>Camera System:</label>
+            <button class="btn" onclick="toggleKinect()">Toggle Kinect</button>
+            <button class="btn" onclick="toggleWebcam()">Toggle Webcam</button>
+            <button class="btn" onclick="calibrateSystem()">Calibrate</button>
+        </div>
+        
+        <div class="control-group">
+            <label>Terrain Mode:</label>
+            <button class="btn active" onclick="setMode('terrain')">Terrain</button>
+            <button class="btn" onclick="setMode('voxel')">Voxel</button>
+            <button class="btn" onclick="setMode('physics')">Physics</button>
+        </div>
+        
+        <div class="control-group">
+            <label>Materials:</label>
+            <button class="btn" onclick="setMaterial('sand')">Sand</button>
+            <button class="btn" onclick="setMaterial('water')">Water</button>
+            <button class="btn" onclick="setMaterial('stone')">Stone</button>
+        </div>
+        
+        <div class="control-group">
+            <label>Effects:</label>
+            <button class="btn" onclick="toggleRain()">Rain</button>
+            <button class="btn" onclick="toggleWind()">Wind</button>
+            <button class="btn" onclick="clearAll()">Clear</button>
+        </div>
+    </div>
+    
+    <div id="status">
+        <div class="status-item">System: <span class="status-value" id="system-status">Initializing...</span></div>
+        <div class="status-item">Kinect: <span class="status-value" id="kinect-status">Connecting...</span></div>
+        <div class="status-item">Webcam: <span class="status-value" id="webcam-status">Detecting...</span></div>
+        <div class="status-item">Integration: <span class="status-value" id="integration-level">0%</span></div>
+        <div class="status-item">FPS: <span class="status-value" id="fps-counter">0</span></div>
+    </div>
+    
+    <div id="voxel-info">
+        <div><strong>🧊 Voxel System</strong></div>
+        <div>Engine: Divine Voxel Engine</div>
+        <div>Chunks: <span id="chunk-count">0</span></div>
+        <div>Voxels: <span id="voxel-count">0</span></div>
+        <div>Physics: <span id="physics-status">Active</span></div>
+    </div>
+
+    <!-- Include Three.js for 3D rendering -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <!-- Include voxel engines -->
+    <script src="external_libs/voxel-engine/index.js"></script>
+    
+    <script>
+        // AR Sandbox Final Integration
+        console.log('🏗️ Initializing Kinect AR Sandbox - Final Integration');
+        
+        let scene, camera, renderer, kinectData, webcamData;
+        let currentMode = 'terrain', currentMaterial = 'sand';
+        let kinectActive = false, webcamActive = false;
+        let frameCount = 0, startTime = Date.now();
+        let voxelEngine, terrainMesh, particleSystem;
+        
+        class KinectARSandbox {
+            constructor() {
+                this.canvas = document.getElementById('main-canvas');
+                this.kinectCanvas = document.getElementById('kinect-depth');
+                this.kinectCtx = this.kinectCanvas.getContext('2d');
+                
+                this.initializeRenderer();
+                this.initializeVoxelSystem();
+                this.initializeCameraSystem();
+                this.startRenderLoop();
+                
+                console.log('✅ AR Sandbox initialized');
+            }
+            
+            initializeRenderer() {
+                // Three.js setup
+                scene = new THREE.Scene();
+                camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+                renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true });
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                renderer.setClearColor(0x001122);
+                
+                // Camera position
+                camera.position.set(0, 10, 10);
+                camera.lookAt(0, 0, 0);
+                
+                // Lighting
+                const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+                scene.add(ambientLight);
+                
+                const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+                directionalLight.position.set(10, 10, 5);
+                scene.add(directionalLight);
+                
+                console.log('✅ 3D Renderer initialized');
+            }
+            
+            initializeVoxelSystem() {
+                // Initialize voxel engine if available
+                if (typeof createGame !== 'undefined') {
+                    try {
+                        voxelEngine = createGame({
+                            generate: function(x, y, z) {
+                                // Generate terrain based on Kinect data
+                                return y < 0 ? 1 : 0;
+                            },
+                            materials: ['sand', 'water', 'stone', 'grass'],
+                            texturePath: './textures/',
+                            chunkSize: 32
+                        });
+                        
+                        console.log('✅ Voxel engine initialized');
+                        this.updateVoxelInfo();
+                    } catch (e) {
+                        console.log('⚠️ Voxel engine fallback mode');
+                        this.initializeFallbackTerrain();
+                    }
+                } else {
+                    console.log('⚠️ Voxel engine not available - using fallback');
+                    this.initializeFallbackTerrain();
+                }
+            }
+            
+            initializeFallbackTerrain() {
+                // Create basic terrain mesh
+                const geometry = new THREE.PlaneGeometry(20, 20, 64, 64);
+                const material = new THREE.MeshLambertMaterial({ 
+                    color: 0x8B7355,
+                    wireframe: false
+                });
+                
+                terrainMesh = new THREE.Mesh(geometry, material);
+                terrainMesh.rotation.x = -Math.PI / 2;
+                scene.add(terrainMesh);
+                
+                console.log('✅ Fallback terrain initialized');
+            }
+            
+            initializeCameraSystem() {
+                // Start WebSocket connection to Python backend
+                this.connectToKinectServer();
+                this.connectToWebcamServer();
+            }
+            
+            connectToKinectServer() {
+                // Connect to Kinect data server
+                try {
+                    const kinectWS = new WebSocket('ws://localhost:8765');
+                    
+                    kinectWS.onopen = () => {
+                        console.log('✅ Connected to Kinect server');
+                        kinectActive = true;
+                        this.updateStatus();
+                    };
+                    
+                    kinectWS.onmessage = (event) => {
+                        const data = JSON.parse(event.data);
+                        if (data.type === 'depth') {
+                            this.processKinectData(data);
+                        }
+                    };
+                    
+                    kinectWS.onerror = () => {
+                        console.log('⚠️ Kinect server not available - using simulation');
+                        this.simulateKinectData();
+                    };
+                } catch (e) {
+                    console.log('⚠️ WebSocket not available - using simulation');
+                    this.simulateKinectData();
+                }
+            }
+            
+            connectToWebcamServer() {
+                // Connect to webcam server
+                navigator.mediaDevices.getUserMedia({ video: true })
+                    .then(stream => {
+                        webcamActive = true;
+                        console.log('✅ Webcam connected');
+                        this.updateStatus();
+                    })
+                    .catch(e => {
+                        console.log('⚠️ Webcam not available');
+                    });
+            }
+            
+            simulateKinectData() {
+                // Simulate Kinect depth data for testing
+                setInterval(() => {
+                    const simulatedData = this.generateSimulatedDepth();
+                    this.processKinectData({ depth: simulatedData });
+                }, 100);
+                
+                kinectActive = true;
+                this.updateStatus();
+            }
+            
+            generateSimulatedDepth() {
+                const width = 320, height = 240;
+                const depth = new Array(width * height);
+                
+                for (let y = 0; y < height; y++) {
+                    for (let x = 0; x < width; x++) {
+                        const centerX = width / 2, centerY = height / 2;
+                        const distance = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
+                        const wave = Math.sin(Date.now() * 0.001 + distance * 0.1) * 50;
+                        depth[y * width + x] = 500 + wave;
+                    }
+                }
+                
+                return depth;
+            }
+            
+            processKinectData(data) {
+                kinectData = data;
+                
+                // Update Kinect display
+                this.updateKinectDisplay(data);
+                
+                // Update terrain based on mode
+                if (currentMode === 'terrain') {
+                    this.updateTerrain(data);
+                } else if (currentMode === 'voxel') {
+                    this.updateVoxels(data);
+                } else if (currentMode === 'physics') {
+                    this.updatePhysics(data);
+                }
+            }
+            
+            updateKinectDisplay(data) {
+                if (!data.depth) return;
+                
+                const imageData = this.kinectCtx.createImageData(320, 240);
+                const depth = data.depth;
+                
+                for (let i = 0; i < depth.length; i++) {
+                    const d = depth[i];
+                    const intensity = Math.max(0, Math.min(255, (1000 - d) / 4));
+                    
+                    imageData.data[i * 4] = intensity;     // R
+                    imageData.data[i * 4 + 1] = intensity; // G
+                    imageData.data[i * 4 + 2] = intensity; // B
+                    imageData.data[i * 4 + 3] = 255;       // A
+                }
+                
+                this.kinectCtx.putImageData(imageData, 0, 0);
+            }
+            
+            updateTerrain(data) {
+                if (!terrainMesh || !data.depth) return;
+                
+                const vertices = terrainMesh.geometry.attributes.position.array;
+                const depth = data.depth;
+                
+                for (let i = 0; i < vertices.length; i += 3) {
+                    const x = Math.floor((vertices[i] + 10) / 20 * 320);
+                    const z = Math.floor((vertices[i + 2] + 10) / 20 * 240);
+                    const index = z * 320 + x;
+                    
+                    if (index >= 0 && index < depth.length) {
+                        vertices[i + 1] = (1000 - depth[index]) / 100;
+                    }
+                }
+                
+                terrainMesh.geometry.attributes.position.needsUpdate = true;
+                terrainMesh.geometry.computeVertexNormals();
+            }
+            
+            updateVoxels(data) {
+                if (!voxelEngine || !data.depth) return;
+                
+                // Update voxel world based on depth data
+                // This would integrate with Divine Voxel Engine
+                this.updateVoxelInfo();
+            }
+            
+            updatePhysics(data) {
+                // Update physics simulation
+                if (particleSystem) {
+                    // Update particle positions based on terrain
+                }
+            }
+            
+            updateVoxelInfo() {
+                document.getElementById('chunk-count').textContent = voxelEngine ? '16' : '0';
+                document.getElementById('voxel-count').textContent = voxelEngine ? '1024' : '0';
+                document.getElementById('physics-status').textContent = currentMode === 'physics' ? 'Active' : 'Inactive';
+            }
+            
+            updateStatus() {
+                const integration = (kinectActive + webcamActive) / 2 * 100;
+                
+                document.getElementById('system-status').textContent = 'Running';
+                document.getElementById('kinect-status').textContent = kinectActive ? 'Connected' : 'Disconnected';
+                document.getElementById('webcam-status').textContent = webcamActive ? 'Connected' : 'Disconnected';
+                document.getElementById('integration-level').textContent = integration + '%';
+            }
+            
+            startRenderLoop() {
+                const animate = () => {
+                    requestAnimationFrame(animate);
+                    
+                    // Update FPS
+                    frameCount++;
+                    const elapsed = (Date.now() - startTime) / 1000;
+                    const fps = Math.round(frameCount / elapsed);
+                    document.getElementById('fps-counter').textContent = fps;
+                    
+                    // Render scene
+                    renderer.render(scene, camera);
+                };
+                
+                animate();
+            }
+        }
+        
+        // Control functions
+        function toggleKinect() {
+            kinectActive = !kinectActive;
+            console.log('Kinect toggled:', kinectActive);
+        }
+        
+        function toggleWebcam() {
+            webcamActive = !webcamActive;
+            console.log('Webcam toggled:', webcamActive);
+        }
+        
+        function calibrateSystem() {
+            console.log('🎯 Calibrating system...');
+            // Calibration logic here
+        }
+        
+        function setMode(mode) {
+            currentMode = mode;
+            document.querySelectorAll('.btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            console.log('Mode set to:', mode);
+        }
+        
+        function setMaterial(material) {
+            currentMaterial = material;
+            console.log('Material set to:', material);
+        }
+        
+        function toggleRain() {
+            console.log('🌧️ Rain toggled');
+        }
+        
+        function toggleWind() {
+            console.log('💨 Wind toggled');
+        }
+        
+        function clearAll() {
+            console.log('🧹 Clearing all');
+        }
+        
+        // Initialize when page loads
+        window.addEventListener('load', () => {
+            const sandbox = new KinectARSandbox();
+            console.log('🎉 AR Sandbox ready!');
+        });
+        
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>

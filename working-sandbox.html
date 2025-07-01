@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Working AR Sandbox</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #1a1a1a;
+            color: white;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+        }
+        
+        #container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        #video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0.7;
+        }
+        
+        #terrain-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            cursor: crosshair;
+            z-index: 10;
+        }
+        
+        #controls {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+            z-index: 20;
+            min-width: 250px;
+        }
+        
+        .control-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+        
+        input[type="range"] {
+            width: 100%;
+            margin-bottom: 5px;
+        }
+        
+        .tool-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        button {
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            background: #333;
+            color: white;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        button:hover {
+            background: #555;
+        }
+        
+        button.active {
+            background: #0066cc;
+        }
+        
+        #status {
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px;
+            border-radius: 5px;
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            z-index: 20;
+        }
+        
+        .effects-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+            z-index: 20;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .checkbox-group input {
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <video id="video" autoplay muted></video>
+        <canvas id="terrain-canvas"></canvas>
+        
+        <div id="controls">
+            <h3>🏗️ AR Sandbox Controls</h3>
+            
+            <div class="tool-buttons">
+                <button id="tool-raise" class="tool-btn active" data-tool="raise">⬆️ Raise</button>
+                <button id="tool-lower" class="tool-btn" data-tool="lower">⬇️ Lower</button>
+                <button id="tool-smooth" class="tool-btn" data-tool="smooth">🌊 Smooth</button>
+                <button id="tool-water" class="tool-btn" data-tool="water">💧 Water</button>
+            </div>
+            
+            <div class="control-group">
+                <label>Brush Size: <span id="brush-size-value">20</span></label>
+                <input type="range" id="brush-size" min="5" max="50" value="20">
+            </div>
+            
+            <div class="control-group">
+                <label>Strength: <span id="strength-value">0.5</span></label>
+                <input type="range" id="strength" min="0.1" max="2.0" step="0.1" value="0.5">
+            </div>
+            
+            <div class="control-group">
+                <button onclick="resetTerrain()">🔄 Reset Terrain</button>
+                <button onclick="toggleCamera()">📷 Toggle Camera</button>
+            </div>
+        </div>
+        
+        <div class="effects-panel">
+            <h3>🌟 Effects</h3>
+            
+            <div class="checkbox-group">
+                <input type="checkbox" id="show-contours" checked>
+                <label for="show-contours">Contour Lines</label>
+            </div>
+            
+            <div class="checkbox-group">
+                <input type="checkbox" id="enable-rain">
+                <label for="enable-rain">Rain Effect</label>
+            </div>
+            
+            <div class="checkbox-group">
+                <input type="checkbox" id="enable-particles">
+                <label for="enable-particles">Particles</label>
+            </div>
+            
+            <div class="control-group">
+                <label>Water Level: <span id="water-level-value">0.3</span></label>
+                <input type="range" id="water-level" min="0" max="1" step="0.1" value="0.3">
+            </div>
+        </div>
+        
+        <div id="status">
+            <div>FPS: <span id="fps">--</span></div>
+            <div>Tool: <span id="current-tool">Raise</span></div>
+            <div>Position: <span id="mouse-pos">--</span></div>
+        </div>
+    </div>
+
+    <script>
+        // Working AR Sandbox Implementation
+        class WorkingARSandbox {
+            constructor() {
+                this.canvas = document.getElementById('terrain-canvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.video = document.getElementById('video');
+                
+                // Terrain data
+                this.width = 200;
+                this.height = 150;
+                this.scale = 4;
+                this.heightMap = new Float32Array(this.width * this.height);
+                this.waterMap = new Float32Array(this.width * this.height);
+                this.particles = [];
+                
+                // State
+                this.currentTool = 'raise';
+                this.brushSize = 20;
+                this.strength = 0.5;
+                this.waterLevel = 0.3;
+                this.showContours = true;
+                this.enableRain = false;
+                this.enableParticles = false;
+                this.isDrawing = false;
+                this.cameraEnabled = false;
+                
+                // Performance
+                this.fps = 0;
+                this.lastTime = 0;
+                this.frameCount = 0;
+                
+                this.initialize();
+            }
+            
+            initialize() {
+                this.setupCanvas();
+                this.generateTerrain();
+                this.setupEvents();
+                this.setupCamera();
+                this.startRenderLoop();
+                
+                console.log('✅ Working AR Sandbox initialized');
+            }
+            
+            setupCanvas() {
+                this.canvas.width = window.innerWidth;
+                this.canvas.height = window.innerHeight;
+                
+                // Update scale based on canvas size
+                this.scale = Math.min(this.canvas.width / this.width, this.canvas.height / this.height);
+            }
+            
+            generateTerrain() {
+                for (let y = 0; y < this.height; y++) {
+                    for (let x = 0; x < this.width; x++) {
+                        const index = y * this.width + x;
+                        
+                        // Create varied terrain with multiple noise layers
+                        const noise1 = this.noise(x * 0.02, y * 0.02) * 0.4;
+                        const noise2 = this.noise(x * 0.05, y * 0.05) * 0.3;
+                        const noise3 = this.noise(x * 0.1, y * 0.1) * 0.2;
+                        const noise4 = this.noise(x * 0.2, y * 0.2) * 0.1;
+                        
+                        let height = noise1 + noise2 + noise3 + noise4;
+                        height = Math.max(0, Math.min(1, height + 0.4));
+                        
+                        this.heightMap[index] = height;
+                        
+                        // Add some water in low areas
+                        if (height < this.waterLevel) {
+                            this.waterMap[index] = (this.waterLevel - height) * 0.5;
+                        }
+                    }
+                }
+            }
+            
+            setupEvents() {
+                // Tool selection
+                document.querySelectorAll('.tool-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+                        e.target.classList.add('active');
+                        this.currentTool = e.target.dataset.tool;
+                        document.getElementById('current-tool').textContent = this.currentTool;
+                    });
+                });
+                
+                // Sliders
+                document.getElementById('brush-size').addEventListener('input', (e) => {
+                    this.brushSize = parseInt(e.target.value);
+                    document.getElementById('brush-size-value').textContent = this.brushSize;
+                });
+                
+                document.getElementById('strength').addEventListener('input', (e) => {
+                    this.strength = parseFloat(e.target.value);
+                    document.getElementById('strength-value').textContent = this.strength;
+                });
+                
+                document.getElementById('water-level').addEventListener('input', (e) => {
+                    this.waterLevel = parseFloat(e.target.value);
+                    document.getElementById('water-level-value').textContent = this.waterLevel;
+                });
+                
+                // Checkboxes
+                document.getElementById('show-contours').addEventListener('change', (e) => {
+                    this.showContours = e.target.checked;
+                });
+                
+                document.getElementById('enable-rain').addEventListener('change', (e) => {
+                    this.enableRain = e.target.checked;
+                });
+                
+                document.getElementById('enable-particles').addEventListener('change', (e) => {
+                    this.enableParticles = e.target.checked;
+                });
+                
+                // Mouse events
+                this.canvas.addEventListener('mousedown', (e) => {
+                    this.isDrawing = true;
+                    this.modifyTerrain(e);
+                });
+                
+                this.canvas.addEventListener('mousemove', (e) => {
+                    this.updateMousePosition(e);
+                    if (this.isDrawing) {
+                        this.modifyTerrain(e);
+                    }
+                });
+                
+                this.canvas.addEventListener('mouseup', () => {
+                    this.isDrawing = false;
+                });
+                
+                this.canvas.addEventListener('mouseleave', () => {
+                    this.isDrawing = false;
+                });
+                
+                // Window resize
+                window.addEventListener('resize', () => {
+                    this.setupCanvas();
+                });
+            }
+            
+            async setupCamera() {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ 
+                        video: { width: 640, height: 480 } 
+                    });
+                    this.video.srcObject = stream;
+                    this.cameraEnabled = true;
+                    console.log('📷 Camera initialized');
+                } catch (error) {
+                    console.warn('Camera not available:', error);
+                    this.video.style.display = 'none';
+                }
+            }
+            
+            updateMousePosition(e) {
+                const rect = this.canvas.getBoundingClientRect();
+                const x = Math.floor((e.clientX - rect.left) / this.scale);
+                const y = Math.floor((e.clientY - rect.top) / this.scale);
+                document.getElementById('mouse-pos').textContent = `${x}, ${y}`;
+            }
+            
+            modifyTerrain(e) {
+                const rect = this.canvas.getBoundingClientRect();
+                const x = Math.floor((e.clientX - rect.left) / this.scale);
+                const y = Math.floor((e.clientY - rect.top) / this.scale);
+                
+                for (let dy = -this.brushSize; dy <= this.brushSize; dy++) {
+                    for (let dx = -this.brushSize; dx <= this.brushSize; dx++) {
+                        const nx = x + dx;
+                        const ny = y + dy;
+                        
+                        if (nx >= 0 && nx < this.width && ny >= 0 && ny < this.height) {
+                            const distance = Math.sqrt(dx * dx + dy * dy);
+                            if (distance <= this.brushSize) {
+                                const falloff = 1 - (distance / this.brushSize);
+                                const effect = this.strength * falloff * 0.02;
+                                const index = ny * this.width + nx;
+                                
+                                switch (this.currentTool) {
+                                    case 'raise':
+                                        this.heightMap[index] = Math.min(1, this.heightMap[index] + effect);
+                                        break;
+                                    case 'lower':
+                                        this.heightMap[index] = Math.max(0, this.heightMap[index] - effect);
+                                        break;
+                                    case 'smooth':
+                                        this.smoothTerrain(nx, ny, effect);
+                                        break;
+                                    case 'water':
+                                        this.waterMap[index] = Math.min(1, this.waterMap[index] + effect);
+                                        break;
+                                }
+                                
+                                // Create particles
+                                if (this.enableParticles && Math.random() < 0.3) {
+                                    this.createParticle(nx * this.scale, ny * this.scale);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            smoothTerrain(x, y, strength) {
+                const index = y * this.width + x;
+                let avgHeight = 0;
+                let count = 0;
+                
+                for (let dy = -1; dy <= 1; dy++) {
+                    for (let dx = -1; dx <= 1; dx++) {
+                        const nx = x + dx;
+                        const ny = y + dy;
+                        
+                        if (nx >= 0 && nx < this.width && ny >= 0 && ny < this.height) {
+                            avgHeight += this.heightMap[ny * this.width + nx];
+                            count++;
+                        }
+                    }
+                }
+                
+                avgHeight /= count;
+                this.heightMap[index] = this.heightMap[index] * (1 - strength) + avgHeight * strength;
+            }
+            
+            createParticle(x, y) {
+                this.particles.push({
+                    x: x + (Math.random() - 0.5) * 20,
+                    y: y + (Math.random() - 0.5) * 20,
+                    vx: (Math.random() - 0.5) * 4,
+                    vy: (Math.random() - 0.5) * 4,
+                    life: 1.0,
+                    size: 2 + Math.random() * 3,
+                    color: `hsl(${Math.random() * 60 + 20}, 70%, 60%)`
+                });
+            }
+            
+            updateParticles(deltaTime) {
+                for (let i = this.particles.length - 1; i >= 0; i--) {
+                    const particle = this.particles[i];
+                    
+                    particle.x += particle.vx;
+                    particle.y += particle.vy;
+                    particle.life -= deltaTime * 2;
+                    
+                    if (particle.life <= 0) {
+                        this.particles.splice(i, 1);
+                    }
+                }
+                
+                // Add rain particles
+                if (this.enableRain && Math.random() < 0.5) {
+                    this.particles.push({
+                        x: Math.random() * this.canvas.width,
+                        y: -10,
+                        vx: (Math.random() - 0.5) * 2,
+                        vy: 5 + Math.random() * 5,
+                        life: 2.0,
+                        size: 1 + Math.random(),
+                        color: 'rgba(100, 150, 255, 0.7)'
+                    });
+                }
+            }
+            
+            startRenderLoop() {
+                const loop = (timestamp) => {
+                    const deltaTime = (timestamp - this.lastTime) / 1000;
+                    this.lastTime = timestamp;
+                    
+                    this.update(deltaTime);
+                    this.render();
+                    
+                    // Update FPS
+                    this.frameCount++;
+                    if (this.frameCount % 60 === 0) {
+                        this.fps = Math.round(1 / deltaTime);
+                        document.getElementById('fps').textContent = this.fps;
+                    }
+                    
+                    requestAnimationFrame(loop);
+                };
+                requestAnimationFrame(loop);
+            }
+            
+            update(deltaTime) {
+                this.updateParticles(deltaTime);
+                this.simulateWater(deltaTime);
+            }
+            
+            simulateWater(deltaTime) {
+                // Simple water flow simulation
+                const newWaterMap = new Float32Array(this.waterMap);
+                
+                for (let y = 1; y < this.height - 1; y++) {
+                    for (let x = 1; x < this.width - 1; x++) {
+                        const index = y * this.width + x;
+                        const currentHeight = this.heightMap[index] + this.waterMap[index];
+                        
+                        let totalFlow = 0;
+                        
+                        // Check neighbors
+                        for (let dy = -1; dy <= 1; dy++) {
+                            for (let dx = -1; dx <= 1; dx++) {
+                                if (dx === 0 && dy === 0) continue;
+                                
+                                const neighborIndex = (y + dy) * this.width + (x + dx);
+                                const neighborHeight = this.heightMap[neighborIndex] + this.waterMap[neighborIndex];
+                                
+                                if (currentHeight > neighborHeight) {
+                                    const flow = Math.min(this.waterMap[index] * 0.1, (currentHeight - neighborHeight) * 0.3);
+                                    totalFlow += flow;
+                                    newWaterMap[neighborIndex] += flow;
+                                }
+                            }
+                        }
+                        
+                        newWaterMap[index] = Math.max(0, this.waterMap[index] - totalFlow);
+                    }
+                }
+                
+                this.waterMap = newWaterMap;
+            }
+            
+            render() {
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                // Render terrain
+                this.renderTerrain();
+                
+                // Render contours
+                if (this.showContours) {
+                    this.renderContours();
+                }
+                
+                // Render particles
+                this.renderParticles();
+            }
+            
+            renderTerrain() {
+                const imageData = this.ctx.createImageData(this.width * this.scale, this.height * this.scale);
+                const data = imageData.data;
+                
+                for (let y = 0; y < this.height; y++) {
+                    for (let x = 0; x < this.width; x++) {
+                        const index = y * this.width + x;
+                        const height = this.heightMap[index];
+                        const water = this.waterMap[index];
+                        
+                        // Determine color based on height and water
+                        let r, g, b;
+                        
+                        if (water > 0.01) {
+                            // Water - blue
+                            const waterDepth = Math.min(1, water * 3);
+                            r = Math.floor(50 * (1 - waterDepth));
+                            g = Math.floor(100 + 50 * (1 - waterDepth));
+                            b = Math.floor(200 + 55 * waterDepth);
+                        } else if (height < 0.2) {
+                            // Deep water/low areas - dark blue
+                            r = 0; g = 50; b = 150;
+                        } else if (height < 0.4) {
+                            // Sand - tan
+                            r = 194; g = 178; b = 128;
+                        } else if (height < 0.6) {
+                            // Grass - green
+                            r = 34; g = 139; b = 34;
+                        } else if (height < 0.8) {
+                            // Rock - gray
+                            r = 105; g = 105; b = 105;
+                        } else {
+                            // Snow - white
+                            r = 255; g = 250; b = 250;
+                        }
+                        
+                        // Apply height-based shading
+                        const shade = 0.4 + height * 0.6;
+                        r = Math.floor(r * shade);
+                        g = Math.floor(g * shade);
+                        b = Math.floor(b * shade);
+                        
+                        // Draw scaled pixel
+                        for (let sy = 0; sy < this.scale; sy++) {
+                            for (let sx = 0; sx < this.scale; sx++) {
+                                const pixelIndex = ((y * this.scale + sy) * this.width * this.scale + (x * this.scale + sx)) * 4;
+                                data[pixelIndex] = r;
+                                data[pixelIndex + 1] = g;
+                                data[pixelIndex + 2] = b;
+                                data[pixelIndex + 3] = 255;
+                            }
+                        }
+                    }
+                }
+                
+                this.ctx.putImageData(imageData, 0, 0);
+            }
+            
+            renderContours() {
+                this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+                this.ctx.lineWidth = 1;
+                
+                const contourInterval = 0.1;
+                
+                for (let level = contourInterval; level < 1; level += contourInterval) {
+                    this.ctx.beginPath();
+                    
+                    for (let y = 0; y < this.height - 1; y++) {
+                        for (let x = 0; x < this.width - 1; x++) {
+                            const h1 = this.heightMap[y * this.width + x];
+                            const h2 = this.heightMap[y * this.width + (x + 1)];
+                            const h3 = this.heightMap[(y + 1) * this.width + x];
+                            
+                            if ((h1 <= level && h2 > level) || (h1 > level && h2 <= level)) {
+                                this.ctx.moveTo(x * this.scale, y * this.scale);
+                                this.ctx.lineTo((x + 1) * this.scale, y * this.scale);
+                            }
+                            
+                            if ((h1 <= level && h3 > level) || (h1 > level && h3 <= level)) {
+                                this.ctx.moveTo(x * this.scale, y * this.scale);
+                                this.ctx.lineTo(x * this.scale, (y + 1) * this.scale);
+                            }
+                        }
+                    }
+                    
+                    this.ctx.stroke();
+                }
+            }
+            
+            renderParticles() {
+                for (const particle of this.particles) {
+                    this.ctx.save();
+                    this.ctx.globalAlpha = particle.life;
+                    this.ctx.fillStyle = particle.color;
+                    this.ctx.beginPath();
+                    this.ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+                    this.ctx.fill();
+                    this.ctx.restore();
+                }
+            }
+            
+            // Simple noise function
+            noise(x, y) {
+                const n = Math.sin(x * 12.9898 + y * 78.233) * 43758.5453;
+                return (n - Math.floor(n)) * 2 - 1;
+            }
+        }
+        
+        // Global functions
+        function resetTerrain() {
+            sandbox.generateTerrain();
+        }
+        
+        function toggleCamera() {
+            const video = document.getElementById('video');
+            if (video.style.display === 'none') {
+                video.style.display = 'block';
+            } else {
+                video.style.display = 'none';
+            }
+        }
+        
+        // Initialize
+        const sandbox = new WorkingARSandbox();
+    </script>
+
+    <!-- Kinect WebSocket Integration -->
+    <script src="js/kinect_websocket_integration.js"></script>
+    <script>
+        // Initialize Kinect WebSocket connection for Working AR Sandbox
+        let kinectIntegration;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            kinectIntegration = new KinectWebSocketIntegration({
+                onConnect: () => {
+                    console.log('✅ Working AR Sandbox connected to Kinect');
+                    updateControlsStatus('Kinect Connected');
+                },
+                onDisconnect: () => {
+                    console.log('❌ Working AR Sandbox disconnected from Kinect');
+                    updateControlsStatus('Kinect Disconnected');
+                },
+                onFrameData: (frameData) => {
+                    if (sandbox && sandbox.updateTerrainFromKinectData) {
+                        sandbox.updateTerrainFromKinectData(frameData);
+                    }
+                },
+                onTopographyData: (topographyData) => {
+                    if (sandbox && sandbox.processAITopography) {
+                        sandbox.processAITopography(topographyData);
+                    }
+                }
+            });
+
+            kinectIntegration.connect();
+        });
+
+        function updateControlsStatus(message) {
+            const controls = document.getElementById('controls');
+            if (controls) {
+                const statusDiv = controls.querySelector('.kinect-connection') || document.createElement('div');
+                statusDiv.className = 'kinect-connection';
+                statusDiv.innerHTML = `<br><strong>🔗 ${message}</strong>`;
+                if (!controls.contains(statusDiv)) {
+                    controls.appendChild(statusDiv);
+                }
+            }
+        }
+    </script>
+</body>
+</html>

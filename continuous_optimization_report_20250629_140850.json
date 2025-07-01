@@ -1,0 +1,1625 @@
+{
+  "session_info": {
+    "start_time": "2025-06-29T14:08:24.692412",
+    "end_time": "2025-06-29T14:08:50.490136",
+    "duration_minutes": 0.42996208333333336
+  },
+  "analysis_results": {
+    "performance": {
+      "timestamp": "2025-06-29T14:08:24.692532",
+      "file_analysis": {
+        ".js": {
+          "count": 5158,
+          "total_size": 101496665,
+          "avg_size": 19677.52326483133
+        },
+        "": {
+          "count": 763,
+          "total_size": 108543106,
+          "avg_size": 142258.33027522935
+        },
+        ".py": {
+          "count": 403,
+          "total_size": 3538263,
+          "avg_size": 8779.808933002481
+        },
+        ".md": {
+          "count": 1531,
+          "total_size": 8652378,
+          "avg_size": 5651.455258001306
+        },
+        ".html": {
+          "count": 3787,
+          "total_size": 31430725,
+          "avg_size": 8299.636915764457
+        },
+        ".json": {
+          "count": 648,
+          "total_size": 102117723,
+          "avg_size": 157589.0787037037
+        },
+        ".txt": {
+          "count": 163,
+          "total_size": 12656398,
+          "avg_size": 77646.61349693252
+        },
+        ".yaml": {
+          "count": 4,
+          "total_size": 199336,
+          "avg_size": 49834.0
+        },
+        ".svg": {
+          "count": 1801,
+          "total_size": 12966198,
+          "avg_size": 7199.443642420877
+        },
+        ".css": {
+          "count": 168,
+          "total_size": 4731350,
+          "avg_size": 28162.79761904762
+        },
+        ".yml": {
+          "count": 26,
+          "total_size": 35156,
+          "avg_size": 1352.1538461538462
+        },
+        ".png": {
+          "count": 1661,
+          "total_size": 344138171,
+          "avg_size": 207187.33955448525
+        },
+        ".jpg": {
+          "count": 1911,
+          "total_size": 282724007,
+          "avg_size": 147945.5818942962
+        },
+        ".map": {
+          "count": 28,
+          "total_size": 15580350,
+          "avg_size": 556441.0714285715
+        },
+        ".mjs": {
+          "count": 21,
+          "total_size": 48647,
+          "avg_size": 2316.5238095238096
+        },
+        ".ts": {
+          "count": 565,
+          "total_size": 2449546,
+          "avg_size": 4335.479646017699
+        },
+        ".astro": {
+          "count": 42,
+          "total_size": 414804,
+          "avg_size": 9876.285714285714
+        },
+        ".mdx": {
+          "count": 9,
+          "total_size": 22633,
+          "avg_size": 2514.777777777778
+        },
+        ".scss": {
+          "count": 403,
+          "total_size": 1970754,
+          "avg_size": 4890.208436724566
+        },
+        ".markdown": {
+          "count": 4,
+          "total_size": 15468,
+          "avg_size": 3867.0
+        },
+        ".ico": {
+          "count": 24,
+          "total_size": 3277215,
+          "avg_size": 136550.625
+        },
+        ".gif": {
+          "count": 81,
+          "total_size": 79432827,
+          "avg_size": 980652.1851851852
+        },
+        ".xml": {
+          "count": 116,
+          "total_size": 4153495,
+          "avg_size": 35805.99137931035
+        },
+        ".webp": {
+          "count": 10,
+          "total_size": 384850,
+          "avg_size": 38485.0
+        },
+        ".pug": {
+          "count": 56,
+          "total_size": 498082,
+          "avg_size": 8894.32142857143
+        },
+        ".sh": {
+          "count": 35,
+          "total_size": 129279,
+          "avg_size": 3693.6857142857143
+        },
+        ".lock": {
+          "count": 50,
+          "total_size": 8488072,
+          "avg_size": 169761.44
+        },
+        ".vue": {
+          "count": 16,
+          "total_size": 26852,
+          "avg_size": 1678.25
+        },
+        ".csv": {
+          "count": 39,
+          "total_size": 6972714,
+          "avg_size": 178787.53846153847
+        },
+        ".cjs": {
+          "count": 19,
+          "total_size": 2101239,
+          "avg_size": 110591.52631578948
+        },
+        ".tsx": {
+          "count": 35,
+          "total_size": 113140,
+          "avg_size": 3232.5714285714284
+        },
+        ".afphoto": {
+          "count": 3,
+          "total_size": 209255,
+          "avg_size": 69751.66666666667
+        },
+        ".bin": {
+          "count": 46,
+          "total_size": 158366490,
+          "avg_size": 3442749.782608696
+        },
+        ".wasm": {
+          "count": 8,
+          "total_size": 5375343,
+          "avg_size": 671917.875
+        },
+        ".vox": {
+          "count": 4,
+          "total_size": 1737925,
+          "avg_size": 434481.25
+        },
+        ".hdr": {
+          "count": 21,
+          "total_size": 121632199,
+          "avg_size": 5792009.476190476
+        },
+        ".mp3": {
+          "count": 96,
+          "total_size": 43490195,
+          "avg_size": 453022.8645833333
+        },
+        ".babylon": {
+          "count": 1,
+          "total_size": 9772,
+          "avg_size": 9772.0
+        },
+        ".manifest": {
+          "count": 3,
+          "total_size": 1301,
+          "avg_size": 433.6666666666667
+        },
+        ".log": {
+          "count": 5,
+          "total_size": 203135,
+          "avg_size": 40627.0
+        },
+        ".obj": {
+          "count": 22,
+          "total_size": 7069728,
+          "avg_size": 321351.2727272727
+        },
+        ".cff": {
+          "count": 4,
+          "total_size": 3160,
+          "avg_size": 790.0
+        },
+        ".leafdoc": {
+          "count": 6,
+          "total_size": 16239,
+          "avg_size": 2706.5
+        },
+        ".hbs": {
+          "count": 22,
+          "total_size": 32931,
+          "avg_size": 1496.8636363636363
+        },
+        ".jpeg": {
+          "count": 19,
+          "total_size": 1673529,
+          "avg_size": 88080.47368421052
+        },
+        ".ipynb": {
+          "count": 133,
+          "total_size": 587983724,
+          "avg_size": 4420930.255639098
+        },
+        ".m": {
+          "count": 10,
+          "total_size": 232169,
+          "avg_size": 23216.9
+        },
+        ".bdf": {
+          "count": 2,
+          "total_size": 49876,
+          "avg_size": 24938.0
+        },
+        ".pbm": {
+          "count": 2,
+          "total_size": 2011,
+          "avg_size": 1005.5
+        },
+        ".pil": {
+          "count": 2,
+          "total_size": 10285,
+          "avg_size": 5142.5
+        },
+        ".ttf": {
+          "count": 64,
+          "total_size": 105482530,
+          "avg_size": 1648164.53125
+        },
+        ".rmd": {
+          "count": 1,
+          "total_size": 5497,
+          "avg_size": 5497.0
+        },
+        ".eot": {
+          "count": 7,
+          "total_size": 2566047,
+          "avg_size": 366578.14285714284
+        },
+        ".woff": {
+          "count": 10,
+          "total_size": 2145174,
+          "avg_size": 214517.4
+        },
+        ".woff2": {
+          "count": 11,
+          "total_size": 1249193,
+          "avg_size": 113563.0
+        },
+        ".ejs": {
+          "count": 1,
+          "total_size": 2072,
+          "avg_size": 2072.0
+        },
+        ".webmanifest": {
+          "count": 4,
+          "total_size": 1952,
+          "avg_size": 488.0
+        },
+        ".webm": {
+          "count": 7,
+          "total_size": 13317413,
+          "avg_size": 1902487.5714285714
+        },
+        ".glsl": {
+          "count": 10,
+          "total_size": 12516,
+          "avg_size": 1251.6
+        },
+        ".mp4": {
+          "count": 7,
+          "total_size": 10796796,
+          "avg_size": 1542399.4285714286
+        },
+        ".pict": {
+          "count": 4,
+          "total_size": 54498800,
+          "avg_size": 13624700.0
+        },
+        ".in": {
+          "count": 16,
+          "total_size": 31920,
+          "avg_size": 1995.0
+        },
+        ".toml": {
+          "count": 2,
+          "total_size": 1317,
+          "avg_size": 658.5
+        },
+        ".tmpl": {
+          "count": 33,
+          "total_size": 63891,
+          "avg_size": 1936.090909090909
+        },
+        ".tif": {
+          "count": 17,
+          "total_size": 9500817,
+          "avg_size": 558871.5882352941
+        },
+        ".geojson": {
+          "count": 9,
+          "total_size": 7165683,
+          "avg_size": 796187.0
+        },
+        ".gpx": {
+          "count": 1,
+          "total_size": 29893,
+          "avg_size": 29893.0
+        },
+        ".igc": {
+          "count": 5,
+          "total_size": 1893955,
+          "avg_size": 378791.0
+        },
+        ".kml": {
+          "count": 8,
+          "total_size": 3778856,
+          "avg_size": 472357.0
+        },
+        ".kmz": {
+          "count": 2,
+          "total_size": 16365,
+          "avg_size": 8182.5
+        },
+        ".pbf": {
+          "count": 11,
+          "total_size": 621843,
+          "avg_size": 56531.181818181816
+        },
+        ".wkt": {
+          "count": 1,
+          "total_size": 6792,
+          "avg_size": 6792.0
+        },
+        ".mvt": {
+          "count": 1,
+          "total_size": 249,
+          "avg_size": 249.0
+        },
+        ".ogg": {
+          "count": 32,
+          "total_size": 8819006,
+          "avg_size": 275593.9375
+        },
+        ".mov": {
+          "count": 5,
+          "total_size": 1465161,
+          "avg_size": 293032.2
+        },
+        ".otf": {
+          "count": 12,
+          "total_size": 1151564,
+          "avg_size": 95963.66666666667
+        },
+        ".frag": {
+          "count": 34,
+          "total_size": 53275,
+          "avg_size": 1566.9117647058824
+        },
+        ".vert": {
+          "count": 24,
+          "total_size": 54127,
+          "avg_size": 2255.2916666666665
+        },
+        ".ogv": {
+          "count": 2,
+          "total_size": 3848115,
+          "avg_size": 1924057.5
+        },
+        ".handlebars": {
+          "count": 1,
+          "total_size": 3319,
+          "avg_size": 3319.0
+        },
+        ".wav": {
+          "count": 67,
+          "total_size": 9300742,
+          "avg_size": 138817.0447761194
+        },
+        ".stl": {
+          "count": 9,
+          "total_size": 3284633,
+          "avg_size": 364959.22222222225
+        },
+        ".mtl": {
+          "count": 9,
+          "total_size": 5472,
+          "avg_size": 608.0
+        },
+        ".swp": {
+          "count": 1,
+          "total_size": 1024,
+          "avg_size": 1024.0
+        },
+        ".gltf": {
+          "count": 25,
+          "total_size": 45382098,
+          "avg_size": 1815283.92
+        },
+        ".blend": {
+          "count": 2,
+          "total_size": 29247572,
+          "avg_size": 14623786.0
+        },
+        ".rss": {
+          "count": 2,
+          "total_size": 2274,
+          "avg_size": 1137.0
+        },
+        ".go": {
+          "count": 4,
+          "total_size": 6826,
+          "avg_size": 1706.5
+        },
+        ".mod": {
+          "count": 2,
+          "total_size": 200,
+          "avg_size": 100.0
+        },
+        ".sum": {
+          "count": 2,
+          "total_size": 442,
+          "avg_size": 221.0
+        },
+        ".kts": {
+          "count": 2,
+          "total_size": 4314,
+          "avg_size": 2157.0
+        },
+        ".bat": {
+          "count": 17,
+          "total_size": 17123,
+          "avg_size": 1007.2352941176471
+        },
+        ".jar": {
+          "count": 4,
+          "total_size": 225391,
+          "avg_size": 56347.75
+        },
+        ".properties": {
+          "count": 7,
+          "total_size": 4733,
+          "avg_size": 676.1428571428571
+        },
+        ".kt": {
+          "count": 1,
+          "total_size": 1386,
+          "avg_size": 1386.0
+        },
+        ".liquid": {
+          "count": 2,
+          "total_size": 867,
+          "avg_size": 433.5
+        },
+        ".pb": {
+          "count": 1,
+          "total_size": 29755405,
+          "avg_size": 29755405.0
+        },
+        ".data-00000-of-00001": {
+          "count": 1,
+          "total_size": 112,
+          "avg_size": 112.0
+        },
+        ".index": {
+          "count": 1,
+          "total_size": 144,
+          "avg_size": 144.0
+        },
+        ".gradle": {
+          "count": 9,
+          "total_size": 31761,
+          "avg_size": 3529.0
+        },
+        ".bzl": {
+          "count": 3,
+          "total_size": 1863,
+          "avg_size": 621.0
+        },
+        ".keystore": {
+          "count": 3,
+          "total_size": 6771,
+          "avg_size": 2257.0
+        },
+        ".pro": {
+          "count": 3,
+          "total_size": 1335,
+          "avg_size": 445.0
+        },
+        ".java": {
+          "count": 42,
+          "total_size": 108609,
+          "avg_size": 2585.9285714285716
+        },
+        ".h": {
+          "count": 383,
+          "total_size": 3578049,
+          "avg_size": 9342.164490861618
+        },
+        ".plist": {
+          "count": 12,
+          "total_size": 9242,
+          "avg_size": 770.1666666666666
+        },
+        ".storyboard": {
+          "count": 3,
+          "total_size": 13425,
+          "avg_size": 4475.0
+        },
+        ".xib": {
+          "count": 2,
+          "total_size": 7504,
+          "avg_size": 3752.0
+        },
+        ".pbxproj": {
+          "count": 5,
+          "total_size": 279666,
+          "avg_size": 55933.2
+        },
+        ".xcworkspacedata": {
+          "count": 6,
+          "total_size": 1069,
+          "avg_size": 178.16666666666666
+        },
+        ".xcscheme": {
+          "count": 6,
+          "total_size": 19780,
+          "avg_size": 3296.6666666666665
+        },
+        ".glb": {
+          "count": 56,
+          "total_size": 142021952,
+          "avg_size": 2536106.285714286
+        },
+        ".xcf": {
+          "count": 1,
+          "total_size": 19634,
+          "avg_size": 19634.0
+        },
+        ".ies": {
+          "count": 4,
+          "total_size": 24515,
+          "avg_size": 6128.75
+        },
+        ".cube": {
+          "count": 10,
+          "total_size": 5526200,
+          "avg_size": 552620.0
+        },
+        ".3dl": {
+          "count": 4,
+          "total_size": 994822,
+          "avg_size": 248705.5
+        },
+        ".3dm": {
+          "count": 1,
+          "total_size": 5617729,
+          "avg_size": 5617729.0
+        },
+        ".3ds": {
+          "count": 1,
+          "total_size": 119053,
+          "avg_size": 119053.0
+        },
+        ".3mf": {
+          "count": 6,
+          "total_size": 6035862,
+          "avg_size": 1005977.0
+        },
+        ".amf": {
+          "count": 1,
+          "total_size": 49369,
+          "avg_size": 49369.0
+        },
+        ".bvh": {
+          "count": 1,
+          "total_size": 764800,
+          "avg_size": 764800.0
+        },
+        ".dae": {
+          "count": 5,
+          "total_size": 11926365,
+          "avg_size": 2385273.0
+        },
+        ".drc": {
+          "count": 1,
+          "total_size": 96018,
+          "avg_size": 96018.0
+        },
+        ".fbx": {
+          "count": 8,
+          "total_size": 16360152,
+          "avg_size": 2045019.0
+        },
+        ".gcode": {
+          "count": 1,
+          "total_size": 2006519,
+          "avg_size": 2006519.0
+        },
+        ".ifc": {
+          "count": 1,
+          "total_size": 43637870,
+          "avg_size": 43637870.0
+        },
+        ".mpd": {
+          "count": 16,
+          "total_size": 7323095,
+          "avg_size": 457693.4375
+        },
+        ".lwo": {
+          "count": 1,
+          "total_size": 3031402,
+          "avg_size": 3031402.0
+        },
+        ".md2": {
+          "count": 14,
+          "total_size": 1656756,
+          "avg_size": 118339.71428571429
+        },
+        ".mdd": {
+          "count": 1,
+          "total_size": 1176,
+          "avg_size": 1176.0
+        },
+        ".nrrd": {
+          "count": 2,
+          "total_size": 8002502,
+          "avg_size": 4001251.0
+        },
+        ".pcd": {
+          "count": 4,
+          "total_size": 2191604,
+          "avg_size": 547901.0
+        },
+        ".pdb": {
+          "count": 32,
+          "total_size": 10389474,
+          "avg_size": 324671.0625
+        },
+        ".ply": {
+          "count": 5,
+          "total_size": 2070172,
+          "avg_size": 414034.4
+        },
+        ".tilt": {
+          "count": 1,
+          "total_size": 180615,
+          "avg_size": 180615.0
+        },
+        ".usdz": {
+          "count": 1,
+          "total_size": 3842733,
+          "avg_size": 3842733.0
+        },
+        ".wrl": {
+          "count": 14,
+          "total_size": 168883,
+          "avg_size": 12063.07142857143
+        },
+        ".vtk": {
+          "count": 2,
+          "total_size": 3830646,
+          "avg_size": 1915323.0
+        },
+        ".vtp": {
+          "count": 3,
+          "total_size": 9259,
+          "avg_size": 3086.3333333333335
+        },
+        ".xyz": {
+          "count": 1,
+          "total_size": 9467,
+          "avg_size": 9467.0
+        },
+        ".tga": {
+          "count": 5,
+          "total_size": 37877356,
+          "avg_size": 7575471.2
+        },
+        ".nfo": {
+          "count": 2,
+          "total_size": 271,
+          "avg_size": 135.5
+        },
+        ".exr": {
+          "count": 3,
+          "total_size": 4043019,
+          "avg_size": 1347673.0
+        },
+        ".ktx2": {
+          "count": 14,
+          "total_size": 863014,
+          "avg_size": 61643.857142857145
+        },
+        ".dds": {
+          "count": 14,
+          "total_size": 4283667,
+          "avg_size": 305976.21428571426
+        },
+        ".zip": {
+          "count": 25,
+          "total_size": 707247305,
+          "avg_size": 28289892.2
+        },
+        ".pvr": {
+          "count": 8,
+          "total_size": 503638,
+          "avg_size": 62954.75
+        },
+        ".ktx": {
+          "count": 7,
+          "total_size": 1399368,
+          "avg_size": 199909.7142857143
+        },
+        ".asc": {
+          "count": 6,
+          "total_size": 2218883,
+          "avg_size": 369813.8333333333
+        },
+        ".prj": {
+          "count": 6,
+          "total_size": 720,
+          "avg_size": 120.0
+        },
+        ".csp": {
+          "count": 3,
+          "total_size": 937402,
+          "avg_size": 312467.3333333333
+        },
+        ".icc": {
+          "count": 3,
+          "total_size": 201891,
+          "avg_size": 67297.0
+        },
+        ".meta": {
+          "count": 831,
+          "total_size": 336262,
+          "avg_size": 404.647412755716
+        },
+        ".dll": {
+          "count": 85,
+          "total_size": 47667015,
+          "avg_size": 560788.4117647059
+        },
+        ".cginc": {
+          "count": 4,
+          "total_size": 13644,
+          "avg_size": 3411.0
+        },
+        ".compute": {
+          "count": 10,
+          "total_size": 105846,
+          "avg_size": 10584.6
+        },
+        ".mat": {
+          "count": 24,
+          "total_size": 49601,
+          "avg_size": 2066.7083333333335
+        },
+        ".physicmaterial": {
+          "count": 4,
+          "total_size": 1186,
+          "avg_size": 296.5
+        },
+        ".prefab": {
+          "count": 40,
+          "total_size": 408713,
+          "avg_size": 10217.825
+        },
+        ".unity": {
+          "count": 6,
+          "total_size": 7211435,
+          "avg_size": 1201905.8333333333
+        },
+        ".cs": {
+          "count": 518,
+          "total_size": 3037920,
+          "avg_size": 5864.710424710424
+        },
+        ".shader": {
+          "count": 25,
+          "total_size": 78686,
+          "avg_size": 3147.44
+        },
+        ".pdn": {
+          "count": 8,
+          "total_size": 219666,
+          "avg_size": 27458.25
+        },
+        ".rendertexture": {
+          "count": 4,
+          "total_size": 2758,
+          "avg_size": 689.5
+        },
+        ".asset": {
+          "count": 49,
+          "total_size": 133285,
+          "avg_size": 2720.1020408163267
+        },
+        ".exe": {
+          "count": 45,
+          "total_size": 1069038768,
+          "avg_size": 23756417.066666666
+        },
+        ".cmake": {
+          "count": 10,
+          "total_size": 31305,
+          "avg_size": 3130.5
+        },
+        ".conf": {
+          "count": 2,
+          "total_size": 782,
+          "avg_size": 391.0
+        },
+        ".c": {
+          "count": 94,
+          "total_size": 1264262,
+          "avg_size": 13449.595744680852
+        },
+        ".1": {
+          "count": 4,
+          "total_size": 4669,
+          "avg_size": 1167.25
+        },
+        ".cpp": {
+          "count": 137,
+          "total_size": 960201,
+          "avg_size": 7008.766423357664
+        },
+        ".hpp": {
+          "count": 10,
+          "total_size": 71117,
+          "avg_size": 7111.7
+        },
+        ".rules": {
+          "count": 2,
+          "total_size": 1209,
+          "avg_size": 604.5
+        },
+        ".cat": {
+          "count": 6,
+          "total_size": 66532,
+          "avg_size": 11088.666666666666
+        },
+        ".inf": {
+          "count": 6,
+          "total_size": 48448,
+          "avg_size": 8074.666666666667
+        },
+        ".sys": {
+          "count": 18,
+          "total_size": 1007232,
+          "avg_size": 55957.333333333336
+        },
+        ".as": {
+          "count": 32,
+          "total_size": 144266,
+          "avg_size": 4508.3125
+        },
+        ".csproj": {
+          "count": 12,
+          "total_size": 52260,
+          "avg_size": 4355.0
+        },
+        ".sln": {
+          "count": 15,
+          "total_size": 29381,
+          "avg_size": 1958.7333333333333
+        },
+        ".pyx": {
+          "count": 4,
+          "total_size": 78402,
+          "avg_size": 19600.5
+        },
+        ".rdoc": {
+          "count": 2,
+          "total_size": 4290,
+          "avg_size": 2145.0
+        },
+        ".rb": {
+          "count": 26,
+          "total_size": 70689,
+          "avg_size": 2718.8076923076924
+        },
+        ".gem": {
+          "count": 2,
+          "total_size": 26624,
+          "avg_size": 13312.0
+        },
+        ".opts": {
+          "count": 2,
+          "total_size": 52,
+          "avg_size": 26.0
+        },
+        ".def": {
+          "count": 4,
+          "total_size": 10957,
+          "avg_size": 2739.25
+        },
+        ".cfg": {
+          "count": 2,
+          "total_size": 2981,
+          "avg_size": 1490.5
+        },
+        ".cmd": {
+          "count": 4,
+          "total_size": 27006,
+          "avg_size": 6751.5
+        },
+        ".sgml": {
+          "count": 5,
+          "total_size": 34223,
+          "avg_size": 6844.6
+        },
+        ".am": {
+          "count": 1,
+          "total_size": 812,
+          "avg_size": 812.0
+        },
+        ".dsl": {
+          "count": 1,
+          "total_size": 3706,
+          "avg_size": 3706.0
+        },
+        ".rc": {
+          "count": 10,
+          "total_size": 12565,
+          "avg_size": 1256.5
+        },
+        ".iss": {
+          "count": 1,
+          "total_size": 3074,
+          "avg_size": 3074.0
+        },
+        ".vcxproj": {
+          "count": 8,
+          "total_size": 193875,
+          "avg_size": 24234.375
+        },
+        ".rst": {
+          "count": 33,
+          "total_size": 86861,
+          "avg_size": 2632.151515151515
+        },
+        ".pickle": {
+          "count": 6,
+          "total_size": 113873775,
+          "avg_size": 18978962.5
+        },
+        ".7z": {
+          "count": 1,
+          "total_size": 4908465,
+          "avg_size": 4908465.0
+        },
+        ".controller": {
+          "count": 1,
+          "total_size": 1828,
+          "avg_size": 1828.0
+        },
+        ".mb": {
+          "count": 1,
+          "total_size": 385492,
+          "avg_size": 385492.0
+        },
+        ".cache": {
+          "count": 4,
+          "total_size": 8566,
+          "avg_size": 2141.5
+        },
+        ".a": {
+          "count": 6,
+          "total_size": 1615332,
+          "avg_size": 269222.0
+        },
+        ".exp": {
+          "count": 10,
+          "total_size": 293848,
+          "avg_size": 29384.8
+        },
+        ".lib": {
+          "count": 25,
+          "total_size": 20600164,
+          "avg_size": 824006.56
+        },
+        ".make": {
+          "count": 38,
+          "total_size": 7359,
+          "avg_size": 193.6578947368421
+        },
+        ".icns": {
+          "count": 1,
+          "total_size": 472971,
+          "avg_size": 472971.0
+        },
+        ".qbs": {
+          "count": 1,
+          "total_size": 8178,
+          "avg_size": 8178.0
+        },
+        ".filters": {
+          "count": 3,
+          "total_size": 158393,
+          "avg_size": 52797.666666666664
+        },
+        ".xcconfig": {
+          "count": 2,
+          "total_size": 994,
+          "avg_size": 497.0
+        },
+        ".xccheckout": {
+          "count": 1,
+          "total_size": 2983,
+          "avg_size": 2983.0
+        },
+        ".xcuserstate": {
+          "count": 2,
+          "total_size": 141376,
+          "avg_size": 70688.0
+        },
+        ".xcbkptlist": {
+          "count": 2,
+          "total_size": 29738,
+          "avg_size": 14869.0
+        },
+        ".mk": {
+          "count": 1,
+          "total_size": 2667,
+          "avg_size": 2667.0
+        },
+        ".pdf": {
+          "count": 1,
+          "total_size": 1142,
+          "avg_size": 1142.0
+        },
+        ".cbp": {
+          "count": 2,
+          "total_size": 31816,
+          "avg_size": 15908.0
+        },
+        ".depend": {
+          "count": 1,
+          "total_size": 70818,
+          "avg_size": 70818.0
+        },
+        ".layout": {
+          "count": 1,
+          "total_size": 1647,
+          "avg_size": 1647.0
+        },
+        ".sdf": {
+          "count": 1,
+          "total_size": 68046848,
+          "avg_size": 68046848.0
+        },
+        ".suo": {
+          "count": 1,
+          "total_size": 41472,
+          "avg_size": 41472.0
+        },
+        ".user": {
+          "count": 1,
+          "total_size": 629,
+          "avg_size": 629.0
+        },
+        ".workspace": {
+          "count": 2,
+          "total_size": 752,
+          "avg_size": 376.0
+        },
+        ".ini": {
+          "count": 4,
+          "total_size": 5363,
+          "avg_size": 1340.75
+        },
+        ".dat": {
+          "count": 3,
+          "total_size": 1500176,
+          "avg_size": 500058.6666666667
+        },
+        ".idx": {
+          "count": 1,
+          "total_size": 53915353,
+          "avg_size": 53915353.0
+        },
+        ".lbd": {
+          "count": 3,
+          "total_size": 96279075,
+          "avg_size": 32093025.0
+        },
+        ".xcsettings": {
+          "count": 1,
+          "total_size": 266,
+          "avg_size": 266.0
+        },
+        ".dylib": {
+          "count": 14,
+          "total_size": 22179380,
+          "avg_size": 1584241.4285714286
+        },
+        ".icpp": {
+          "count": 1,
+          "total_size": 5093,
+          "avg_size": 5093.0
+        },
+        ".cpt": {
+          "count": 1,
+          "total_size": 285,
+          "avg_size": 285.0
+        },
+        ".fs": {
+          "count": 17,
+          "total_size": 51844,
+          "avg_size": 3049.6470588235293
+        },
+        ".vs": {
+          "count": 5,
+          "total_size": 12745,
+          "avg_size": 2549.0
+        },
+        ".local": {
+          "count": 2,
+          "total_size": 70,
+          "avg_size": 35.0
+        }
+      },
+      "size_analysis": {},
+      "optimization_opportunities": [
+        {
+          "category": "file_size_optimization",
+          "description": "Found 498 files >1MB that could be optimized",
+          "impact": "medium",
+          "safe": true
+        },
+        {
+          "category": "documentation_consolidation",
+          "description": "Found 1531 markdown files - could consolidate duplicates",
+          "impact": "low",
+          "safe": true
+        }
+      ],
+      "large_files": [
+        {
+          "path": ".\\sample\\KinectDeveloperToolkit-v1.8.0-Setup.exe",
+          "size_mb": 384.35154724121094,
+          "extension": ".exe"
+        },
+        {
+          "path": ".\\sample\\KinectSDK-v2.0_1409-Setup.exe",
+          "size_mb": 275.81482696533203,
+          "extension": ".exe"
+        },
+        {
+          "path": ".\\sample\\KinectSDK-v1.8-Setup.exe",
+          "size_mb": 222.4150619506836,
+          "extension": ".exe"
+        },
+        {
+          "path": ".\\sample\\AR-Sandbox-for-Construction-Planning-master.zip",
+          "size_mb": 139.29530811309814,
+          "extension": ".zip"
+        },
+        {
+          "path": ".\\sample\\ofxOpenNI-master.zip",
+          "size_mb": 122.57668399810791,
+          "extension": ".zip"
+        },
+        {
+          "path": ".\\sample\\ofxOpenNI-master\\examples\\opeNI-SimpleExamples\\bin\\data\\openni\\config\\Data\\lbsdata.lbd",
+          "size_mb": 91.67067813873291,
+          "extension": ".lbd"
+        },
+        {
+          "path": ".\\sample\\KinectRuntime-v2.0_1409-Setup.exe",
+          "size_mb": 88.99144744873047,
+          "extension": ".exe"
+        },
+        {
+          "path": ".\\sample\\AR-Sandbox-master.zip",
+          "size_mb": 84.72341537475586,
+          "extension": ".zip"
+        },
+        {
+          "path": ".\\sample\\KinectForWindows_UnityPro_2.0.1410.zip",
+          "size_mb": 72.47956943511963,
+          "extension": ".zip"
+        },
+        {
+          "path": ".\\sample\\ofxOpenNI-master\\examples\\opeNI-SimpleExamples\\openNISample007.sdf",
+          "size_mb": 64.89453125,
+          "extension": ".sdf"
+        },
+        {
+          "path": ".\\external_libs\\three-js-projects\\realistic-room\\src\\img\\loft.hdr",
+          "size_mb": 62.66948986053467,
+          "extension": ".hdr"
+        },
+        {
+          "path": ".\\sample\\Magic-Sand-master.zip",
+          "size_mb": 61.006958961486816,
+          "extension": ".zip"
+        },
+        {
+          "path": ".\\sample\\open_AR_Sandbox-main.zip",
+          "size_mb": 59.71335029602051,
+          "extension": ".zip"
+        },
+        {
+          "path": ".\\sample\\Magic-Sand-With-Games-Win64-v.1.5.4.1.zip",
+          "size_mb": 58.558061599731445,
+          "extension": ".zip"
+        },
+        {
+          "path": ".\\sample\\ofxOpenNI-master\\examples\\opeNI-SimpleExamples\\bin\\data\\openni\\config\\Data\\lbsdata.idx",
+          "size_mb": 51.41768741607666,
+          "extension": ".idx"
+        },
+        {
+          "path": ".\\external_libs\\three.js\\examples\\models\\ifc\\rac_advanced_sample_project.ifc",
+          "size_mb": 41.616315841674805,
+          "extension": ".ifc"
+        },
+        {
+          "path": ".\\open_AR_Sandbox\\notebooks\\tutorials\\03_SearchMethodsModule\\SearchMethods.ipynb",
+          "size_mb": 33.63794422149658,
+          "extension": ".ipynb"
+        },
+        {
+          "path": ".\\sample\\open_AR_Sandbox-main\\notebooks\\tutorials\\03_SearchMethodsModule\\SearchMethods.ipynb",
+          "size_mb": 33.62169551849365,
+          "extension": ".ipynb"
+        },
+        {
+          "path": ".\\working_ar_sandbox\\notebooks\\tutorials\\03_SearchMethodsModule\\SearchMethods.ipynb",
+          "size_mb": 33.62169551849365,
+          "extension": ".ipynb"
+        },
+        {
+          "path": ".\\open_AR_Sandbox\\notebooks\\tutorials\\07_LandslideSimulation\\Load_and_Run_Landslides_Simulation.ipynb",
+          "size_mb": 33.614874839782715,
+          "extension": ".ipynb"
+        }
+      ]
+    },
+    "code_quality": {
+      "timestamp": "2025-06-29T14:08:26.864891",
+      "python_files": [
+        {
+          "path": ".\\ai_construction_assistant.py",
+          "lines": 362,
+          "size": 14847,
+          "has_docstring": true,
+          "has_main_guard": true
+        },
+        {
+          "path": ".\\autonomous_testing_session.py",
+          "lines": 231,
+          "size": 9558,
+          "has_docstring": true,
+          "has_main_guard": true
+        },
+        {
+          "path": ".\\continuous_optimization_bot.py",
+          "lines": 479,
+          "size": 19978,
+          "has_docstring": true,
+          "has_main_guard": true
+        },
+        {
+          "path": ".\\create_archive_structure.py",
+          "lines": 200,
+          "size": 6579,
+          "has_docstring": true,
+          "has_main_guard": true
+        },
+        {
+          "path": ".\\easy_start.py",
+          "lines": 91,
+          "size": 3268,
+          "has_docstring": true,
+          "has_main_guard": true
+        },
+        {
+          "path": ".\\enhanced_autonomous_testing.py",
+          "lines": 285,
+          "size": 11418,
+          "has_docstring": true,
+          "has_main_guard": true
+        },
+        {
+          "path": ".\\finalize_project.py",
+          "lines": 705,
+          "size": 21872,
+          "has_docstring": true,
+          "has_main_guard": true
+        },
+        {
+          "path": ".\\fix_all_markdown.py",
+          "lines": 72,
+          "size": 2123,
+          "has_docstring": true,
+          "has_main_guard": true
+        },
+        {
+          "path": ".\\fix_critical_issues.py",
+          "lines": 424,
+          "size": 16219,
+          "has_docstring": true,
+          "has_main_guard": true
+        },
+        {
+          "path": ".\\fix_markdown_formatting.py",
+          "lines": 85,
+          "size": 2930,
+          "has_docstring": true,
+          "has_main_guard": true
+        }
+      ],
+      "javascript_files": [
+        {
+          "path": ".\\.eslintrc.js",
+          "lines": 109,
+          "size": 2297,
+          "has_strict_mode": false,
+          "has_comments": true
+        },
+        {
+          "path": ".\\vite.config.js",
+          "lines": 106,
+          "size": 3099,
+          "has_strict_mode": false,
+          "has_comments": true
+        },
+        {
+          "path": ".\\business\\roi_calculator.js",
+          "lines": 287,
+          "size": 11202,
+          "has_strict_mode": false,
+          "has_comments": true
+        },
+        {
+          "path": ".\\external_libs\\AdminLTE\\eslint.config.js",
+          "lines": 82,
+          "size": 2256,
+          "has_strict_mode": false,
+          "has_comments": true
+        },
+        {
+          "path": ".\\external_libs\\AdminLTE\\dist\\js\\adminlte.js",
+          "lines": 1166,
+          "size": 47437,
+          "has_strict_mode": true,
+          "has_comments": true
+        },
+        {
+          "path": ".\\external_libs\\AdminLTE\\dist\\js\\adminlte.min.js",
+          "lines": 7,
+          "size": 18142,
+          "has_strict_mode": true,
+          "has_comments": true
+        },
+        {
+          "path": ".\\external_libs\\AdminLTE\\src\\config\\rollup.config.js",
+          "lines": 26,
+          "size": 594,
+          "has_strict_mode": false,
+          "has_comments": true
+        },
+        {
+          "path": ".\\external_libs\\AdminLTE\\src\\html\\.prettierrc.js",
+          "lines": 12,
+          "size": 180,
+          "has_strict_mode": false,
+          "has_comments": false
+        },
+        {
+          "path": ".\\external_libs\\AdminLTE\\src\\html\\public\\js\\adminlte.js",
+          "lines": 1166,
+          "size": 47437,
+          "has_strict_mode": true,
+          "has_comments": true
+        },
+        {
+          "path": ".\\external_libs\\AdminLTE\\src\\html\\public\\js\\adminlte.min.js",
+          "lines": 7,
+          "size": 18142,
+          "has_strict_mode": true,
+          "has_comments": true
+        }
+      ],
+      "html_files": [
+        {
+          "path": ".\\ar_sandbox_frontend.html",
+          "lines": 157,
+          "size": 5995,
+          "has_doctype": true,
+          "has_meta_charset": true
+        },
+        {
+          "path": ".\\ar_sandbox_pro.html",
+          "lines": 277,
+          "size": 12462,
+          "has_doctype": true,
+          "has_meta_charset": true
+        },
+        {
+          "path": ".\\clean-ar-sandbox.html",
+          "lines": 623,
+          "size": 23831,
+          "has_doctype": true,
+          "has_meta_charset": true
+        },
+        {
+          "path": ".\\fluid_sandbox_demo.html",
+          "lines": 395,
+          "size": 14242,
+          "has_doctype": true,
+          "has_meta_charset": true
+        },
+        {
+          "path": ".\\frankenstein_sandbox.html",
+          "lines": 335,
+          "size": 14554,
+          "has_doctype": true,
+          "has_meta_charset": true
+        },
+        {
+          "path": ".\\improved-ar-sandbox.html",
+          "lines": 376,
+          "size": 12865,
+          "has_doctype": true,
+          "has_meta_charset": true
+        },
+        {
+          "path": ".\\integration_test.html",
+          "lines": 1381,
+          "size": 66189,
+          "has_doctype": true,
+          "has_meta_charset": true
+        },
+        {
+          "path": ".\\kinect_ar_sandbox.html",
+          "lines": 376,
+          "size": 11640,
+          "has_doctype": true,
+          "has_meta_charset": true
+        },
+        {
+          "path": ".\\library_integration_test.html",
+          "lines": 209,
+          "size": 8822,
+          "has_doctype": true,
+          "has_meta_charset": true
+        },
+        {
+          "path": ".\\mission_gamification_test.html",
+          "lines": 589,
+          "size": 22521,
+          "has_doctype": true,
+          "has_meta_charset": true
+        }
+      ],
+      "quality_metrics": {
+        "total_python_files": 403,
+        "total_js_files": 5158,
+        "total_html_files": 3787,
+        "python_with_docstrings": 214,
+        "python_with_main_guard": 60,
+        "js_with_strict_mode": 100,
+        "html_with_doctype": 2601
+      },
+      "improvement_suggestions": [
+        {
+          "category": "documentation",
+          "description": "Only 53.1% of Python files have docstrings",
+          "suggestion": "Add docstrings to improve code documentation",
+          "impact": "medium",
+          "safe": true
+        }
+      ]
+    },
+    "security": {
+      "timestamp": "2025-06-29T14:08:42.929394",
+      "potential_issues": [],
+      "security_enhancements": [
+        {
+          "category": "file_security",
+          "description": "Found 64 potentially sensitive files",
+          "suggestion": "Review file permissions and consider encryption for sensitive data",
+          "impact": "high",
+          "safe": true
+        },
+        {
+          "category": "https_enforcement",
+          "description": "Found 482 files using HTTP instead of HTTPS",
+          "suggestion": "Consider upgrading HTTP links to HTTPS for better security",
+          "impact": "medium",
+          "safe": true
+        }
+      ],
+      "file_permissions": {},
+      "sensitive_files": [
+        {
+          "path": ".\\external_libs\\leaflet\\spec\\suites\\map\\handler\\Map.KeyboardSpec.js",
+          "pattern": ".key",
+          "risk_level": "low"
+        },
+        {
+          "path": ".\\external_libs\\leaflet\\src\\map\\handler\\Map.Keyboard.js",
+          "pattern": ".key",
+          "risk_level": "low"
+        },
+        {
+          "path": ".\\external_libs\\Tabler\\preview\\pages\\forgot-password.html",
+          "pattern": "password",
+          "risk_level": "medium"
+        },
+        {
+          "path": ".\\external_libs\\Tabler\\shared\\includes\\cards\\forgot-password.html",
+          "pattern": "password",
+          "risk_level": "medium"
+        },
+        {
+          "path": ".\\external_libs\\Tabler\\shared\\static\\emails\\access-token-dark-full.jpg",
+          "pattern": "token",
+          "risk_level": "low"
+        },
+        {
+          "path": ".\\external_libs\\Tabler\\shared\\static\\emails\\access-token-dark.jpg",
+          "pattern": "token",
+          "risk_level": "low"
+        },
+        {
+          "path": ".\\external_libs\\Tabler\\shared\\static\\emails\\access-token-full.jpg",
+          "pattern": "token",
+          "risk_level": "low"
+        },
+        {
+          "path": ".\\external_libs\\Tabler\\shared\\static\\emails\\access-token.jpg",
+          "pattern": "token",
+          "risk_level": "low"
+        },
+        {
+          "path": ".\\external_libs\\Tabler\\shared\\static\\emails\\password-dark-full.jpg",
+          "pattern": "password",
+          "risk_level": "medium"
+        },
+        {
+          "path": ".\\external_libs\\Tabler\\shared\\static\\emails\\password-dark.jpg",
+          "pattern": "password",
+          "risk_level": "medium"
+        }
+      ]
+    },
+    "dependencies": {
+      "timestamp": "2025-06-29T14:08:49.488706",
+      "python_dependencies": {
+        "file": "requirements.txt",
+        "count": 38,
+        "requirements": [
+          "# RC Sandbox Professional - Python Dependencies (Updated 2025-06-27)",
+          "# Install with: pip install -r requirements.txt",
+          "# Professional AR sandbox system with complete hardware integration",
+          "",
+          "# Core Computer Vision and Image Processing (Updated)",
+          "opencv-python>=4.11.0",
+          "opencv-contrib-python>=4.11.0",
+          "numpy>=2.3.0",
+          "scikit-image>=0.25.0",
+          "pillow>=11.2.0"
+        ]
+      },
+      "javascript_dependencies": {
+        "file": "package.json",
+        "dependencies_count": 7,
+        "dev_dependencies_count": 9,
+        "total_count": 16
+      },
+      "update_suggestions": [],
+      "security_advisories": []
+    }
+  },
+  "optimizations_found": 0,
+  "improvements_applied": 0,
+  "summary": {
+    "total_files_analyzed": 30,
+    "optimization_opportunities": 2,
+    "security_enhancements": 2
+  }
+}

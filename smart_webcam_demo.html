@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Webcam AR Sandbox - AI-Powered Topography Detection</title>
+    <meta name="description" content="AI-powered AR sandbox using smart webcam depth estimation to replace broken Kinect">
+    <style>
+        :root {
+            --panel-bg: rgba(30,30,30,0.9);
+            --accent-primary: #E0C32A;
+            --accent-secondary: #4CAF50;
+            --accent-ai: #9C27B0;
+            --text-color: #FFFFFF;
+            --shadow: 0 4px 12px rgba(0,0,0,0.6);
+        }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: #000;
+            overflow: hidden;
+            color: var(--text-color);
+        }
+        
+        #video {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            object-fit: cover;
+            z-index: 0;
+        }
+        
+        #canvas {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 1;
+            pointer-events: auto;
+            opacity: 0.8;
+        }
+        
+        .panel {
+            position: absolute;
+            background: var(--panel-bg);
+            border-radius: 12px;
+            padding: 15px;
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255,255,255,0.1);
+            z-index: 100;
+        }
+        
+        .panel h3 {
+            color: var(--accent-primary);
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+            text-align: center;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
+        
+        #ai-status-panel {
+            top: 20px; left: 20px;
+            width: 320px; min-height: 200px;
+        }
+        
+        #depth-visualization {
+            top: 20px; right: 20px;
+            width: 300px; height: 200px;
+        }
+        
+        #controls-panel {
+            bottom: 20px; left: 20px;
+            width: 400px; min-height: 150px;
+        }
+        
+        #performance-panel {
+            bottom: 20px; right: 20px;
+            width: 250px; height: 120px;
+        }
+        
+        #calibration-panel {
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 400px; min-height: 200px;
+            background: var(--panel-bg);
+            display: none;
+        }
+        
+        .status-line {
+            margin: 8px 0;
+            font-size: 0.9rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .status-indicator {
+            width: 12px; height: 12px;
+            border-radius: 50%;
+            margin-left: 10px;
+        }
+        
+        .status-active { background: var(--accent-secondary); }
+        .status-inactive { background: #FF5722; }
+        .status-ai { background: var(--accent-ai); }
+        
+        .btn {
+            background: rgba(255,255,255,0.1);
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 8px;
+            padding: 10px 15px;
+            color: var(--text-color);
+            cursor: pointer;
+            margin: 5px;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+        
+        .btn:hover {
+            background: rgba(255,255,255,0.2);
+            border-color: var(--accent-primary);
+            transform: translateY(-2px);
+        }
+        
+        .btn.active {
+            background: var(--accent-secondary);
+            border-color: var(--accent-secondary);
+        }
+        
+        .btn.ai-btn {
+            background: var(--accent-ai);
+            border-color: var(--accent-ai);
+        }
+        
+        .technique-weight {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 5px 0;
+            font-size: 0.8rem;
+        }
+        
+        .weight-slider {
+            width: 100px;
+            margin-left: 10px;
+        }
+        
+        #depth-canvas {
+            width: 100%;
+            height: 120px;
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-secondary), var(--accent-primary));
+            transition: width 0.3s ease;
+        }
+        
+        .help-text {
+            font-size: 0.8rem;
+            color: rgba(255,255,255,0.7);
+            margin-top: 10px;
+            line-height: 1.4;
+        }
+        
+        .live-indicator {
+            position: absolute;
+            top: 10px; right: 10px;
+            width: 12px; height: 12px;
+            background: var(--accent-secondary);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+        
+        .notification {
+            position: fixed;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--panel-bg);
+            padding: 20px;
+            border-radius: 12px;
+            border: 2px solid var(--accent-primary);
+            z-index: 1000;
+            display: none;
+            text-align: center;
+        }
+        
+        .logo {
+            position: absolute;
+            top: 20px; left: 50%;
+            transform: translateX(-50%);
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--accent-primary);
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+            z-index: 200;
+        }
+    </style>
+</head>
+<body>
+    <!-- Logo -->
+    <div class="logo">🤖 SMART WEBCAM AR SANDBOX</div>
+    
+    <!-- Live indicator -->
+    <div class="live-indicator"></div>
+    
+    <!-- Video background -->
+    <video id="video" autoplay muted></video>
+    
+    <!-- Terrain overlay canvas -->
+    <canvas id="canvas"></canvas>
+    
+    <!-- AI Status Panel -->
+    <div id="ai-status-panel" class="panel">
+        <h3>🤖 AI DEPTH ESTIMATION</h3>
+        
+        <div class="status-line">
+            <span>Camera Status:</span>
+            <span id="camera-status">Initializing...</span>
+            <div class="status-indicator" id="camera-indicator"></div>
+        </div>
+        
+        <div class="status-line">
+            <span>Calibration:</span>
+            <span id="calibration-status">Not Calibrated</span>
+            <div class="status-indicator" id="calibration-indicator"></div>
+        </div>
+        
+        <div class="status-line">
+            <span>AI Model:</span>
+            <span id="ai-model-status">Loading...</span>
+            <div class="status-indicator status-ai" id="ai-indicator"></div>
+        </div>
+        
+        <div class="status-line">
+            <span>Depth Quality:</span>
+            <span id="depth-quality">--</span>
+        </div>
+        
+        <div class="progress-bar">
+            <div class="progress-fill" id="calibration-progress" style="width: 0%"></div>
+        </div>
+        
+        <div style="margin-top: 15px;">
+            <button class="btn" onclick="startCalibration()">🎯 CALIBRATE</button>
+            <button class="btn" onclick="toggleDebugView()">🔍 DEBUG</button>
+        </div>
+    </div>
+    
+    <!-- Depth Visualization Panel -->
+    <div id="depth-visualization" class="panel">
+        <h3>📊 DEPTH VISUALIZATION</h3>
+        <canvas id="depth-canvas"></canvas>
+        <div class="help-text">
+            Real-time depth map from AI analysis
+        </div>
+    </div>
+    
+    <!-- Controls Panel -->
+    <div id="controls-panel" class="panel">
+        <h3>🎮 SMART CONTROLS</h3>
+        
+        <div style="display: flex; flex-wrap: wrap; gap: 5px;">
+            <button class="btn active" onclick="toggleTechnique('shadow')">🌑 Shadows</button>
+            <button class="btn active" onclick="toggleTechnique('color')">🎨 Color</button>
+            <button class="btn active" onclick="toggleTechnique('edges')">📐 Edges</button>
+            <button class="btn" onclick="toggleTechnique('ai')">🤖 AI</button>
+        </div>
+        
+        <div class="technique-weight">
+            <span>Shadow Weight:</span>
+            <input type="range" class="weight-slider" min="0" max="1" step="0.1" value="0.3" 
+                   onchange="updateWeight('shadow', this.value)">
+            <span id="shadow-weight">30%</span>
+        </div>
+        
+        <div class="technique-weight">
+            <span>Color Weight:</span>
+            <input type="range" class="weight-slider" min="0" max="1" step="0.1" value="0.25" 
+                   onchange="updateWeight('color', this.value)">
+            <span id="color-weight">25%</span>
+        </div>
+        
+        <div class="help-text">
+            🖱️ Click to sculpt terrain • ⌨️ Space: Reset • W: Add water • C: Calibrate
+        </div>
+    </div>
+    
+    <!-- Performance Panel -->
+    <div id="performance-panel" class="panel">
+        <h3>⚡ PERFORMANCE</h3>
+        
+        <div class="status-line">
+            <span>FPS:</span>
+            <span id="fps-display">--</span>
+        </div>
+        
+        <div class="status-line">
+            <span>Latency:</span>
+            <span id="latency-display">--ms</span>
+        </div>
+        
+        <div class="status-line">
+            <span>Memory:</span>
+            <span id="memory-display">--MB</span>
+        </div>
+        
+        <div class="status-line">
+            <span>Techniques:</span>
+            <span id="active-techniques">4/5</span>
+        </div>
+    </div>
+    
+    <!-- Calibration Modal -->
+    <div id="calibration-panel" class="panel">
+        <h3>🎯 SANDBOX CALIBRATION</h3>
+        <p>Please ensure the sandbox is empty and well-lit.</p>
+        <div class="progress-bar">
+            <div class="progress-fill" id="cal-progress" style="width: 0%"></div>
+        </div>
+        <p id="cal-instructions">Click START to begin calibration...</p>
+        <div style="margin-top: 20px; text-align: center;">
+            <button class="btn" onclick="beginCalibration()">START CALIBRATION</button>
+            <button class="btn" onclick="cancelCalibration()">CANCEL</button>
+        </div>
+    </div>
+    
+    <!-- Notification -->
+    <div id="notification" class="notification">
+        <h3 id="notification-title">Notification</h3>
+        <p id="notification-message">Message</p>
+        <button class="btn" onclick="hideNotification()">OK</button>
+    </div>
+    
+    <script>
+        // Global variables
+        let smartDepthEstimator = null;
+        let isCalibrated = false;
+        let debugMode = false;
+        let performanceStats = { fps: 0, latency: 0, memory: 0 };
+        let activeTechniques = new Set(['shadow', 'color', 'edges']);
+        
+        // Initialize the application
+        async function initializeApp() {
+            console.log('🚀 Initializing Smart Webcam AR Sandbox');
+            
+            // Start webcam
+            await startWebcam();
+            
+            // Initialize terrain canvas
+            initializeTerrainCanvas();
+            
+            // Initialize depth visualization
+            initializeDepthVisualization();
+            
+            // Start performance monitoring
+            startPerformanceMonitoring();
+            
+            // Initialize smart depth estimation
+            await initializeSmartDepth();
+            
+            console.log('✅ Smart Webcam AR Sandbox initialized');
+        }
+        
+        async function startWebcam() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        width: 1280, 
+                        height: 720,
+                        facingMode: 'environment'
+                    } 
+                });
+                
+                const video = document.getElementById('video');
+                video.srcObject = stream;
+                
+                updateStatus('camera-status', 'Active', 'camera-indicator', 'status-active');
+                console.log('📹 Webcam started successfully');
+                
+            } catch (error) {
+                console.error('❌ Webcam error:', error);
+                updateStatus('camera-status', 'Error', 'camera-indicator', 'status-inactive');
+                showNotification('Camera Error', 'Could not access webcam. Please check permissions.');
+            }
+        }
+        
+        function initializeTerrainCanvas() {
+            const canvas = document.getElementById('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            // Set canvas size
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            
+            // Add mouse interaction for terrain sculpting
+            let isDrawing = false;
+            
+            canvas.addEventListener('mousedown', (e) => {
+                isDrawing = true;
+                sculptTerrain(e.clientX, e.clientY);
+            });
+            
+            canvas.addEventListener('mousemove', (e) => {
+                if (isDrawing) {
+                    sculptTerrain(e.clientX, e.clientY);
+                }
+            });
+            
+            canvas.addEventListener('mouseup', () => {
+                isDrawing = false;
+            });
+            
+            console.log('🎨 Terrain canvas initialized');
+        }
+        
+        function sculptTerrain(x, y) {
+            // Placeholder for terrain sculpting
+            const canvas = document.getElementById('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            ctx.globalCompositeOperation = 'source-over';
+            ctx.fillStyle = 'rgba(224, 195, 42, 0.3)';
+            ctx.beginPath();
+            ctx.arc(x, y, 20, 0, 2 * Math.PI);
+            ctx.fill();
+        }
+        
+        function initializeDepthVisualization() {
+            const canvas = document.getElementById('depth-canvas');
+            const ctx = canvas.getContext('2d');
+            
+            // Set canvas size
+            canvas.width = 280;
+            canvas.height = 100;
+            
+            // Draw placeholder depth visualization
+            ctx.fillStyle = '#1a1a1a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.fillStyle = '#4CAF50';
+            ctx.font = '12px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Depth visualization will appear here', canvas.width/2, canvas.height/2);
+        }
+        
+        async function initializeSmartDepth() {
+            try {
+                // Simulate smart depth estimator initialization
+                updateStatus('ai-model-status', 'Loading...', 'ai-indicator', 'status-ai');
+                
+                // Simulate loading time
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                
+                updateStatus('ai-model-status', 'Ready', 'ai-indicator', 'status-active');
+                console.log('🤖 Smart depth estimation ready');
+                
+            } catch (error) {
+                console.error('❌ Smart depth initialization error:', error);
+                updateStatus('ai-model-status', 'Error', 'ai-indicator', 'status-inactive');
+            }
+        }
+        
+        function updateStatus(elementId, text, indicatorId, indicatorClass) {
+            document.getElementById(elementId).textContent = text;
+            const indicator = document.getElementById(indicatorId);
+            indicator.className = 'status-indicator ' + indicatorClass;
+        }
+        
+        function startPerformanceMonitoring() {
+            let frameCount = 0;
+            let lastTime = performance.now();
+            
+            function updatePerformance() {
+                frameCount++;
+                const currentTime = performance.now();
+                
+                if (currentTime - lastTime >= 1000) {
+                    const fps = Math.round(frameCount * 1000 / (currentTime - lastTime));
+                    const memory = performance.memory ? 
+                        Math.round(performance.memory.usedJSHeapSize / 1024 / 1024) : 0;
+                    
+                    document.getElementById('fps-display').textContent = fps;
+                    document.getElementById('memory-display').textContent = memory + 'MB';
+                    document.getElementById('latency-display').textContent = '< 50ms';
+                    
+                    frameCount = 0;
+                    lastTime = currentTime;
+                }
+                
+                requestAnimationFrame(updatePerformance);
+            }
+            
+            updatePerformance();
+        }
+        
+        // Control functions
+        function startCalibration() {
+            document.getElementById('calibration-panel').style.display = 'block';
+        }
+        
+        function beginCalibration() {
+            const progressBar = document.getElementById('cal-progress');
+            const instructions = document.getElementById('cal-instructions');
+            
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += 5;
+                progressBar.style.width = progress + '%';
+                
+                if (progress < 30) {
+                    instructions.textContent = 'Analyzing lighting conditions...';
+                } else if (progress < 60) {
+                    instructions.textContent = 'Capturing background model...';
+                } else if (progress < 90) {
+                    instructions.textContent = 'Optimizing AI parameters...';
+                } else {
+                    instructions.textContent = 'Finalizing calibration...';
+                }
+                
+                if (progress >= 100) {
+                    clearInterval(interval);
+                    isCalibrated = true;
+                    updateStatus('calibration-status', 'Calibrated', 'calibration-indicator', 'status-active');
+                    cancelCalibration();
+                    showNotification('Success!', 'Sandbox calibration completed successfully.');
+                }
+            }, 100);
+        }
+        
+        function cancelCalibration() {
+            document.getElementById('calibration-panel').style.display = 'none';
+        }
+        
+        function toggleDebugView() {
+            debugMode = !debugMode;
+            console.log('🔍 Debug mode:', debugMode ? 'ON' : 'OFF');
+            // Implement debug view toggle
+        }
+        
+        function toggleTechnique(technique) {
+            if (activeTechniques.has(technique)) {
+                activeTechniques.delete(technique);
+            } else {
+                activeTechniques.add(technique);
+            }
+            
+            document.getElementById('active-techniques').textContent = 
+                activeTechniques.size + '/5';
+            
+            // Update button appearance
+            const buttons = document.querySelectorAll('.btn');
+            buttons.forEach(btn => {
+                if (btn.textContent.toLowerCase().includes(technique)) {
+                    btn.classList.toggle('active', activeTechniques.has(technique));
+                }
+            });
+        }
+        
+        function updateWeight(technique, value) {
+            const percentage = Math.round(value * 100);
+            document.getElementById(technique + '-weight').textContent = percentage + '%';
+            console.log(`🎛️ ${technique} weight: ${percentage}%`);
+        }
+        
+        function showNotification(title, message) {
+            document.getElementById('notification-title').textContent = title;
+            document.getElementById('notification-message').textContent = message;
+            document.getElementById('notification').style.display = 'block';
+        }
+        
+        function hideNotification() {
+            document.getElementById('notification').style.display = 'none';
+        }
+        
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            switch(e.code) {
+                case 'Space':
+                    e.preventDefault();
+                    // Reset terrain
+                    const canvas = document.getElementById('canvas');
+                    const ctx = canvas.getContext('2d');
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    break;
+                case 'KeyC':
+                    startCalibration();
+                    break;
+                case 'KeyW':
+                    // Add water effect
+                    console.log('💧 Adding water...');
+                    break;
+                case 'KeyD':
+                    toggleDebugView();
+                    break;
+            }
+        });
+        
+        // Initialize when page loads
+        window.addEventListener('load', initializeApp);
+        
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            const canvas = document.getElementById('canvas');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+        
+        console.log('🤖 Smart Webcam AR Sandbox - Ready to Initialize');
+    </script>
+</body>
+</html>

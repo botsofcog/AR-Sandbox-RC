@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AR Sandbox RC - Mission & Gamification Test</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: #ffffff;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .test-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .test-section {
+            background: rgba(30,30,30,0.85);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.6);
+            border: 2px solid rgba(255,255,255,0.1);
+        }
+        
+        .mission-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .mission-card {
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+            padding: 20px;
+            border: 2px solid rgba(255,255,255,0.2);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .mission-card:hover {
+            border-color: #E0C32A;
+            transform: scale(1.02);
+        }
+        
+        .mission-card.active {
+            border-color: #4CAF50;
+            background: rgba(76,175,80,0.2);
+        }
+        
+        .mission-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #E0C32A;
+            margin-bottom: 10px;
+        }
+        
+        .mission-description {
+            font-size: 0.9rem;
+            margin-bottom: 15px;
+            opacity: 0.8;
+        }
+        
+        .mission-objectives {
+            margin: 15px 0;
+        }
+        
+        .objective {
+            display: flex;
+            align-items: center;
+            margin: 8px 0;
+            padding: 5px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 5px;
+        }
+        
+        .objective-checkbox {
+            width: 16px;
+            height: 16px;
+            border: 2px solid #4CAF50;
+            border-radius: 3px;
+            margin-right: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .objective-checkbox.completed::after {
+            content: '✓';
+            color: #4CAF50;
+            font-weight: bold;
+        }
+        
+        .mission-timer {
+            background: rgba(255,0,0,0.2);
+            padding: 8px;
+            border-radius: 5px;
+            text-align: center;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        
+        .gamification-panel {
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        
+        .level-badge {
+            background: linear-gradient(45deg, #FFD700, #FFA500);
+            color: #000;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            display: inline-block;
+            margin-bottom: 15px;
+        }
+        
+        .xp-bar {
+            background: rgba(255,255,255,0.2);
+            border-radius: 10px;
+            height: 24px;
+            position: relative;
+            margin: 10px 0;
+        }
+        
+        .xp-fill {
+            background: linear-gradient(90deg, #00FF88, #00CCFF);
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.5s ease;
+        }
+        
+        .xp-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 12px;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+        }
+        
+        .achievement-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .achievement-card {
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            border: 2px solid rgba(255,255,255,0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .achievement-card.unlocked {
+            border-color: #FFD700;
+            background: rgba(255,215,0,0.2);
+        }
+        
+        .achievement-icon {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+        
+        .achievement-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .achievement-desc {
+            font-size: 0.8rem;
+            opacity: 0.7;
+        }
+        
+        .energy-meter {
+            background: rgba(0,204,255,0.2);
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        
+        .energy-bar {
+            background: rgba(255,255,255,0.2);
+            border-radius: 10px;
+            height: 20px;
+            position: relative;
+            margin: 10px 0;
+        }
+        
+        .energy-fill {
+            background: linear-gradient(90deg, #00CCFF, #0099CC);
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.3s ease;
+        }
+        
+        button {
+            background: #E0C32A;
+            border: none;
+            color: #000;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            margin: 5px;
+            transition: all 0.2s;
+        }
+        
+        button:hover {
+            background: #f0d040;
+            transform: scale(1.05);
+        }
+        
+        button:disabled {
+            background: #666;
+            color: #999;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .test-result {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 4px;
+            margin: 4px;
+            font-weight: bold;
+        }
+        .success { background: #4CAF50; color: white; }
+        .error { background: #f44336; color: white; }
+        .warning { background: #ff9800; color: white; }
+        .info { background: #2196F3; color: white; }
+        
+        #test-log {
+            background: #000;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🎯 AR Sandbox RC - Mission & Gamification Test</h1>
+        <p>Testing mission modes and gamification systems...</p>
+        
+        <div class="test-section">
+            <h2>📊 Test Results</h2>
+            <div id="test-summary"></div>
+            <div id="test-log"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>🎯 Mission System</h2>
+            <div class="mission-grid" id="mission-grid">
+                <!-- Missions will be populated here -->
+            </div>
+            <div style="text-align: center; margin: 20px 0;">
+                <button onclick="startMission('flood_defense')">Start Flood Defense</button>
+                <button onclick="startMission('construction_contract')">Start Construction</button>
+                <button onclick="startMission('recycling_challenge')">Start Recycling</button>
+                <button onclick="stopCurrentMission()">Stop Mission</button>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>🎮 Gamification System</h2>
+            <div class="gamification-panel">
+                <div class="level-badge" id="level-badge">LEVEL 12</div>
+                <div class="xp-bar">
+                    <div class="xp-fill" id="xp-fill" style="width: 67%"></div>
+                    <div class="xp-text" id="xp-text">2,340 / 3,500 XP</div>
+                </div>
+                
+                <div class="energy-meter">
+                    <div>⚡ Energy: <span id="energy-value">85</span>/100</div>
+                    <div class="energy-bar">
+                        <div class="energy-fill" id="energy-fill" style="width: 85%"></div>
+                    </div>
+                </div>
+                
+                <div style="text-align: center; margin: 15px 0;">
+                    <button onclick="addXP(100)">+100 XP</button>
+                    <button onclick="unlockAchievement('speed')">Unlock Achievement</button>
+                    <button onclick="useEnergy(20)">Use Energy (-20)</button>
+                    <button onclick="regenEnergy(25)">Regen Energy (+25)</button>
+                </div>
+            </div>
+            
+            <h3>🏆 Achievements</h3>
+            <div class="achievement-grid" id="achievement-grid">
+                <!-- Achievements will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Mission and Gamification Test System
+        class MissionGamificationTester {
+            constructor() {
+                this.missions = new Map();
+                this.currentMission = null;
+                this.gameState = {
+                    level: 12,
+                    xp: 2340,
+                    xpToNext: 3500,
+                    energy: 85,
+                    maxEnergy: 100,
+                    achievements: new Set()
+                };
+                this.testResults = [];
+                
+                this.initializeMissions();
+                this.initializeAchievements();
+                this.renderMissions();
+                this.renderAchievements();
+                this.startTesting();
+            }
+
+            initializeMissions() {
+                this.missions.set('flood_defense', {
+                    id: 'flood_defense',
+                    name: 'Flood Defense Emergency',
+                    description: 'Build defensive barriers before the flood arrives! Use excavators to dig moats and bulldozers to build walls.',
+                    timeLimit: 180000, // 3 minutes
+                    objectives: [
+                        { id: 'dig_moats', name: 'Dig defensive moats', completed: false, points: 200 },
+                        { id: 'build_walls', name: 'Build protective walls', completed: false, points: 150 },
+                        { id: 'evacuate_area', name: 'Clear evacuation routes', completed: false, points: 100 }
+                    ],
+                    status: 'available'
+                });
+
+                this.missions.set('construction_contract', {
+                    id: 'construction_contract',
+                    name: 'Highway Construction',
+                    description: 'Build a road network according to specifications. Level terrain and create smooth pathways.',
+                    timeLimit: 300000, // 5 minutes
+                    objectives: [
+                        { id: 'level_terrain', name: 'Level construction area', completed: false, points: 150 },
+                        { id: 'build_roads', name: 'Build road network', completed: false, points: 200 },
+                        { id: 'add_markings', name: 'Add road markings', completed: false, points: 100 }
+                    ],
+                    status: 'available'
+                });
+
+                this.missions.set('recycling_challenge', {
+                    id: 'recycling_challenge',
+                    name: 'Waste Sorting Challenge',
+                    description: 'Sort and transport materials using RC vehicles. Save the planet with heavy machinery!',
+                    timeLimit: 240000, // 4 minutes
+                    objectives: [
+                        { id: 'collect_materials', name: 'Collect recyclable materials', completed: false, points: 100 },
+                        { id: 'sort_materials', name: 'Sort materials by type', completed: false, points: 150 },
+                        { id: 'transport_materials', name: 'Transport to recycling centers', completed: false, points: 200 }
+                    ],
+                    status: 'available'
+                });
+            }
+
+            initializeAchievements() {
+                this.achievements = [
+                    { id: 'speed', icon: '⚡', name: 'Speed Demon', desc: 'Maintained 60 FPS for 15 minutes', unlocked: false },
+                    { id: 'fleet', icon: '🚛', name: 'Fleet Commander', desc: 'Managed 5+ vehicles simultaneously', unlocked: false },
+                    { id: 'terrain', icon: '🏔️', name: 'Terrain Master', desc: 'Modified 1000+ terrain points', unlocked: true },
+                    { id: 'mission', icon: '🎯', name: 'Mission Expert', desc: 'Completed 10 missions', unlocked: false },
+                    { id: 'builder', icon: '🏗️', name: 'Master Builder', desc: 'Built 50 structures', unlocked: false },
+                    { id: 'eco', icon: '♻️', name: 'Eco Warrior', desc: 'Completed recycling challenges', unlocked: false }
+                ];
+            }
+
+            renderMissions() {
+                const grid = document.getElementById('mission-grid');
+                grid.innerHTML = '';
+
+                this.missions.forEach((mission, id) => {
+                    const card = document.createElement('div');
+                    card.className = `mission-card ${mission.status === 'active' ? 'active' : ''}`;
+                    card.innerHTML = `
+                        <div class="mission-title">${mission.name}</div>
+                        <div class="mission-description">${mission.description}</div>
+                        <div class="mission-objectives">
+                            ${mission.objectives.map(obj => `
+                                <div class="objective">
+                                    <div class="objective-checkbox ${obj.completed ? 'completed' : ''}"></div>
+                                    <div>${obj.name} (+${obj.points} XP)</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <div class="mission-timer">Time Limit: ${Math.floor(mission.timeLimit / 60000)} minutes</div>
+                    `;
+                    
+                    card.addEventListener('click', () => this.selectMission(id));
+                    grid.appendChild(card);
+                });
+            }
+
+            renderAchievements() {
+                const grid = document.getElementById('achievement-grid');
+                grid.innerHTML = '';
+
+                this.achievements.forEach(achievement => {
+                    const card = document.createElement('div');
+                    card.className = `achievement-card ${achievement.unlocked ? 'unlocked' : ''}`;
+                    card.innerHTML = `
+                        <div class="achievement-icon">${achievement.icon}</div>
+                        <div class="achievement-name">${achievement.name}</div>
+                        <div class="achievement-desc">${achievement.desc}</div>
+                    `;
+                    grid.appendChild(card);
+                });
+            }
+
+            selectMission(missionId) {
+                this.missions.forEach(mission => mission.status = 'available');
+                const mission = this.missions.get(missionId);
+                if (mission) {
+                    mission.status = 'selected';
+                    this.renderMissions();
+                    this.log(`🎯 Selected mission: ${mission.name}`);
+                }
+            }
+
+            log(message) {
+                const logElement = document.getElementById('test-log');
+                const timestamp = new Date().toLocaleTimeString();
+                logElement.textContent += `[${timestamp}] ${message}\n`;
+                logElement.scrollTop = logElement.scrollHeight;
+            }
+
+            test(name, testFunction) {
+                try {
+                    const result = testFunction();
+                    if (result) {
+                        this.testResults.push({ name, status: 'success' });
+                        this.log(`✅ ${name}: PASSED`);
+                    } else {
+                        this.testResults.push({ name, status: 'error' });
+                        this.log(`❌ ${name}: FAILED`);
+                    }
+                } catch (error) {
+                    this.testResults.push({ name, status: 'error' });
+                    this.log(`❌ ${name}: ERROR - ${error.message}`);
+                }
+            }
+
+            startTesting() {
+                this.log('🧪 Starting mission and gamification tests...');
+                
+                this.test('Mission System', () => this.missions.size === 3);
+                this.test('Mission Types', () => {
+                    const types = Array.from(this.missions.keys());
+                    return types.includes('flood_defense') && 
+                           types.includes('construction_contract') && 
+                           types.includes('recycling_challenge');
+                });
+                this.test('Mission Objectives', () => {
+                    return Array.from(this.missions.values()).every(m => m.objectives.length >= 3);
+                });
+                this.test('Gamification State', () => {
+                    return this.gameState.level > 0 && this.gameState.xp >= 0 && this.gameState.energy >= 0;
+                });
+                this.test('Achievement System', () => this.achievements.length >= 6);
+                this.test('XP System', () => this.gameState.xp < this.gameState.xpToNext);
+
+                this.updateTestSummary();
+                this.log('🎉 Mission and gamification tests complete!');
+            }
+
+            updateTestSummary() {
+                const passed = this.testResults.filter(r => r.status === 'success').length;
+                const failed = this.testResults.filter(r => r.status === 'error').length;
+                const total = this.testResults.length;
+
+                document.getElementById('test-summary').innerHTML = `
+                    <span class="test-result success">${passed} Passed</span>
+                    <span class="test-result error">${failed} Failed</span>
+                    <span class="test-result info">${total} Total</span>
+                `;
+            }
+
+            updateGameUI() {
+                // Update level badge
+                document.getElementById('level-badge').textContent = `LEVEL ${this.gameState.level}`;
+                
+                // Update XP bar
+                const xpPercentage = (this.gameState.xp / this.gameState.xpToNext) * 100;
+                document.getElementById('xp-fill').style.width = xpPercentage + '%';
+                document.getElementById('xp-text').textContent = `${this.gameState.xp.toLocaleString()} / ${this.gameState.xpToNext.toLocaleString()} XP`;
+                
+                // Update energy
+                const energyPercentage = (this.gameState.energy / this.gameState.maxEnergy) * 100;
+                document.getElementById('energy-fill').style.width = energyPercentage + '%';
+                document.getElementById('energy-value').textContent = this.gameState.energy;
+            }
+        }
+
+        // Global test functions
+        function startMission(missionId) {
+            const mission = tester.missions.get(missionId);
+            if (mission) {
+                mission.status = 'active';
+                tester.currentMission = mission;
+                tester.renderMissions();
+                tester.log(`🚀 Started mission: ${mission.name}`);
+                
+                // Simulate mission progress
+                setTimeout(() => {
+                    mission.objectives[0].completed = true;
+                    tester.renderMissions();
+                    tester.log(`✅ Objective completed: ${mission.objectives[0].name}`);
+                }, 2000);
+            }
+        }
+
+        function stopCurrentMission() {
+            if (tester.currentMission) {
+                tester.currentMission.status = 'available';
+                tester.log(`⏹️ Stopped mission: ${tester.currentMission.name}`);
+                tester.currentMission = null;
+                tester.renderMissions();
+            }
+        }
+
+        function addXP(amount) {
+            tester.gameState.xp += amount;
+            
+            // Check for level up
+            if (tester.gameState.xp >= tester.gameState.xpToNext) {
+                tester.gameState.xp -= tester.gameState.xpToNext;
+                tester.gameState.level++;
+                tester.gameState.xpToNext = Math.floor(tester.gameState.xpToNext * 1.2);
+                tester.log(`🎉 LEVEL UP! Now level ${tester.gameState.level}`);
+            }
+            
+            tester.updateGameUI();
+            tester.log(`+${amount} XP earned`);
+        }
+
+        function unlockAchievement(achievementId) {
+            const achievement = tester.achievements.find(a => a.id === achievementId);
+            if (achievement && !achievement.unlocked) {
+                achievement.unlocked = true;
+                tester.gameState.achievements.add(achievementId);
+                tester.renderAchievements();
+                tester.log(`🏆 Achievement unlocked: ${achievement.name}`);
+                addXP(150); // Bonus XP for achievement
+            }
+        }
+
+        function useEnergy(amount) {
+            if (tester.gameState.energy >= amount) {
+                tester.gameState.energy -= amount;
+                tester.updateGameUI();
+                tester.log(`⚡ Used ${amount} energy`);
+            } else {
+                tester.log(`❌ Not enough energy! Need ${amount}, have ${tester.gameState.energy}`);
+            }
+        }
+
+        function regenEnergy(amount) {
+            tester.gameState.energy = Math.min(tester.gameState.maxEnergy, tester.gameState.energy + amount);
+            tester.updateGameUI();
+            tester.log(`⚡ Regenerated ${amount} energy`);
+        }
+
+        // Initialize the tester when page loads
+        let tester;
+        window.addEventListener('load', () => {
+            tester = new MissionGamificationTester();
+        });
+    </script>
+</body>
+</html>

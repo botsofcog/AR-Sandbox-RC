@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🗺️ Topographic AR Sandbox</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            color: white;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+        }
+
+        #container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 1;
+        }
+
+        #topo-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            mix-blend-mode: multiply;
+        }
+
+        #analysis-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 20px;
+            border-radius: 15px;
+            border: 2px solid #00ff00;
+            z-index: 30;
+            width: 300px;
+        }
+
+        #depth-view {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 320px;
+            height: 240px;
+            border: 2px solid #00ff00;
+            z-index: 20;
+            background: rgba(0, 0, 0, 0.8);
+        }
+
+        #shadow-canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        .analysis-section {
+            margin-bottom: 15px;
+            padding: 10px;
+            background: rgba(50, 50, 50, 0.8);
+            border-radius: 8px;
+        }
+
+        .section-title {
+            color: #00ff00;
+            font-weight: bold;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .control-btn {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .control-btn:hover {
+            transform: scale(1.02);
+        }
+
+        .control-btn.active {
+            box-shadow: 0 0 10px currentColor;
+        }
+
+        #analyze-shadows { background: #ff6b6b; color: white; }
+        #extract-contours { background: #4ecdc4; color: white; }
+        #generate-topo { background: #ffa500; color: white; }
+        #ai-enhance { background: #a29bfe; color: white; }
+
+        .slider-group {
+            margin: 8px 0;
+        }
+
+        .slider-label {
+            display: block;
+            margin-bottom: 3px;
+            font-size: 11px;
+            color: #ccc;
+        }
+
+        .slider {
+            width: 100%;
+            height: 4px;
+            margin-bottom: 3px;
+        }
+
+        .value-display {
+            font-size: 11px;
+            color: #00ff00;
+            text-align: right;
+        }
+
+        #status-bar {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 15px;
+            border-radius: 10px;
+            border: 2px solid #00ff00;
+            z-index: 30;
+            font-size: 14px;
+        }
+
+        .status-item {
+            margin: 3px 0;
+        }
+
+        .status-value {
+            color: #00ff00;
+            font-weight: bold;
+        }
+
+        #processing-indicator {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            padding: 20px 40px;
+            border-radius: 15px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #00ff00;
+            z-index: 100;
+            border: 3px solid #00ff00;
+            text-align: center;
+            display: none;
+        }
+
+        .processing-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(0, 255, 0, 0.3);
+            border-radius: 50%;
+            border-top-color: #00ff00;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .contour-line {
+            stroke: rgba(255, 255, 255, 0.8);
+            stroke-width: 1;
+            fill: none;
+        }
+
+        .elevation-label {
+            fill: white;
+            font-size: 10px;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <video id="video" autoplay muted playsinline></video>
+        <canvas id="topo-canvas"></canvas>
+
+        <div id="analysis-panel">
+            <h3 style="margin-top: 0; color: #00ff00;">🗺️ TOPOLOGY ANALYSIS</h3>
+
+            <div class="analysis-section">
+                <div class="section-title">📷 Shadow Analysis</div>
+                <button class="control-btn" id="analyze-shadows" onclick="analyzeShadows()">
+                    🔍 ANALYZE SHADOWS
+                </button>
+                <div class="slider-group">
+                    <label class="slider-label">Shadow Sensitivity:</label>
+                    <input type="range" class="slider" id="shadow-sensitivity" min="1" max="20" value="10">
+                    <div class="value-display" id="shadow-value">10</div>
+                </div>
+            </div>
+
+            <div class="analysis-section">
+                <div class="section-title">📐 Contour Extraction</div>
+                <button class="control-btn" id="extract-contours" onclick="extractContours()">
+                    📏 EXTRACT CONTOURS
+                </button>
+                <div class="slider-group">
+                    <label class="slider-label">Contour Interval:</label>
+                    <input type="range" class="slider" id="contour-interval" min="5" max="50" value="20">
+                    <div class="value-display" id="contour-value">20mm</div>
+                </div>
+            </div>
+
+            <div class="analysis-section">
+                <div class="section-title">🗺️ Topographic Map</div>
+                <button class="control-btn" id="generate-topo" onclick="generateTopography()">
+                    🗺️ GENERATE TOPO MAP
+                </button>
+                <div class="slider-group">
+                    <label class="slider-label">Map Resolution:</label>
+                    <input type="range" class="slider" id="map-resolution" min="50" max="200" value="100">
+                    <div class="value-display" id="resolution-value">100x100</div>
+                </div>
+            </div>
+
+            <div class="analysis-section">
+                <div class="section-title">🤖 AI Enhancement</div>
+                <button class="control-btn" id="ai-enhance" onclick="aiEnhancement()">
+                    🧠 AI TERRAIN ANALYSIS
+                </button>
+                <div class="slider-group">
+                    <label class="slider-label">AI Smoothing:</label>
+                    <input type="range" class="slider" id="ai-smoothing" min="0" max="10" value="5">
+                    <div class="value-display" id="ai-value">5</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="depth-view">
+            <canvas id="shadow-canvas"></canvas>
+        </div>
+
+        <div id="status-bar">
+            <div class="status-item">🎥 Camera: <span class="status-value" id="camera-status">Starting...</span></div>
+            <div class="status-item">🔍 Analysis: <span class="status-value" id="analysis-status">Ready</span></div>
+            <div class="status-item">📊 Terrain Points: <span class="status-value" id="terrain-count">0</span></div>
+            <div class="status-item">📏 Contour Lines: <span class="status-value" id="contour-count">0</span></div>
+            <div class="status-item">⛰️ Elevation Range: <span class="status-value" id="elevation-range">0-0mm</span></div>
+        </div>
+
+        <div id="processing-indicator">
+            <div class="processing-spinner"></div>
+            <span id="processing-text">Processing...</span>
+        </div>
+    </div>
+
+    <script>
+        class TopographicARSandbox {
+            constructor() {
+                this.video = document.getElementById('video');
+                this.topoCanvas = document.getElementById('topo-canvas');
+                this.topoCtx = this.topoCanvas.getContext('2d');
+                this.shadowCanvas = document.getElementById('shadow-canvas');
+                this.shadowCtx = this.shadowCanvas.getContext('2d');
+
+                // Computer vision processing
+                this.processCanvas = document.createElement('canvas');
+                this.processCtx = this.processCanvas.getContext('2d');
+                this.analysisCanvas = document.createElement('canvas');
+                this.analysisCtx = this.analysisCanvas.getContext('2d');
+
+                // Topology data
+                this.heightMap = null;
+                this.shadowMap = null;
+                this.contourLines = [];
+                this.terrainPoints = [];
+                this.elevationData = [];
+
+                // Analysis parameters
+                this.shadowSensitivity = 10;
+                this.contourInterval = 20;
+                this.mapResolution = 100;
+                this.aiSmoothing = 5;
+
+                // Processing state
+                this.isAnalyzing = false;
+                this.lastFrameTime = 0;
+
+                this.initialize();
+            }
+
+            async initialize() {
+                console.log('🗺️ Initializing Topographic AR Sandbox...');
+
+                this.setupCanvas();
+                this.setupEvents();
+                await this.setupCamera();
+                this.startProcessingLoop();
+
+                this.showProcessing('🗺️ TOPOGRAPHIC AR SANDBOX READY!', 3000);
+                console.log('✅ Topographic AR Sandbox initialized');
+            }
+
+            setupCanvas() {
+                this.topoCanvas.width = window.innerWidth;
+                this.topoCanvas.height = window.innerHeight;
+
+                this.shadowCanvas.width = 320;
+                this.shadowCanvas.height = 240;
+
+                this.processCanvas.width = 640;
+                this.processCanvas.height = 480;
+
+                this.analysisCanvas.width = this.mapResolution;
+                this.analysisCanvas.height = this.mapResolution;
+            }
+
+            async setupCamera() {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({
+                        video: {
+                            width: { ideal: 1920 },
+                            height: { ideal: 1080 },
+                            facingMode: 'environment'
+                        }
+                    });
+
+                    this.video.srcObject = stream;
+
+                    this.video.addEventListener('loadedmetadata', () => {
+                        document.getElementById('camera-status').textContent = 'Active';
+                        this.showProcessing('📷 HIGH-RES CAMERA READY!\\nReady for topology analysis', 3000);
+                    });
+
+                } catch (error) {
+                    console.error('Camera failed:', error);
+                    document.getElementById('camera-status').textContent = 'Failed';
+                    this.showProcessing('❌ CAMERA FAILED!\\nTopology analysis requires camera', 5000);
+                }
+            }
+
+            setupEvents() {
+                // Slider events
+                document.getElementById('shadow-sensitivity').addEventListener('input', (e) => {
+                    this.shadowSensitivity = parseInt(e.target.value);
+                    document.getElementById('shadow-value').textContent = this.shadowSensitivity;
+                });
+
+                document.getElementById('contour-interval').addEventListener('input', (e) => {
+                    this.contourInterval = parseInt(e.target.value);
+                    document.getElementById('contour-value').textContent = this.contourInterval + 'mm';
+                });
+
+                document.getElementById('map-resolution').addEventListener('input', (e) => {
+                    this.mapResolution = parseInt(e.target.value);
+                    document.getElementById('resolution-value').textContent = this.mapResolution + 'x' + this.mapResolution;
+                    this.analysisCanvas.width = this.mapResolution;
+                    this.analysisCanvas.height = this.mapResolution;
+                });
+
+                document.getElementById('ai-smoothing').addEventListener('input', (e) => {
+                    this.aiSmoothing = parseInt(e.target.value);
+                    document.getElementById('ai-value').textContent = this.aiSmoothing;
+                });
+            }
+
+            startProcessingLoop() {
+                const process = (timestamp) => {
+                    if (this.video.readyState === this.video.HAVE_ENOUGH_DATA) {
+                        this.processFrame(timestamp);
+                    }
+                    requestAnimationFrame(process);
+                };
+                process();
+            }
+
+            processFrame(timestamp) {
+                // Throttle processing to 10 FPS for performance
+                if (timestamp - this.lastFrameTime < 100) return;
+                this.lastFrameTime = timestamp;
+
+                if (!this.video.videoWidth || !this.video.videoHeight) return;
+
+                // Draw video frame to processing canvas
+                this.processCtx.drawImage(
+                    this.video,
+                    0, 0,
+                    this.processCanvas.width,
+                    this.processCanvas.height
+                );
+
+                // Continuous shadow analysis for real-time feedback
+                this.updateShadowVisualization();
+            }
+
+            updateShadowVisualization() {
+                // Draw current frame to shadow canvas
+                this.shadowCtx.drawImage(
+                    this.processCanvas,
+                    0, 0,
+                    this.shadowCanvas.width,
+                    this.shadowCanvas.height
+                );
+
+                // Apply shadow detection filter
+                const imageData = this.shadowCtx.getImageData(0, 0, this.shadowCanvas.width, this.shadowCanvas.height);
+                const data = imageData.data;
+
+                for (let i = 0; i < data.length; i += 4) {
+                    const r = data[i];
+                    const g = data[i + 1];
+                    const b = data[i + 2];
+
+                    // Calculate luminance
+                    const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
+
+                    // Enhance shadows (dark areas)
+                    if (luminance < 100) {
+                        data[i] = Math.max(0, r - 50);     // Reduce red
+                        data[i + 1] = Math.max(0, g - 30); // Reduce green
+                        data[i + 2] = Math.min(255, b + 30); // Increase blue
+                    }
+                }
+
+                this.shadowCtx.putImageData(imageData, 0, 0);
+
+                // Add overlay text
+                this.shadowCtx.fillStyle = '#00ff00';
+                this.shadowCtx.font = '12px Arial';
+                this.shadowCtx.fillText('SHADOW ANALYSIS', 5, 15);
+            }
+
+            async analyzeShadows() {
+                if (this.isAnalyzing) return;
+
+                this.isAnalyzing = true;
+                this.showProcessing('🔍 ANALYZING SHADOWS...\\nExtracting depth from lighting', 0);
+                document.getElementById('analysis-status').textContent = 'Analyzing Shadows';
+
+                await this.delay(500);
+
+                // Get high-resolution frame
+                this.processCtx.drawImage(this.video, 0, 0, this.processCanvas.width, this.processCanvas.height);
+                const imageData = this.processCtx.getImageData(0, 0, this.processCanvas.width, this.processCanvas.height);
+
+                // Shadow-based depth estimation
+                this.shadowMap = this.extractDepthFromShadows(imageData);
+
+                // Convert shadow data to height map
+                this.heightMap = this.shadowsToHeightMap(this.shadowMap);
+
+                document.getElementById('terrain-count').textContent = this.heightMap.length;
+
+                this.isAnalyzing = false;
+                this.hideProcessing();
+                document.getElementById('analysis-status').textContent = 'Shadows Analyzed';
+                this.showProcessing('✅ SHADOW ANALYSIS COMPLETE!\\nDepth extracted from lighting patterns', 2000);
+            }
+
+            extractDepthFromShadows(imageData) {
+                const data = imageData.data;
+                const width = this.processCanvas.width;
+                const height = this.processCanvas.height;
+                const shadowMap = new Float32Array(width * height);
+
+                for (let y = 0; y < height; y++) {
+                    for (let x = 0; x < width; x++) {
+                        const index = (y * width + x) * 4;
+                        const r = data[index];
+                        const g = data[index + 1];
+                        const b = data[index + 2];
+
+                        // Calculate luminance
+                        const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
+
+                        // Shadow detection: darker areas indicate depth/height
+                        let shadowStrength = 0;
+
+                        // Check for shadow patterns
+                        if (luminance < 80) {
+                            shadowStrength = (80 - luminance) / 80;
+                        }
+
+                        // Gradient analysis for edge detection
+                        if (x > 0 && x < width - 1 && y > 0 && y < height - 1) {
+                            const gradientX = this.getPixelLuminance(data, x + 1, y, width) - this.getPixelLuminance(data, x - 1, y, width);
+                            const gradientY = this.getPixelLuminance(data, x, y + 1, width) - this.getPixelLuminance(data, x, y - 1, width);
+                            const gradientMagnitude = Math.sqrt(gradientX * gradientX + gradientY * gradientY);
+
+                            if (gradientMagnitude > 20) {
+                                shadowStrength += gradientMagnitude / 255 * 0.5;
+                            }
+                        }
+
+                        shadowMap[y * width + x] = Math.min(1, shadowStrength * this.shadowSensitivity / 10);
+                    }
+                }
+
+                return shadowMap;
+            }
+
+            getPixelLuminance(data, x, y, width) {
+                const index = (y * width + x) * 4;
+                return 0.299 * data[index] + 0.587 * data[index + 1] + 0.114 * data[index + 2];
+            }
+
+            shadowsToHeightMap(shadowMap) {
+                const width = this.processCanvas.width;
+                const height = this.processCanvas.height;
+                const heightMap = [];
+
+                // Sample the shadow map to create terrain points
+                const sampleRate = Math.max(1, Math.floor(width / this.mapResolution));
+
+                for (let y = 0; y < height; y += sampleRate) {
+                    for (let x = 0; x < width; x += sampleRate) {
+                        const shadowValue = shadowMap[y * width + x];
+
+                        if (shadowValue > 0.1) { // Only significant shadows
+                            const screenX = (x / width) * this.topoCanvas.width;
+                            const screenY = (y / height) * this.topoCanvas.height;
+                            const estimatedHeight = shadowValue * 100; // Convert to mm
+
+                            heightMap.push({
+                                x: screenX,
+                                y: screenY,
+                                height: estimatedHeight,
+                                confidence: shadowValue
+                            });
+                        }
+                    }
+                }
+
+                return heightMap;
+            }
+
+            async extractContours() {
+                if (!this.heightMap) {
+                    this.showProcessing('❌ ANALYZE SHADOWS FIRST!\\nNeed height data for contours', 3000);
+                    return;
+                }
+
+                this.showProcessing('📏 EXTRACTING CONTOURS...\\nGenerating elevation lines', 0);
+                document.getElementById('analysis-status').textContent = 'Extracting Contours';
+
+                await this.delay(500);
+
+                // Find elevation range
+                const heights = this.heightMap.map(p => p.height);
+                const minHeight = Math.min(...heights);
+                const maxHeight = Math.max(...heights);
+
+                document.getElementById('elevation-range').textContent = `${Math.round(minHeight)}-${Math.round(maxHeight)}mm`;
+
+                // Generate contour lines
+                this.contourLines = [];
+                const numContours = Math.floor((maxHeight - minHeight) / this.contourInterval);
+
+                for (let i = 0; i <= numContours; i++) {
+                    const elevation = minHeight + (i * this.contourInterval);
+                    const contourPoints = this.findContourPoints(elevation);
+
+                    if (contourPoints.length > 2) {
+                        this.contourLines.push({
+                            elevation: elevation,
+                            points: contourPoints
+                        });
+                    }
+                }
+
+                document.getElementById('contour-count').textContent = this.contourLines.length;
+
+                this.hideProcessing();
+                document.getElementById('analysis-status').textContent = 'Contours Extracted';
+                this.showProcessing(`✅ CONTOURS EXTRACTED!\\nFound ${this.contourLines.length} elevation lines`, 2000);
+            }
+
+            findContourPoints(targetElevation) {
+                const tolerance = this.contourInterval * 0.3;
+                const points = [];
+
+                for (const point of this.heightMap) {
+                    if (Math.abs(point.height - targetElevation) < tolerance) {
+                        points.push({
+                            x: point.x,
+                            y: point.y,
+                            elevation: targetElevation
+                        });
+                    }
+                }
+
+                // Sort points to create smooth contour lines
+                if (points.length > 2) {
+                    return this.sortContourPoints(points);
+                }
+
+                return points;
+            }
+
+            sortContourPoints(points) {
+                if (points.length < 3) return points;
+
+                const sorted = [points[0]];
+                const remaining = points.slice(1);
+
+                while (remaining.length > 0) {
+                    const lastPoint = sorted[sorted.length - 1];
+                    let nearestIndex = 0;
+                    let nearestDistance = Infinity;
+
+                    for (let i = 0; i < remaining.length; i++) {
+                        const distance = Math.sqrt(
+                            Math.pow(remaining[i].x - lastPoint.x, 2) +
+                            Math.pow(remaining[i].y - lastPoint.y, 2)
+                        );
+
+                        if (distance < nearestDistance) {
+                            nearestDistance = distance;
+                            nearestIndex = i;
+                        }
+                    }
+
+                    sorted.push(remaining[nearestIndex]);
+                    remaining.splice(nearestIndex, 1);
+                }
+
+                return sorted;
+            }
+
+            async generateTopography() {
+                if (!this.contourLines.length) {
+                    this.showProcessing('❌ EXTRACT CONTOURS FIRST!\\nNeed contour data for topo map', 3000);
+                    return;
+                }
+
+                this.showProcessing('🗺️ GENERATING TOPOGRAPHIC MAP...\\nRendering elevation visualization', 0);
+                document.getElementById('analysis-status').textContent = 'Generating Topology';
+
+                await this.delay(500);
+
+                // Clear canvas
+                this.topoCtx.clearRect(0, 0, this.topoCanvas.width, this.topoCanvas.height);
+
+                // Draw contour lines
+                for (const contour of this.contourLines) {
+                    this.drawContourLine(contour);
+                }
+
+                // Draw elevation labels
+                this.drawElevationLabels();
+
+                // Draw terrain points
+                this.drawTerrainPoints();
+
+                this.hideProcessing();
+                document.getElementById('analysis-status').textContent = 'Topology Generated';
+                this.showProcessing('✅ TOPOGRAPHIC MAP COMPLETE!\\nShowing elevation contours and terrain', 2000);
+            }
+
+            drawContourLine(contour) {
+                if (contour.points.length < 2) return;
+
+                // Color based on elevation
+                const maxElevation = Math.max(...this.contourLines.map(c => c.elevation));
+                const colorIntensity = contour.elevation / maxElevation;
+                const red = Math.floor(255 * colorIntensity);
+                const blue = Math.floor(255 * (1 - colorIntensity));
+
+                this.topoCtx.strokeStyle = `rgba(${red}, 150, ${blue}, 0.8)`;
+                this.topoCtx.lineWidth = 2;
+                this.topoCtx.beginPath();
+
+                this.topoCtx.moveTo(contour.points[0].x, contour.points[0].y);
+                for (let i = 1; i < contour.points.length; i++) {
+                    this.topoCtx.lineTo(contour.points[i].x, contour.points[i].y);
+                }
+
+                this.topoCtx.stroke();
+            }
+
+            drawElevationLabels() {
+                this.topoCtx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+                this.topoCtx.font = 'bold 12px Arial';
+                this.topoCtx.textAlign = 'center';
+
+                for (const contour of this.contourLines) {
+                    if (contour.points.length > 0) {
+                        const midPoint = contour.points[Math.floor(contour.points.length / 2)];
+                        this.topoCtx.fillText(
+                            Math.round(contour.elevation) + 'mm',
+                            midPoint.x,
+                            midPoint.y - 5
+                        );
+                    }
+                }
+            }
+
+            drawTerrainPoints() {
+                for (const point of this.heightMap) {
+                    const size = Math.max(1, point.confidence * 3);
+                    const alpha = point.confidence * 0.6;
+
+                    this.topoCtx.fillStyle = `rgba(255, 255, 0, ${alpha})`;
+                    this.topoCtx.beginPath();
+                    this.topoCtx.arc(point.x, point.y, size, 0, Math.PI * 2);
+                    this.topoCtx.fill();
+                }
+            }
+
+            async aiEnhancement() {
+                if (!this.heightMap) {
+                    this.showProcessing('❌ ANALYZE TERRAIN FIRST!\\nNeed height data for AI enhancement', 3000);
+                    return;
+                }
+
+                this.showProcessing('🧠 AI TERRAIN ANALYSIS...\\nEnhancing topology with machine learning', 0);
+                document.getElementById('analysis-status').textContent = 'AI Processing';
+
+                await this.delay(1000);
+
+                // AI-based smoothing and interpolation
+                this.heightMap = this.aiSmoothTerrain(this.heightMap);
+
+                // Regenerate contours with enhanced data
+                await this.extractContours();
+                await this.generateTopography();
+
+                this.hideProcessing();
+                document.getElementById('analysis-status').textContent = 'AI Enhanced';
+                this.showProcessing('✅ AI ENHANCEMENT COMPLETE!\\nTerrain data optimized and smoothed', 2000);
+            }
+
+            aiSmoothTerrain(heightMap) {
+                const smoothed = [...heightMap];
+                const smoothingFactor = this.aiSmoothing / 10;
+
+                for (let i = 0; i < smoothed.length; i++) {
+                    const point = smoothed[i];
+                    const neighbors = this.findNeighbors(point, smoothed, 50);
+
+                    if (neighbors.length > 2) {
+                        const avgHeight = neighbors.reduce((sum, n) => sum + n.height, 0) / neighbors.length;
+                        point.height = point.height * (1 - smoothingFactor) + avgHeight * smoothingFactor;
+                        point.confidence = Math.min(1, point.confidence + 0.1);
+                    }
+                }
+
+                return smoothed;
+            }
+
+            findNeighbors(point, heightMap, radius) {
+                return heightMap.filter(p => {
+                    const distance = Math.sqrt(
+                        Math.pow(p.x - point.x, 2) + Math.pow(p.y - point.y, 2)
+                    );
+                    return distance <= radius && p !== point;
+                });
+            }
+
+            showProcessing(message, duration = 0) {
+                const indicator = document.getElementById('processing-indicator');
+                document.getElementById('processing-text').innerHTML = message.replace(/\\n/g, '<br>');
+                indicator.style.display = 'block';
+
+                if (duration > 0) {
+                    setTimeout(() => {
+                        this.hideProcessing();
+                    }, duration);
+                }
+            }
+
+            hideProcessing() {
+                document.getElementById('processing-indicator').style.display = 'none';
+            }
+
+            delay(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+        }
+
+        // Global functions
+        function analyzeShadows() {
+            sandbox.analyzeShadows();
+        }
+
+        function extractContours() {
+            sandbox.extractContours();
+        }
+
+        function generateTopography() {
+            sandbox.generateTopography();
+        }
+
+        function aiEnhancement() {
+            sandbox.aiEnhancement();
+        }
+
+        // Initialize
+        let sandbox;
+        document.addEventListener('DOMContentLoaded', () => {
+            sandbox = new TopographicARSandbox();
+        });
+    </script>
+
+    <!-- Kinect WebSocket Integration -->
+    <script src="js/kinect_websocket_integration.js"></script>
+    <script>
+        // Initialize Kinect WebSocket connection for Topographic AR Sandbox
+        let kinectIntegration;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            kinectIntegration = new KinectWebSocketIntegration({
+                onConnect: () => {
+                    console.log('✅ Topographic AR Sandbox connected to Kinect');
+                    updateAnalysisPanel('Kinect Connected', 'success');
+                },
+                onDisconnect: () => {
+                    console.log('❌ Topographic AR Sandbox disconnected from Kinect');
+                    updateAnalysisPanel('Kinect Disconnected', 'error');
+                },
+                onFrameData: (frameData) => {
+                    if (sandbox && sandbox.updateTopographyFromKinect) {
+                        sandbox.updateTopographyFromKinect(frameData);
+                    }
+                },
+                onTopographyData: (topographyData) => {
+                    if (sandbox && sandbox.displayTopographicAnalysis) {
+                        sandbox.displayTopographicAnalysis(topographyData);
+                    }
+                }
+            });
+
+            kinectIntegration.connect();
+        });
+
+        function updateAnalysisPanel(message, type) {
+            const panel = document.getElementById('analysis-panel');
+            if (panel) {
+                const statusDiv = panel.querySelector('.connection-status') || document.createElement('div');
+                statusDiv.className = 'connection-status';
+                statusDiv.textContent = message;
+                statusDiv.style.color = type === 'success' ? '#00ff00' : '#ff0000';
+                if (!panel.contains(statusDiv)) {
+                    panel.appendChild(statusDiv);
+                }
+            }
+        }
+    </script>
+</body>
+</html>

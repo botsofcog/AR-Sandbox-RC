@@ -1,0 +1,42 @@
+# AR Sandbox Configuration
+
+# Kinect Settings
+kinect:
+  device_id: 0
+  depth_threshold_min: 500  # mm
+  depth_threshold_max: 1200  # mm
+  tilt_angle: 0  # degrees
+  
+# Sandbox Physical Dimensions
+sandbox:
+  width: 600   # mm
+  height: 450  # mm
+  depth: 100   # mm (sand depth)
+  
+# Projector Settings
+projector:
+  resolution_width: 1920
+  resolution_height: 1080
+  calibration_points: []  # Will be populated during calibration
+  
+# Visualization Settings
+visualization:
+  contour_interval: 10  # mm between contour lines
+  color_scheme: "terrain"  # terrain, rainbow, grayscale
+  smooth_factor: 2  # Gaussian blur radius for smoothing
+  update_rate: 30  # FPS
+  
+# Color Mapping (RGB values for different elevations)
+colors:
+  water: [0, 100, 200]      # Deep blue
+  shore: [100, 150, 200]    # Light blue
+  lowland: [50, 150, 50]    # Green
+  hills: [150, 150, 50]     # Yellow-green
+  mountains: [150, 100, 50] # Brown
+  peaks: [200, 200, 200]    # Light gray
+
+# Calibration Settings
+calibration:
+  corner_detection_method: "chessboard"  # chessboard, circles
+  pattern_size: [9, 6]  # Internal corners
+  square_size: 25  # mm

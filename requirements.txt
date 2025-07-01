@@ -1,0 +1,79 @@
+# RC Sandbox Professional - Python Dependencies (Updated 2025-06-27)
+# Install with: pip install -r requirements.txt
+# Professional AR sandbox system with complete hardware integration
+
+# Core Computer Vision and Image Processing (Updated)
+opencv-python>=4.11.0
+opencv-contrib-python>=4.11.0
+numpy>=2.3.0
+scikit-image>=0.25.0
+pillow>=11.2.0
+
+# Graphics, Visualization, and UI (Updated)
+matplotlib>=3.10.0
+pygame>=2.6.0
+moderngl>=5.11.0
+pyrr>=0.10.3
+
+# Data Processing and Analysis (Updated)
+scipy>=1.16.0
+pandas>=2.3.0
+
+# Configuration and Data Handling (Updated)
+PyYAML>=6.0.2
+toml>=0.10.2
+python-dotenv>=1.0.0
+
+# System Monitoring and Performance (Updated)
+psutil>=7.0.0
+colorlog>=6.8.0
+
+# WebSocket Communication (REQUIRED for professional features) (Updated)
+websockets>=13.0
+aiohttp>=3.11.0
+asyncio-mqtt>=0.16.0
+
+# Development and Testing (Updated)
+pytest>=8.4.0
+pytest-cov>=6.0.0
+pytest-asyncio>=0.25.0
+
+# Hardware Integration (PROFESSIONAL FEATURES)
+# Azure Kinect DK (recommended) - Updated
+pykinect-azure>=0.2.0
+
+# Xbox 360 Kinect (fallback support) - Updated
+freenect>=1.12.0
+
+# Serial Communication for RC Vehicles (Updated)
+pyserial>=3.6
+
+# Streaming and Communication (REQUIRED) (Updated)
+requests>=2.32.0
+flask>=3.1.0
+flask-cors>=5.0.0
+
+# Machine Learning for Advanced Features (Updated)
+scikit-learn>=1.6.0
+# tensorflow>=2.18.0  # Uncomment for AI vehicle behaviors
+
+# Audio Processing (Updated)
+sounddevice>=0.5.0
+
+# Streaming Integration (Twitch/YouTube) (Updated)
+ffmpeg-python>=0.2.0
+
+# Utilities (Updated)
+click>=8.1.0
+tqdm>=4.67.0
+
+# Additional Professional Features (New)
+fastapi>=0.115.0  # Modern API framework
+uvicorn>=0.32.0   # ASGI server
+pydantic>=2.10.0  # Data validation
+redis>=5.2.0      # Caching and message queuing
+celery>=5.4.0     # Task queue for background processing
+
+# Optional Performance Enhancements (Updated)
+# numba>=0.60.0  # Uncomment for physics acceleration
+# cupy-cuda12x>=13.0.0  # Uncomment for GPU acceleration (CUDA 12.x)

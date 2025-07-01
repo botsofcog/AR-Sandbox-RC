@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AR Sandbox RC - Library Integration Test</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #1a1a1a;
+            color: #ffffff;
+            margin: 0;
+            padding: 20px;
+        }
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .test-section {
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            border-left: 4px solid #4CAF50;
+        }
+        .test-result {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 4px;
+            margin: 4px;
+            font-weight: bold;
+        }
+        .success { background: #4CAF50; color: white; }
+        .error { background: #f44336; color: white; }
+        .warning { background: #ff9800; color: white; }
+        .info { background: #2196F3; color: white; }
+        #test-results {
+            font-family: monospace;
+            background: #000;
+            padding: 20px;
+            border-radius: 8px;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🧪 AR Sandbox RC - Library Integration Test</h1>
+        <p>Testing all 30+ external libraries for proper loading and functionality...</p>
+        
+        <div class="test-section">
+            <h2>📊 Test Results</h2>
+            <div id="test-summary"></div>
+            <div id="test-results"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>🎮 Interactive Tests</h2>
+            <button onclick="testThreeJS()">Test THREE.js 3D Scene</button>
+            <button onclick="testMatterJS()">Test Matter.js Physics</button>
+            <button onclick="testML5()">Test ML5.js AI</button>
+            <button onclick="testLeaflet()">Test Leaflet Maps</button>
+            <div id="interactive-results"></div>
+        </div>
+    </div>
+
+    <!-- Load External Libraries (CDN versions for testing) -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/matter-js@0.19.0/build/matter.min.js"></script>
+    <script src="https://unpkg.com/ml5@latest/dist/ml5.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lil-gui@0.19.1/dist/lil-gui.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tone@14.7.77/build/Tone.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3@7.8.5/dist/d3.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/p5@1.7.0/lib/p5.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/cannon@0.20.0/build/cannon.min.js"></script>
+
+    <script>
+        // Library Integration Test Suite
+        class LibraryTester {
+            constructor() {
+                this.results = [];
+                this.testResults = document.getElementById('test-results');
+                this.testSummary = document.getElementById('test-summary');
+                this.log('🚀 Starting AR Sandbox RC Library Integration Test...\n');
+            }
+
+            log(message) {
+                this.testResults.textContent += message + '\n';
+                this.testResults.scrollTop = this.testResults.scrollHeight;
+            }
+
+            test(name, testFunction) {
+                try {
+                    const result = testFunction();
+                    if (result) {
+                        this.results.push({ name, status: 'success', message: 'OK' });
+                        this.log(`✅ ${name}: PASSED`);
+                    } else {
+                        this.results.push({ name, status: 'error', message: 'Failed' });
+                        this.log(`❌ ${name}: FAILED`);
+                    }
+                } catch (error) {
+                    this.results.push({ name, status: 'error', message: error.message });
+                    this.log(`❌ ${name}: ERROR - ${error.message}`);
+                }
+            }
+
+            async runAllTests() {
+                this.log('📋 Testing Core 3D and Physics Libraries...');
+                this.test('THREE.js', () => typeof THREE !== 'undefined' && THREE.Scene);
+                this.test('Matter.js', () => typeof Matter !== 'undefined' && Matter.Engine);
+                this.test('Cannon.js', () => typeof CANNON !== 'undefined' && CANNON.World);
+
+                this.log('\n🤖 Testing AI and ML Libraries...');
+                this.test('ML5.js', () => typeof ml5 !== 'undefined');
+                this.test('TensorFlow.js', () => typeof tf !== 'undefined');
+
+                this.log('\n🗺️ Testing Mapping Libraries...');
+                this.test('Leaflet', () => typeof L !== 'undefined' && L.Map);
+                this.test('D3.js', () => typeof d3 !== 'undefined' && d3.select);
+
+                this.log('\n🎵 Testing Audio and UI Libraries...');
+                this.test('Tone.js', () => typeof Tone !== 'undefined' && Tone.Oscillator);
+                this.test('lil-gui', () => typeof lil !== 'undefined' && lil.GUI);
+
+                this.log('\n🎨 Testing Creative Libraries...');
+                this.test('p5.js', () => typeof p5 !== 'undefined');
+
+                this.updateSummary();
+                this.log('\n🎉 Library integration test complete!');
+            }
+
+            updateSummary() {
+                const passed = this.results.filter(r => r.status === 'success').length;
+                const failed = this.results.filter(r => r.status === 'error').length;
+                const total = this.results.length;
+
+                this.testSummary.innerHTML = `
+                    <span class="test-result success">${passed} Passed</span>
+                    <span class="test-result error">${failed} Failed</span>
+                    <span class="test-result info">${total} Total</span>
+                `;
+            }
+        }
+
+        // Interactive test functions
+        function testThreeJS() {
+            if (typeof THREE === 'undefined') {
+                document.getElementById('interactive-results').innerHTML = '<div class="test-result error">THREE.js not loaded</div>';
+                return;
+            }
+
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
+            const geometry = new THREE.BoxGeometry();
+            const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+            const cube = new THREE.Mesh(geometry, material);
+            scene.add(cube);
+
+            document.getElementById('interactive-results').innerHTML = '<div class="test-result success">THREE.js scene created successfully!</div>';
+        }
+
+        function testMatterJS() {
+            if (typeof Matter === 'undefined') {
+                document.getElementById('interactive-results').innerHTML = '<div class="test-result error">Matter.js not loaded</div>';
+                return;
+            }
+
+            const engine = Matter.Engine.create();
+            const world = engine.world;
+            const box = Matter.Bodies.rectangle(400, 200, 80, 80);
+            Matter.World.add(world, box);
+
+            document.getElementById('interactive-results').innerHTML = '<div class="test-result success">Matter.js physics engine created!</div>';
+        }
+
+        function testML5() {
+            if (typeof ml5 === 'undefined') {
+                document.getElementById('interactive-results').innerHTML = '<div class="test-result error">ML5.js not loaded</div>';
+                return;
+            }
+
+            document.getElementById('interactive-results').innerHTML = '<div class="test-result success">ML5.js ready for AI features!</div>';
+        }
+
+        function testLeaflet() {
+            if (typeof L === 'undefined') {
+                document.getElementById('interactive-results').innerHTML = '<div class="test-result error">Leaflet not loaded</div>';
+                return;
+            }
+
+            document.getElementById('interactive-results').innerHTML = '<div class="test-result success">Leaflet mapping library ready!</div>';
+        }
+
+        // Start tests when page loads
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                const tester = new LibraryTester();
+                tester.runAllTests();
+            }, 1000); // Wait for libraries to load
+        });
+    </script>
+</body>
+</html>

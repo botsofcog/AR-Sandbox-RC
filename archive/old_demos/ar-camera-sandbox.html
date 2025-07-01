@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📷 AR Camera Sandbox</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            color: white;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+        }
+        
+        #container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        #video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 1;
+        }
+        
+        #overlay-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            cursor: crosshair;
+        }
+        
+        #depth-canvas {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            width: 200px;
+            height: 150px;
+            border: 2px solid #00ff00;
+            z-index: 20;
+            background: rgba(0, 0, 0, 0.8);
+        }
+        
+        #controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 20px;
+            border-radius: 15px;
+            border: 2px solid #00ff00;
+            z-index: 30;
+        }
+        
+        .control-btn {
+            display: block;
+            width: 150px;
+            padding: 12px;
+            margin: 8px 0;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .control-btn:hover {
+            transform: scale(1.05);
+        }
+        
+        .control-btn.active {
+            box-shadow: 0 0 15px currentColor;
+        }
+        
+        #calibrate { background: #ff6b6b; color: white; }
+        #detect { background: #4ecdc4; color: white; }
+        #project { background: #ffa500; color: white; }
+        #reset { background: #74b9ff; color: white; }
+        
+        #info {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 15px;
+            border-radius: 10px;
+            border: 2px solid #00ff00;
+            z-index: 30;
+            font-size: 16px;
+        }
+        
+        #status {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            padding: 20px 40px;
+            border-radius: 15px;
+            font-size: 24px;
+            font-weight: bold;
+            color: #00ff00;
+            z-index: 100;
+            border: 3px solid #00ff00;
+            text-align: center;
+            display: none;
+        }
+        
+        .slider-group {
+            margin: 10px 0;
+        }
+        
+        .slider-label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 12px;
+            color: #ccc;
+        }
+        
+        .slider {
+            width: 100%;
+            margin-bottom: 5px;
+        }
+        
+        .terrain-overlay {
+            position: absolute;
+            pointer-events: none;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.8);
+            z-index: 15;
+        }
+        
+        .height-indicator {
+            position: absolute;
+            background: rgba(0, 255, 0, 0.8);
+            color: black;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            pointer-events: none;
+            z-index: 16;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <video id="video" autoplay muted playsinline></video>
+        <canvas id="overlay-canvas"></canvas>
+        <canvas id="depth-canvas"></canvas>
+        
+        <div id="controls">
+            <h3 style="margin-top: 0; color: #00ff00;">📷 AR CONTROLS</h3>
+            
+            <button class="control-btn" id="calibrate" onclick="calibrateCamera()">
+                🎯 CALIBRATE
+            </button>
+            
+            <button class="control-btn active" id="detect" onclick="toggleDetection()">
+                👁️ DETECT TERRAIN
+            </button>
+            
+            <button class="control-btn" id="project" onclick="toggleProjection()">
+                📽️ PROJECT OVERLAY
+            </button>
+            
+            <button class="control-btn" id="reset" onclick="resetSystem()">
+                🔄 RESET
+            </button>
+            
+            <div class="slider-group">
+                <label class="slider-label">Sensitivity:</label>
+                <input type="range" class="slider" id="sensitivity" min="1" max="10" value="5">
+                <span id="sensitivity-value">5</span>
+            </div>
+            
+            <div class="slider-group">
+                <label class="slider-label">Threshold:</label>
+                <input type="range" class="slider" id="threshold" min="10" max="100" value="50">
+                <span id="threshold-value">50</span>
+            </div>
+        </div>
+        
+        <div id="info">
+            <div>📷 Camera: <span id="camera-status">Starting...</span></div>
+            <div>🎯 Calibration: <span id="calibration-status">Not calibrated</span></div>
+            <div>👁️ Detection: <span id="detection-status">Off</span></div>
+            <div>📊 Terrain Points: <span id="terrain-points">0</span></div>
+        </div>
+        
+        <div id="status"></div>
+    </div>
+
+    <script>
+        class ARCameraSandbox {
+            constructor() {
+                this.video = document.getElementById('video');
+                this.overlayCanvas = document.getElementById('overlay-canvas');
+                this.overlayCtx = this.overlayCanvas.getContext('2d');
+                this.depthCanvas = document.getElementById('depth-canvas');
+                this.depthCtx = this.depthCanvas.getContext('2d');
+                
+                // Camera and processing
+                this.stream = null;
+                this.isCalibrated = false;
+                this.isDetecting = false;
+                this.isProjecting = false;
+                
+                // Terrain detection
+                this.baseFrame = null;
+                this.currentFrame = null;
+                this.terrainPoints = [];
+                this.sensitivity = 5;
+                this.threshold = 50;
+                
+                // Processing canvas for computer vision
+                this.processCanvas = document.createElement('canvas');
+                this.processCtx = this.processCanvas.getContext('2d');
+                
+                this.initialize();
+            }
+            
+            async initialize() {
+                console.log('📷 Initializing AR Camera Sandbox...');
+                
+                this.setupCanvas();
+                this.setupEvents();
+                await this.setupCamera();
+                this.startProcessingLoop();
+                
+                this.showStatus('📷 AR CAMERA SANDBOX READY!', 3000);
+                console.log('✅ AR Camera Sandbox initialized');
+            }
+            
+            setupCanvas() {
+                this.overlayCanvas.width = window.innerWidth;
+                this.overlayCanvas.height = window.innerHeight;
+                
+                this.depthCanvas.width = 200;
+                this.depthCanvas.height = 150;
+                
+                this.processCanvas.width = 320;
+                this.processCanvas.height = 240;
+            }
+            
+            async setupCamera() {
+                try {
+                    this.stream = await navigator.mediaDevices.getUserMedia({
+                        video: {
+                            width: { ideal: 1280 },
+                            height: { ideal: 720 },
+                            facingMode: 'environment' // Use back camera if available
+                        }
+                    });
+                    
+                    this.video.srcObject = this.stream;
+                    
+                    this.video.addEventListener('loadedmetadata', () => {
+                        document.getElementById('camera-status').textContent = 'Active';
+                        this.showStatus('📷 CAMERA READY!\nClick CALIBRATE to start', 3000);
+                    });
+                    
+                    console.log('📷 Camera initialized successfully');
+                    
+                } catch (error) {
+                    console.error('Camera initialization failed:', error);
+                    document.getElementById('camera-status').textContent = 'Failed';
+                    this.showStatus('❌ CAMERA FAILED!\nPlease allow camera access', 5000);
+                }
+            }
+            
+            setupEvents() {
+                // Slider events
+                document.getElementById('sensitivity').addEventListener('input', (e) => {
+                    this.sensitivity = parseInt(e.target.value);
+                    document.getElementById('sensitivity-value').textContent = this.sensitivity;
+                });
+                
+                document.getElementById('threshold').addEventListener('input', (e) => {
+                    this.threshold = parseInt(e.target.value);
+                    document.getElementById('threshold-value').textContent = this.threshold;
+                });
+                
+                // Canvas click for manual terrain marking
+                this.overlayCanvas.addEventListener('click', (e) => {
+                    if (this.isProjecting) {
+                        this.addManualTerrainPoint(e);
+                    }
+                });
+                
+                // Window resize
+                window.addEventListener('resize', () => {
+                    this.setupCanvas();
+                });
+            }
+            
+            startProcessingLoop() {
+                const process = () => {
+                    if (this.video.readyState === this.video.HAVE_ENOUGH_DATA) {
+                        this.processFrame();
+                    }
+                    requestAnimationFrame(process);
+                };
+                process();
+            }
+            
+            processFrame() {
+                if (!this.video.videoWidth || !this.video.videoHeight) return;
+                
+                // Draw video frame to processing canvas
+                this.processCtx.drawImage(
+                    this.video, 
+                    0, 0, 
+                    this.processCanvas.width, 
+                    this.processCanvas.height
+                );
+                
+                // Get image data for processing
+                this.currentFrame = this.processCtx.getImageData(
+                    0, 0, 
+                    this.processCanvas.width, 
+                    this.processCanvas.height
+                );
+                
+                // Perform terrain detection if enabled
+                if (this.isDetecting && this.baseFrame) {
+                    this.detectTerrain();
+                }
+                
+                // Update depth visualization
+                this.updateDepthVisualization();
+                
+                // Render overlay
+                if (this.isProjecting) {
+                    this.renderTerrainOverlay();
+                }
+            }
+            
+            calibrateCamera() {
+                if (!this.currentFrame) {
+                    this.showStatus('❌ NO CAMERA FEED!\nCheck camera connection', 3000);
+                    return;
+                }
+                
+                this.showStatus('🎯 CALIBRATING...\nKeep camera still!', 2000);
+                
+                setTimeout(() => {
+                    // Capture base frame for comparison
+                    this.baseFrame = this.processCtx.getImageData(
+                        0, 0, 
+                        this.processCanvas.width, 
+                        this.processCanvas.height
+                    );
+                    
+                    this.isCalibrated = true;
+                    document.getElementById('calibration-status').textContent = 'Calibrated';
+                    this.showStatus('✅ CALIBRATION COMPLETE!\nNow detecting terrain changes', 3000);
+                    
+                    // Auto-enable detection
+                    this.isDetecting = true;
+                    document.getElementById('detection-status').textContent = 'Active';
+                    document.getElementById('detect').classList.add('active');
+                    
+                }, 2000);
+            }
+            
+            detectTerrain() {
+                if (!this.baseFrame || !this.currentFrame) return;
+                
+                const baseData = this.baseFrame.data;
+                const currentData = this.currentFrame.data;
+                const width = this.processCanvas.width;
+                const height = this.processCanvas.height;
+                
+                this.terrainPoints = [];
+                
+                // Compare frames to detect changes (terrain height)
+                for (let y = 0; y < height; y += 4) { // Sample every 4 pixels for performance
+                    for (let x = 0; x < width; x += 4) {
+                        const index = (y * width + x) * 4;
+                        
+                        // Calculate brightness difference
+                        const baseBrightness = (baseData[index] + baseData[index + 1] + baseData[index + 2]) / 3;
+                        const currentBrightness = (currentData[index] + currentData[index + 1] + currentData[index + 2]) / 3;
+                        
+                        const difference = Math.abs(currentBrightness - baseBrightness);
+                        
+                        if (difference > this.threshold) {
+                            // Convert to screen coordinates
+                            const screenX = (x / width) * this.overlayCanvas.width;
+                            const screenY = (y / height) * this.overlayCanvas.height;
+                            
+                            // Estimate height based on brightness difference
+                            const height = Math.min(100, difference * this.sensitivity);
+                            
+                            this.terrainPoints.push({
+                                x: screenX,
+                                y: screenY,
+                                height: height,
+                                brightness: difference
+                            });
+                        }
+                    }
+                }
+                
+                document.getElementById('terrain-points').textContent = this.terrainPoints.length;
+            }
+            
+            updateDepthVisualization() {
+                // Clear depth canvas
+                this.depthCtx.fillStyle = '#000';
+                this.depthCtx.fillRect(0, 0, this.depthCanvas.width, this.depthCanvas.height);
+                
+                if (this.currentFrame) {
+                    // Draw processed frame
+                    this.depthCtx.drawImage(
+                        this.processCanvas,
+                        0, 0,
+                        this.depthCanvas.width,
+                        this.depthCanvas.height
+                    );
+                    
+                    // Add detection overlay
+                    if (this.isDetecting) {
+                        this.depthCtx.fillStyle = 'rgba(0, 255, 0, 0.3)';
+                        this.depthCtx.fillRect(0, 0, this.depthCanvas.width, this.depthCanvas.height);
+                        
+                        this.depthCtx.fillStyle = '#00ff00';
+                        this.depthCtx.font = '12px Arial';
+                        this.depthCtx.fillText('DETECTING', 5, 15);
+                    }
+                }
+            }
+            
+            renderTerrainOverlay() {
+                // Clear overlay
+                this.overlayCtx.clearRect(0, 0, this.overlayCanvas.width, this.overlayCanvas.height);
+                
+                // Draw terrain points
+                for (const point of this.terrainPoints) {
+                    // Color based on height
+                    const intensity = Math.min(255, point.height * 2.5);
+                    const color = `rgb(${intensity}, ${255 - intensity}, 0)`;
+                    
+                    this.overlayCtx.fillStyle = color;
+                    this.overlayCtx.beginPath();
+                    this.overlayCtx.arc(point.x, point.y, 3, 0, Math.PI * 2);
+                    this.overlayCtx.fill();
+                    
+                    // Draw height indicator for significant points
+                    if (point.height > 30) {
+                        this.overlayCtx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+                        this.overlayCtx.font = '12px Arial';
+                        this.overlayCtx.fillText(
+                            Math.round(point.height) + 'm',
+                            point.x + 5,
+                            point.y - 5
+                        );
+                    }
+                }
+                
+                // Draw grid overlay
+                this.overlayCtx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+                this.overlayCtx.lineWidth = 1;
+                
+                const gridSize = 50;
+                for (let x = 0; x < this.overlayCanvas.width; x += gridSize) {
+                    this.overlayCtx.beginPath();
+                    this.overlayCtx.moveTo(x, 0);
+                    this.overlayCtx.lineTo(x, this.overlayCanvas.height);
+                    this.overlayCtx.stroke();
+                }
+                
+                for (let y = 0; y < this.overlayCanvas.height; y += gridSize) {
+                    this.overlayCtx.beginPath();
+                    this.overlayCtx.moveTo(0, y);
+                    this.overlayCtx.lineTo(this.overlayCanvas.width, y);
+                    this.overlayCtx.stroke();
+                }
+            }
+            
+            addManualTerrainPoint(e) {
+                const rect = this.overlayCanvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                
+                this.terrainPoints.push({
+                    x: x,
+                    y: y,
+                    height: 50,
+                    brightness: 100
+                });
+                
+                this.showStatus('📍 TERRAIN POINT ADDED!', 1000);
+            }
+            
+            showStatus(message, duration = 3000) {
+                const statusDiv = document.getElementById('status');
+                statusDiv.innerHTML = message.replace(/\n/g, '<br>');
+                statusDiv.style.display = 'block';
+                
+                setTimeout(() => {
+                    statusDiv.style.display = 'none';
+                }, duration);
+            }
+        }
+        
+        // Global functions
+        function calibrateCamera() {
+            sandbox.calibrateCamera();
+        }
+        
+        function toggleDetection() {
+            const btn = document.getElementById('detect');
+            
+            if (sandbox.isDetecting) {
+                sandbox.isDetecting = false;
+                btn.classList.remove('active');
+                document.getElementById('detection-status').textContent = 'Off';
+                sandbox.showStatus('👁️ DETECTION STOPPED', 1500);
+            } else {
+                if (!sandbox.isCalibrated) {
+                    sandbox.showStatus('❌ CALIBRATE FIRST!\nClick CALIBRATE button', 3000);
+                    return;
+                }
+                sandbox.isDetecting = true;
+                btn.classList.add('active');
+                document.getElementById('detection-status').textContent = 'Active';
+                sandbox.showStatus('👁️ DETECTION STARTED', 1500);
+            }
+        }
+        
+        function toggleProjection() {
+            const btn = document.getElementById('project');
+            
+            if (sandbox.isProjecting) {
+                sandbox.isProjecting = false;
+                btn.classList.remove('active');
+                sandbox.overlayCtx.clearRect(0, 0, sandbox.overlayCanvas.width, sandbox.overlayCanvas.height);
+                sandbox.showStatus('📽️ PROJECTION OFF', 1500);
+            } else {
+                sandbox.isProjecting = true;
+                btn.classList.add('active');
+                sandbox.showStatus('📽️ PROJECTION ON\nClick to add terrain points', 2000);
+            }
+        }
+        
+        function resetSystem() {
+            sandbox.isCalibrated = false;
+            sandbox.isDetecting = false;
+            sandbox.isProjecting = false;
+            sandbox.baseFrame = null;
+            sandbox.terrainPoints = [];
+            
+            document.getElementById('calibration-status').textContent = 'Not calibrated';
+            document.getElementById('detection-status').textContent = 'Off';
+            document.getElementById('terrain-points').textContent = '0';
+            
+            document.querySelectorAll('.control-btn').forEach(btn => btn.classList.remove('active'));
+            
+            sandbox.overlayCtx.clearRect(0, 0, sandbox.overlayCanvas.width, sandbox.overlayCanvas.height);
+            sandbox.showStatus('🔄 SYSTEM RESET!\nClick CALIBRATE to start', 3000);
+        }
+        
+        // Initialize
+        let sandbox;
+        document.addEventListener('DOMContentLoaded', () => {
+            sandbox = new ARCameraSandbox();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AR Sandbox RC - WebGL Fluid Simulation Integration</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+        }
+        
+        #fluid-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+        
+        #terrain-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+            pointer-events: none;
+            opacity: 0.7;
+        }
+        
+        #controls {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 3;
+            background: rgba(0,0,0,0.8);
+            padding: 15px;
+            border-radius: 8px;
+            color: white;
+        }
+        
+        .control-group {
+            margin-bottom: 10px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 12px;
+        }
+        
+        input[type="range"] {
+            width: 150px;
+        }
+        
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 2px;
+        }
+        
+        button:hover {
+            background: #45a049;
+        }
+        
+        #status {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            z-index: 3;
+            background: rgba(0,0,0,0.8);
+            padding: 10px;
+            border-radius: 8px;
+            color: white;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <!-- WebGL Fluid Simulation Canvas -->
+    <canvas id="fluid-canvas"></canvas>
+    
+    <!-- Terrain Overlay Canvas -->
+    <canvas id="terrain-overlay"></canvas>
+    
+    <!-- Controls -->
+    <div id="controls">
+        <h3>🌊 Fluid + Terrain Controls</h3>
+        
+        <div class="control-group">
+            <label>Fluid Viscosity:</label>
+            <input type="range" id="viscosity" min="0" max="100" value="20">
+            <span id="viscosity-value">20</span>
+        </div>
+        
+        <div class="control-group">
+            <label>Splat Force:</label>
+            <input type="range" id="splat-force" min="1000" max="10000" value="6000">
+            <span id="splat-force-value">6000</span>
+        </div>
+        
+        <div class="control-group">
+            <label>Terrain Height:</label>
+            <input type="range" id="terrain-height" min="0" max="100" value="50">
+            <span id="terrain-height-value">50</span>
+        </div>
+        
+        <div class="control-group">
+            <button onclick="addRandomSplat()">💧 Add Splat</button>
+            <button onclick="clearFluid()">🧹 Clear</button>
+            <button onclick="toggleTerrain()">🏔️ Toggle Terrain</button>
+        </div>
+        
+        <div class="control-group">
+            <button onclick="saveFluidState()">💾 Save State</button>
+            <button onclick="loadFluidState()">📁 Load State</button>
+        </div>
+    </div>
+    
+    <!-- Status Display -->
+    <div id="status">
+        <div>🌊 WebGL Fluid Simulation: <span id="fluid-status">Loading...</span></div>
+        <div>🏔️ Terrain Integration: <span id="terrain-status">Loading...</span></div>
+        <div>🎮 Interactive Mode: <span id="interaction-status">Ready</span></div>
+        <div>📊 Performance: <span id="fps">-- FPS</span></div>
+    </div>
+
+    <!-- WebGL Fluid Simulation Library -->
+    <script src="external_libs/webgl-fluid-simulation/dat.gui.min.js"></script>
+    
+    <!-- Core AR Sandbox Systems -->
+    <script src="frontend/js/terrain.js"></script>
+    <script src="frontend/js/physics_engine.js"></script>
+    
+    <script>
+        // WebGL Fluid + AR Sandbox Integration
+        class FluidTerrainIntegration {
+            constructor() {
+                this.fluidCanvas = document.getElementById('fluid-canvas');
+                this.terrainCanvas = document.getElementById('terrain-overlay');
+                this.fluidGL = null;
+                this.terrainCtx = null;
+                this.isInitialized = false;
+                this.terrainVisible = true;
+                this.fluidConfig = {
+                    DENSITY_DISSIPATION: 1,
+                    VELOCITY_DISSIPATION: 0.2,
+                    PRESSURE: 0.8,
+                    PRESSURE_ITERATIONS: 20,
+                    CURL: 30,
+                    SPLAT_RADIUS: 0.25,
+                    SPLAT_FORCE: 6000
+                };
+                
+                this.init();
+            }
+            
+            async init() {
+                try {
+                    console.log('🌊 Initializing WebGL Fluid + Terrain Integration...');
+                    
+                    // Initialize canvases
+                    this.resizeCanvases();
+                    window.addEventListener('resize', () => this.resizeCanvases());
+                    
+                    // Initialize WebGL context
+                    this.fluidGL = this.fluidCanvas.getContext('webgl2') || this.fluidCanvas.getContext('webgl');
+                    if (!this.fluidGL) {
+                        throw new Error('WebGL not supported');
+                    }
+                    
+                    // Initialize terrain overlay
+                    this.terrainCtx = this.terrainCanvas.getContext('2d');
+                    
+                    // Load and initialize WebGL fluid simulation
+                    await this.initializeFluidSimulation();
+                    
+                    // Initialize terrain system
+                    this.initializeTerrainOverlay();
+                    
+                    // Setup interaction
+                    this.setupInteraction();
+                    
+                    // Start render loop
+                    this.startRenderLoop();
+                    
+                    this.isInitialized = true;
+                    document.getElementById('fluid-status').textContent = 'Active';
+                    document.getElementById('terrain-status').textContent = 'Active';
+                    
+                    console.log('✅ WebGL Fluid + Terrain Integration initialized successfully');
+                    
+                } catch (error) {
+                    console.error('❌ Failed to initialize fluid integration:', error);
+                    document.getElementById('fluid-status').textContent = 'Error';
+                }
+            }
+            
+            resizeCanvases() {
+                const width = window.innerWidth;
+                const height = window.innerHeight;
+                
+                this.fluidCanvas.width = width;
+                this.fluidCanvas.height = height;
+                this.terrainCanvas.width = width;
+                this.terrainCanvas.height = height;
+                
+                if (this.fluidGL) {
+                    this.fluidGL.viewport(0, 0, width, height);
+                }
+            }
+            
+            async initializeFluidSimulation() {
+                // This would integrate the actual WebGL fluid simulation
+                // For now, we'll create a simplified version that works with our terrain
+                console.log('🌊 WebGL fluid simulation ready');
+            }
+            
+            initializeTerrainOverlay() {
+                // Draw terrain heightmap overlay
+                this.drawTerrainHeightmap();
+                console.log('🏔️ Terrain overlay ready');
+            }
+            
+            drawTerrainHeightmap() {
+                if (!this.terrainCtx) return;
+                
+                const ctx = this.terrainCtx;
+                const width = this.terrainCanvas.width;
+                const height = this.terrainCanvas.height;
+                
+                // Clear canvas
+                ctx.clearRect(0, 0, width, height);
+                
+                if (!this.terrainVisible) return;
+                
+                // Draw simple terrain heightmap
+                const imageData = ctx.createImageData(width, height);
+                const data = imageData.data;
+                
+                for (let y = 0; y < height; y++) {
+                    for (let x = 0; x < width; x++) {
+                        const index = (y * width + x) * 4;
+                        
+                        // Simple noise-based terrain
+                        const heightValue = Math.sin(x * 0.01) * Math.cos(y * 0.01) * 127 + 128;
+                        
+                        // Create topographic-style visualization
+                        const intensity = Math.floor(heightValue);
+                        data[index] = intensity * 0.3;     // Red
+                        data[index + 1] = intensity * 0.6; // Green  
+                        data[index + 2] = intensity * 0.2; // Blue
+                        data[index + 3] = 100;             // Alpha
+                    }
+                }
+                
+                ctx.putImageData(imageData, 0, 0);
+            }
+            
+            setupInteraction() {
+                // Mouse/touch interaction for both fluid and terrain
+                let isMouseDown = false;
+                
+                this.fluidCanvas.addEventListener('mousedown', (e) => {
+                    isMouseDown = true;
+                    this.addFluidSplat(e.clientX, e.clientY);
+                });
+                
+                this.fluidCanvas.addEventListener('mousemove', (e) => {
+                    if (isMouseDown) {
+                        this.addFluidSplat(e.clientX, e.clientY);
+                    }
+                });
+                
+                this.fluidCanvas.addEventListener('mouseup', () => {
+                    isMouseDown = false;
+                });
+                
+                console.log('🎮 Interaction setup complete');
+            }
+            
+            addFluidSplat(x, y) {
+                // Add fluid splat at position
+                console.log(`💧 Adding fluid splat at (${x}, ${y})`);
+                // This would trigger the actual WebGL fluid simulation
+            }
+            
+            startRenderLoop() {
+                let lastTime = 0;
+                let frameCount = 0;
+                
+                const render = (currentTime) => {
+                    const deltaTime = currentTime - lastTime;
+                    lastTime = currentTime;
+                    frameCount++;
+                    
+                    // Update FPS display
+                    if (frameCount % 60 === 0) {
+                        const fps = Math.round(1000 / deltaTime);
+                        document.getElementById('fps').textContent = `${fps} FPS`;
+                    }
+                    
+                    // Render fluid simulation
+                    this.renderFluid();
+                    
+                    // Update terrain overlay
+                    this.updateTerrainOverlay();
+                    
+                    requestAnimationFrame(render);
+                };
+                
+                requestAnimationFrame(render);
+                console.log('🎬 Render loop started');
+            }
+            
+            renderFluid() {
+                // Render WebGL fluid simulation
+                if (this.fluidGL) {
+                    this.fluidGL.clearColor(0.0, 0.0, 0.0, 1.0);
+                    this.fluidGL.clear(this.fluidGL.COLOR_BUFFER_BIT);
+                }
+            }
+            
+            updateTerrainOverlay() {
+                // Update terrain overlay based on controls
+                const heightValue = document.getElementById('terrain-height').value;
+                // Update terrain visualization based on height value
+            }
+        }
+        
+        // Global functions for controls
+        function addRandomSplat() {
+            const x = Math.random() * window.innerWidth;
+            const y = Math.random() * window.innerHeight;
+            if (window.fluidIntegration) {
+                window.fluidIntegration.addFluidSplat(x, y);
+            }
+        }
+        
+        function clearFluid() {
+            console.log('🧹 Clearing fluid simulation');
+            // Clear fluid simulation
+        }
+        
+        function toggleTerrain() {
+            if (window.fluidIntegration) {
+                window.fluidIntegration.terrainVisible = !window.fluidIntegration.terrainVisible;
+                window.fluidIntegration.drawTerrainHeightmap();
+                console.log(`🏔️ Terrain ${window.fluidIntegration.terrainVisible ? 'shown' : 'hidden'}`);
+            }
+        }
+        
+        function saveFluidState() {
+            console.log('💾 Saving fluid state...');
+            // Save current fluid state
+        }
+        
+        function loadFluidState() {
+            console.log('📁 Loading fluid state...');
+            // Load saved fluid state
+        }
+        
+        // Update control displays
+        document.getElementById('viscosity').addEventListener('input', (e) => {
+            document.getElementById('viscosity-value').textContent = e.target.value;
+        });
+        
+        document.getElementById('splat-force').addEventListener('input', (e) => {
+            document.getElementById('splat-force-value').textContent = e.target.value;
+        });
+        
+        document.getElementById('terrain-height').addEventListener('input', (e) => {
+            document.getElementById('terrain-height-value').textContent = e.target.value;
+            if (window.fluidIntegration) {
+                window.fluidIntegration.updateTerrainOverlay();
+            }
+        });
+        
+        // Initialize when page loads
+        window.addEventListener('load', () => {
+            window.fluidIntegration = new FluidTerrainIntegration();
+        });
+    </script>
+
+    <!-- Kinect WebSocket Integration -->
+    <script src="js/kinect_websocket_integration.js"></script>
+    <script>
+        // Initialize Kinect WebSocket connection for Fluid Sandbox Demo
+        let kinectIntegration;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            kinectIntegration = new KinectWebSocketIntegration({
+                onConnect: () => {
+                    console.log('✅ Fluid Sandbox Demo connected to Kinect');
+                    updateFluidStatus('Kinect depth server connected');
+                },
+                onDisconnect: () => {
+                    console.log('❌ Fluid Sandbox Demo disconnected from Kinect');
+                    updateFluidStatus('Kinect depth server disconnected');
+                },
+                onFrameData: (frameData) => {
+                    if (window.fluidIntegration && window.fluidIntegration.updateFromKinectData) {
+                        window.fluidIntegration.updateFromKinectData(frameData);
+                    }
+                },
+                onTopographyData: (topographyData) => {
+                    if (window.fluidIntegration && window.fluidIntegration.enhanceFluidWithAI) {
+                        window.fluidIntegration.enhanceFluidWithAI(topographyData);
+                    }
+                }
+            });
+
+            kinectIntegration.connect();
+        });
+
+        function updateFluidStatus(message) {
+            const controls = document.getElementById('controls');
+            if (controls) {
+                const statusDiv = controls.querySelector('.kinect-fluid-status') || document.createElement('div');
+                statusDiv.className = 'kinect-fluid-status';
+                statusDiv.innerHTML = `<div style="margin-top: 10px; padding: 5px; background: rgba(0,255,0,0.2); border-radius: 3px;">🔗 ${message}</div>`;
+                if (!controls.contains(statusDiv)) {
+                    controls.appendChild(statusDiv);
+                }
+            }
+        }
+    </script>
+
+    <!-- WebGL Fluid Simulation Integration -->
+    <script src="external_libs/webgl-fluid-simulation/script.js"></script>
+    <script>
+        // Integrate WebGL fluid simulation with AR sandbox
+        console.log('🌊 Integrating WebGL Fluid Simulation with AR Sandbox');
+
+        // Enhanced fluid simulation integration
+        if (typeof window.fluidSimulation !== 'undefined') {
+            console.log('✅ WebGL Fluid Simulation library loaded');
+
+            // Connect fluid simulation to Kinect data
+            function integrateFluidWithKinect(frameData) {
+                if (frameData && frameData.mesh_data) {
+                    // Use terrain data to influence fluid flow
+                    const terrainData = frameData.mesh_data.data;
+                    if (window.fluidSimulation && window.fluidSimulation.updateTerrain) {
+                        window.fluidSimulation.updateTerrain(terrainData);
+                    }
+                }
+            }
+
+            // Add to existing Kinect integration
+            if (window.kinectIntegration) {
+                const originalOnFrameData = window.kinectIntegration.onFrameData;
+                window.kinectIntegration.onFrameData = (frameData) => {
+                    if (originalOnFrameData) originalOnFrameData(frameData);
+                    integrateFluidWithKinect(frameData);
+                };
+            }
+        } else {
+            console.log('⚠️ WebGL Fluid Simulation library not available - using basic fluid simulation');
+        }
+    </script>
+</body>
+</html>

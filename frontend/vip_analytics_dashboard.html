@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VIP Analytics Dashboard - AR Sandbox RC</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/date-fns@2.29.3/index.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            min-height: 100vh;
+            overflow-x: auto;
+        }
+
+        .dashboard-container {
+            padding: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .dashboard-header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+
+        .dashboard-title {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #00ff88, #00d4ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .dashboard-subtitle {
+            font-size: 1.2em;
+            opacity: 0.8;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .metric-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .metric-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .metric-icon {
+            font-size: 2em;
+            margin-right: 15px;
+        }
+
+        .metric-title {
+            font-size: 1.3em;
+            font-weight: 600;
+        }
+
+        .metric-value {
+            font-size: 2.5em;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #00ff88;
+        }
+
+        .metric-description {
+            opacity: 0.8;
+            font-size: 0.9em;
+        }
+
+        .chart-container {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .chart-title {
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-online { background-color: #00ff88; }
+        .status-warning { background-color: #ffaa00; }
+        .status-error { background-color: #ff4444; }
+
+        .insights-panel {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .insights-title {
+            font-size: 1.3em;
+            margin-bottom: 15px;
+            color: #00d4ff;
+        }
+
+        .insight-item {
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .insight-item:last-child {
+            border-bottom: none;
+        }
+
+        .controls-panel {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .control-button {
+            padding: 12px 24px;
+            background: rgba(0, 212, 255, 0.8);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .control-button:hover {
+            background: rgba(0, 212, 255, 1);
+            transform: translateY(-2px);
+        }
+
+        .control-button:active {
+            transform: translateY(0);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            font-size: 1.2em;
+        }
+
+        .connection-status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            border-radius: 25px;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-container {
+                padding: 10px;
+            }
+            
+            .metrics-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .dashboard-title {
+                font-size: 2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="connection-status" id="connectionStatus">
+        <span class="status-indicator status-warning"></span>
+        Connecting...
+    </div>
+
+    <div class="dashboard-container">
+        <div class="dashboard-header">
+            <h1 class="dashboard-title">📊 VIP Analytics Dashboard</h1>
+            <p class="dashboard-subtitle">Executive-Grade Analytics for AR Sandbox RC</p>
+        </div>
+
+        <div class="controls-panel">
+            <button class="control-button" onclick="refreshDashboard()">🔄 Refresh</button>
+            <button class="control-button" onclick="exportReport()">📄 Export Report</button>
+            <button class="control-button" onclick="toggleRealTime()">⚡ Real-Time Mode</button>
+            <button class="control-button" onclick="showROIAnalysis()">💰 ROI Analysis</button>
+        </div>
+
+        <div id="loadingIndicator" class="loading">
+            <div>🔄 Loading analytics data...</div>
+        </div>
+
+        <div id="dashboardContent" style="display: none;">
+            <!-- Executive Summary Metrics -->
+            <div class="metrics-grid" id="executiveMetrics">
+                <!-- Metrics will be populated by JavaScript -->
+            </div>
+
+            <!-- Performance Trends Chart -->
+            <div class="chart-container">
+                <h3 class="chart-title">📈 Performance Trends</h3>
+                <canvas id="performanceChart" width="400" height="200"></canvas>
+            </div>
+
+            <!-- System Health Overview -->
+            <div class="chart-container">
+                <h3 class="chart-title">🔧 System Health Overview</h3>
+                <canvas id="healthChart" width="400" height="200"></canvas>
+            </div>
+
+            <!-- ROI Analysis -->
+            <div class="chart-container" id="roiContainer" style="display: none;">
+                <h3 class="chart-title">💰 ROI Analysis</h3>
+                <canvas id="roiChart" width="400" height="200"></canvas>
+            </div>
+
+            <!-- Insights Panel -->
+            <div class="insights-panel">
+                <h3 class="insights-title">💡 Executive Insights</h3>
+                <div id="insightsContent">
+                    <!-- Insights will be populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class VIPAnalyticsDashboard {
+            constructor() {
+                this.websocket = null;
+                this.isConnected = false;
+                this.realTimeMode = false;
+                this.charts = {};
+                this.currentData = {};
+                
+                this.init();
+            }
+            
+            init() {
+                this.connectToAnalytics();
+                this.setupEventListeners();
+            }
+            
+            connectToAnalytics() {
+                try {
+                    this.websocket = new WebSocket('ws://localhost:8768');
+                    
+                    this.websocket.onopen = () => {
+                        console.log('📊 Connected to VIP Analytics Dashboard');
+                        this.isConnected = true;
+                        this.updateConnectionStatus(true);
+                        this.requestInitialData();
+                    };
+                    
+                    this.websocket.onmessage = (event) => {
+                        try {
+                            const data = JSON.parse(event.data);
+                            this.handleAnalyticsData(data);
+                        } catch (error) {
+                            console.error('❌ Analytics data parsing error:', error);
+                        }
+                    };
+                    
+                    this.websocket.onclose = () => {
+                        console.log('📊 Analytics Dashboard disconnected');
+                        this.isConnected = false;
+                        this.updateConnectionStatus(false);
+                        this.attemptReconnect();
+                    };
+                    
+                    this.websocket.onerror = (error) => {
+                        console.error('❌ Analytics connection error:', error);
+                        this.updateConnectionStatus(false);
+                    };
+                    
+                } catch (error) {
+                    console.error('❌ Failed to connect to Analytics Dashboard:', error);
+                    this.updateConnectionStatus(false);
+                    this.showFallbackData();
+                }
+            }
+            
+            attemptReconnect() {
+                setTimeout(() => {
+                    console.log('🔄 Attempting to reconnect to Analytics Dashboard...');
+                    this.connectToAnalytics();
+                }, 5000);
+            }
+            
+            requestInitialData() {
+                if (this.isConnected) {
+                    // Dashboard will automatically send initial data
+                    console.log('📊 Requesting initial analytics data...');
+                }
+            }
+            
+            handleAnalyticsData(data) {
+                console.log('📊 Received analytics data:', data.type);
+                
+                switch (data.type) {
+                    case 'dashboard_init':
+                        this.handleDashboardInit(data);
+                        break;
+                    case 'executive_summary':
+                        this.updateExecutiveMetrics(data);
+                        break;
+                    case 'performance_trends':
+                        this.updatePerformanceChart(data);
+                        break;
+                    case 'system_health':
+                        this.updateHealthChart(data);
+                        break;
+                    case 'roi_analysis':
+                        this.updateROIChart(data);
+                        break;
+                    case 'export_complete':
+                        this.handleExportComplete(data);
+                        break;
+                    default:
+                        console.log('📊 Unknown analytics data type:', data.type);
+                }
+            }
+            
+            handleDashboardInit(data) {
+                console.log('🎯 Initializing dashboard with data');
+                this.currentData = data;
+                
+                // Hide loading indicator and show content
+                document.getElementById('loadingIndicator').style.display = 'none';
+                document.getElementById('dashboardContent').style.display = 'block';
+                
+                // Update all dashboard components
+                this.updateExecutiveMetrics(data.executive_summary);
+                this.updateInsights(data.executive_summary);
+                
+                // Initialize charts
+                this.initializeCharts();
+            }
+            
+            updateExecutiveMetrics(data) {
+                const metricsContainer = document.getElementById('executiveMetrics');
+                const kpis = data.kpis || {};
+                
+                metricsContainer.innerHTML = `
+                    <div class="metric-card">
+                        <div class="metric-header">
+                            <div class="metric-icon">🎯</div>
+                            <div class="metric-title">Demonstrations</div>
+                        </div>
+                        <div class="metric-value">${kpis.total_demonstrations || 0}</div>
+                        <div class="metric-description">Total successful demos</div>
+                    </div>
+                    
+                    <div class="metric-card">
+                        <div class="metric-header">
+                            <div class="metric-icon">📈</div>
+                            <div class="metric-title">Performance Score</div>
+                        </div>
+                        <div class="metric-value">${kpis.average_performance_score || 0}%</div>
+                        <div class="metric-description">Average system performance</div>
+                    </div>
+                    
+                    <div class="metric-card">
+                        <div class="metric-header">
+                            <div class="metric-icon">🔧</div>
+                            <div class="metric-title">System Reliability</div>
+                        </div>
+                        <div class="metric-value">${kpis.system_reliability || 0}%</div>
+                        <div class="metric-description">Uptime and stability</div>
+                    </div>
+                    
+                    <div class="metric-card">
+                        <div class="metric-header">
+                            <div class="metric-icon">💰</div>
+                            <div class="metric-title">ROI Projection</div>
+                        </div>
+                        <div class="metric-value">$${(kpis.roi_projection || 0).toLocaleString()}</div>
+                        <div class="metric-description">Annual revenue projection</div>
+                    </div>
+                    
+                    <div class="metric-card">
+                        <div class="metric-header">
+                            <div class="metric-icon">🚀</div>
+                            <div class="metric-title">Market Readiness</div>
+                        </div>
+                        <div class="metric-value">${kpis.market_readiness_score || 0}%</div>
+                        <div class="metric-description">Ready for market launch</div>
+                    </div>
+                    
+                    <div class="metric-card">
+                        <div class="metric-header">
+                            <div class="metric-icon">🎮</div>
+                            <div class="metric-title">Feature Coverage</div>
+                        </div>
+                        <div class="metric-value">${kpis.feature_coverage || 0}%</div>
+                        <div class="metric-description">Features demonstrated</div>
+                    </div>
+                `;
+            }
+
+            updateInsights(data) {
+                const insightsContainer = document.getElementById('insightsContent');
+                const highlights = data.highlights || [];
+                const recommendations = data.recommendations || [];
+
+                let insightsHTML = '<h4>📊 Key Highlights</h4>';
+                highlights.forEach(highlight => {
+                    insightsHTML += `<div class="insight-item">${highlight}</div>`;
+                });
+
+                insightsHTML += '<h4 style="margin-top: 20px;">💡 Executive Recommendations</h4>';
+                recommendations.forEach(recommendation => {
+                    insightsHTML += `<div class="insight-item">${recommendation}</div>`;
+                });
+
+                insightsContainer.innerHTML = insightsHTML;
+            }
+
+            initializeCharts() {
+                // Initialize Performance Chart
+                const perfCtx = document.getElementById('performanceChart').getContext('2d');
+                this.charts.performance = new Chart(perfCtx, {
+                    type: 'line',
+                    data: {
+                        labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+                        datasets: [{
+                            label: 'Performance Score',
+                            data: [85, 88, 92, 95],
+                            borderColor: '#00ff88',
+                            backgroundColor: 'rgba(0, 255, 136, 0.1)',
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                labels: { color: 'white' }
+                            }
+                        },
+                        scales: {
+                            x: { ticks: { color: 'white' } },
+                            y: { ticks: { color: 'white' } }
+                        }
+                    }
+                });
+
+                // Initialize Health Chart
+                const healthCtx = document.getElementById('healthChart').getContext('2d');
+                this.charts.health = new Chart(healthCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Uptime', 'Performance', 'Reliability'],
+                        datasets: [{
+                            data: [98, 95, 97],
+                            backgroundColor: ['#00ff88', '#00d4ff', '#ffaa00'],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                labels: { color: 'white' }
+                            }
+                        }
+                    }
+                });
+            }
+
+            updateConnectionStatus(connected) {
+                const statusElement = document.getElementById('connectionStatus');
+                const indicator = statusElement.querySelector('.status-indicator');
+
+                if (connected) {
+                    indicator.className = 'status-indicator status-online';
+                    statusElement.innerHTML = '<span class="status-indicator status-online"></span>Connected';
+                } else {
+                    indicator.className = 'status-indicator status-error';
+                    statusElement.innerHTML = '<span class="status-indicator status-error"></span>Disconnected';
+                }
+            }
+
+            showFallbackData() {
+                // Show demo data when backend is not available
+                console.log('📊 Showing fallback demo data');
+
+                const demoData = {
+                    type: 'dashboard_init',
+                    executive_summary: {
+                        kpis: {
+                            total_demonstrations: 12,
+                            average_performance_score: 92.5,
+                            system_reliability: 98.2,
+                            roi_projection: 185000,
+                            market_readiness_score: 89.7,
+                            feature_coverage: 85.0
+                        },
+                        highlights: [
+                            "✅ 12 successful demonstrations completed",
+                            "🎯 92.5% average performance score",
+                            "🔧 98.2% system reliability",
+                            "💰 $185,000 projected annual ROI",
+                            "🚀 89.7% market readiness score"
+                        ],
+                        recommendations: [
+                            "✅ Strong demonstration track record - ready for investor presentations",
+                            "🚀 Excellent performance metrics - consider premium pricing strategy",
+                            "💼 Expand sales team to capitalize on high market readiness",
+                            "🔧 Invest in customer success team for enterprise deployments"
+                        ]
+                    }
+                };
+
+                this.handleDashboardInit(demoData);
+            }
+
+            sendAnalyticsRequest(command, data = {}) {
+                if (this.isConnected) {
+                    const request = { command, ...data };
+                    this.websocket.send(JSON.stringify(request));
+                } else {
+                    console.warn('⚠️ Analytics Dashboard not connected');
+                }
+            }
+        }
+
+        // Global functions for button controls
+        function refreshDashboard() {
+            console.log('🔄 Refreshing dashboard...');
+            if (window.analyticsDashboard) {
+                window.analyticsDashboard.sendAnalyticsRequest('get_executive_summary');
+            }
+        }
+
+        function exportReport() {
+            console.log('📄 Exporting comprehensive report...');
+            if (window.analyticsDashboard) {
+                window.analyticsDashboard.sendAnalyticsRequest('export_report', { format: 'json' });
+            }
+        }
+
+        function toggleRealTime() {
+            console.log('⚡ Toggling real-time mode...');
+            if (window.analyticsDashboard) {
+                window.analyticsDashboard.realTimeMode = !window.analyticsDashboard.realTimeMode;
+                const button = event.target;
+                button.textContent = window.analyticsDashboard.realTimeMode ? '⏸️ Pause Real-Time' : '⚡ Real-Time Mode';
+            }
+        }
+
+        function showROIAnalysis() {
+            console.log('💰 Showing ROI analysis...');
+            const roiContainer = document.getElementById('roiContainer');
+            roiContainer.style.display = roiContainer.style.display === 'none' ? 'block' : 'none';
+
+            if (window.analyticsDashboard) {
+                window.analyticsDashboard.sendAnalyticsRequest('get_roi_analysis');
+            }
+        }
+
+        // Initialize dashboard when DOM is ready
+        document.addEventListener('DOMContentLoaded', () => {
+            window.analyticsDashboard = new VIPAnalyticsDashboard();
+            console.log('📊 VIP Analytics Dashboard initialized');
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RC Sandbox - Professional Interface (Updated 2025-06-27)</title>
+    <meta name="description" content="Professional AR sandbox interface with advanced controls and monitoring">
+    <meta name="version" content="2.1.0">
+    <link rel="stylesheet" href="styles/ui.css">
+    <style>
+        :root {
+            --panel-bg: rgba(30,30,30,0.85);
+            --accent-primary: #E0C32A;
+            --accent-secondary: #4CAF50;
+            --text-color: #FFFFFF;
+            --shadow: 0 4px 12px rgba(0,0,0,0.6);
+        }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: #000;
+            overflow: hidden;
+            color: var(--text-color);
+        }
+        
+        #video {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            object-fit: cover;
+            z-index: 1;
+            opacity: 0.7; /* FIXED: Make webcam semi-transparent for better overlay */
+        }
+
+        #canvas {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 2; /* FIXED: Canvas above video */
+            pointer-events: auto;
+        }
+
+        .panel {
+            position: absolute;
+            background: var(--panel-bg);
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: var(--shadow);
+            border: 2px solid rgba(255,255,255,0.1);
+            z-index: 10; /* FIXED: Panels above everything */
+            backdrop-filter: blur(10px); /* FIXED: Add glass effect */
+        }
+        
+        .panel h3 {
+            color: var(--accent-primary);
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+            text-align: center;
+        }
+        
+        #inventory-panel {
+            top: 20px; left: 20px;
+            width: 200px; height: 250px;
+        }
+        
+        #objectives-panel {
+            top: 20px; right: 20px;
+            width: 250px; height: 200px;
+        }
+        
+        #top-hud {
+            top: 20px; left: 50%;
+            transform: translateX(-50%);
+            width: 400px; height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        #controls-panel {
+            bottom: 20px; left: 20px;
+            width: 300px; height: 150px;
+        }
+        
+        #status-panel {
+            bottom: 20px; right: 20px;
+            width: 200px; height: 120px;
+        }
+
+        #weather-panel {
+            top: 290px; left: 20px;
+            width: 200px; height: 180px;
+        }
+        
+        .tool-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-top: 10px;
+        }
+        
+        .tool-btn {
+            background: rgba(255,255,255,0.1);
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 8px;
+            padding: 8px;
+            color: var(--text-color);
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+            font-size: 0.8rem;
+        }
+        
+        .tool-btn:hover {
+            background: rgba(255,255,255,0.2);
+            border-color: var(--accent-primary);
+            transform: scale(1.05);
+        }
+        
+        .tool-btn.active {
+            background: var(--accent-primary);
+            border-color: var(--accent-primary);
+            color: #000;
+        }
+        
+        .objective-item {
+            display: flex;
+            align-items: center;
+            margin: 8px 0;
+            padding: 5px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 5px;
+        }
+        
+        .objective-checkbox {
+            width: 16px; height: 16px;
+            border: 2px solid var(--accent-secondary);
+            border-radius: 3px;
+            margin-right: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .objective-checkbox.completed {
+            background: var(--accent-secondary);
+        }
+        
+        .objective-checkbox.completed::after {
+            content: '✓';
+            color: white;
+            font-size: 12px;
+        }
+        
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0;
+            font-size: 0.9rem;
+        }
+        
+        .status-value {
+            color: var(--accent-primary);
+        }
+        
+        .live-indicator {
+            width: 12px; height: 12px;
+            background: var(--accent-secondary);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .brush-controls {
+            margin: 10px 0;
+        }
+        
+        .brush-controls input[type="range"] {
+            width: 100%;
+            margin: 5px 0;
+        }
+        
+        .mode-selector {
+            display: flex;
+            gap: 5px;
+            margin: 10px 0;
+        }
+        
+        .mode-btn {
+            flex: 1;
+            padding: 5px;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 5px;
+            color: var(--text-color);
+            cursor: pointer;
+            font-size: 0.8rem;
+            text-align: center;
+        }
+        
+        .mode-btn.active {
+            background: var(--accent-secondary);
+            border-color: var(--accent-secondary);
+        }
+
+        /* FIXED: Layer management to prevent z-fighting */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000; /* Notifications on top */
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 5px;
+            border-left: 4px solid var(--accent-primary);
+        }
+
+        .modal, .overlay {
+            z-index: 999; /* Modals below notifications */
+        }
+
+        .tooltip {
+            z-index: 100; /* Tooltips above panels */
+        }
+    </style>
+</head>
+<body>
+    <!-- Video background -->
+    <video id="video" autoplay muted></video>
+    
+    <!-- Terrain overlay canvas -->
+    <canvas id="canvas"></canvas>
+    
+    <!-- UI Panels -->
+    <div id="top-hud" class="panel">
+        <div>
+            <h3>RC SANDBOX</h3>
+            <div style="font-size: 0.8rem;">Professional Interface</div>
+        </div>
+        <div class="live-indicator"></div>
+        <div style="text-align: right;">
+            <div style="font-size: 0.9rem;">TERRAIN</div>
+            <div style="font-size: 0.7rem; color: var(--accent-secondary);">ACTIVE</div>
+        </div>
+    </div>
+    
+    <div id="inventory-panel" class="panel svg-panel">
+        <!-- SVG Background -->
+        <div class="svg-background">
+            <object data="../assets/inventory_panel.svg" type="image/svg+xml" class="panel-svg"></object>
+        </div>
+
+        <!-- Interactive Content Overlay -->
+        <div class="panel-content">
+            <h3>INVENTORY</h3>
+            <div class="tool-grid">
+                <div class="tool-btn active" data-tool="excavator" title="EX001 Excavator - Deep excavation">
+                    <div class="tool-icon">🚜</div>
+                    <div class="tool-label">EX001</div>
+                </div>
+                <div class="tool-btn" data-tool="bulldozer" title="BD001 Bulldozer - Terrain shaping">
+                    <div class="tool-icon">🚛</div>
+                    <div class="tool-label">BD001</div>
+                </div>
+                <div class="tool-btn" data-tool="dump_truck" title="DT001 Dump Truck - Material transport">
+                    <div class="tool-icon">🚚</div>
+                    <div class="tool-label">DT001</div>
+                </div>
+                <div class="tool-btn" data-tool="crane" title="CR001 Crane - Precision placement">
+                    <div class="tool-icon">🏗️</div>
+                    <div class="tool-label">CR001</div>
+                </div>
+                <div class="tool-btn" data-tool="compactor" title="CP001 Compactor - Surface finishing">
+                    <div class="tool-icon">🛞</div>
+                    <div class="tool-label">CP001</div>
+                </div>
+                <div class="tool-btn" data-tool="brush" title="Manual Brush Tool">
+                    <div class="tool-icon">🖌️</div>
+                    <div class="tool-label">BRUSH</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="objectives-panel" class="panel svg-panel">
+        <!-- SVG Background -->
+        <div class="svg-background">
+            <object data="../assets/objectives_panel.svg" type="image/svg+xml" class="panel-svg"></object>
+        </div>
+
+        <!-- Interactive Content Overlay -->
+        <div class="panel-content">
+            <h3>OBJECTIVES</h3>
+            <div class="objectives-list">
+                <div class="objective-item" data-objective="terrain">
+                    <div class="objective-checkbox completed"></div>
+                    <div class="objective-text">
+                        <div class="objective-title">Initialize terrain system</div>
+                        <div class="objective-desc">Set up real-time visualization</div>
+                    </div>
+                </div>
+                <div class="objective-item" data-objective="vehicles">
+                    <div class="objective-checkbox"></div>
+                    <div class="objective-text">
+                        <div class="objective-title">Deploy RC vehicles</div>
+                        <div class="objective-desc">Connect and calibrate fleet</div>
+                    </div>
+                </div>
+                <div class="objective-item" data-objective="roads">
+                    <div class="objective-checkbox"></div>
+                    <div class="objective-text">
+                        <div class="objective-title">Build road network</div>
+                        <div class="objective-desc">Create navigation pathways</div>
+                    </div>
+                </div>
+                <div class="objective-item" data-objective="flood">
+                    <div class="objective-checkbox"></div>
+                    <div class="objective-text">
+                        <div class="objective-title">Test flood defense</div>
+                        <div class="objective-desc">Execute mission scenario</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="controls-panel" class="panel">
+        <h3>CONTROLS</h3>
+        <div class="brush-controls">
+            <label>Brush Size: <span id="brush-size-value">20</span>px</label>
+            <input type="range" id="brush-size" min="5" max="50" value="20">
+            
+            <label>Intensity: <span id="intensity-value">50</span>%</label>
+            <input type="range" id="intensity" min="10" max="100" value="50">
+        </div>
+        <div class="mode-selector">
+            <div class="mode-btn active" data-mode="raise">RAISE</div>
+            <div class="mode-btn" data-mode="lower">LOWER</div>
+            <div class="mode-btn" data-mode="smooth">SMOOTH</div>
+        </div>
+    </div>
+    
+    <div id="status-panel" class="panel">
+        <h3>STATUS</h3>
+        <div class="status-item">
+            <span>Vehicles:</span>
+            <span class="status-value" id="vehicle-count">5</span>
+        </div>
+        <div class="status-item">
+            <span>Active:</span>
+            <span class="status-value" id="active-vehicles">2</span>
+        </div>
+        <div class="status-item">
+            <span>Terrain:</span>
+            <span class="status-value">LIVE</span>
+        </div>
+        <div class="status-item">
+            <span>FPS:</span>
+            <span class="status-value" id="fps">30</span>
+        </div>
+    </div>
+
+    <div id="weather-panel" class="panel">
+        <h3>WEATHER</h3>
+        <div class="weather-info">
+            <div class="status-item">
+                <span>Conditions:</span>
+                <span class="status-value" id="weather-conditions">Clear</span>
+            </div>
+            <div class="status-item">
+                <span>Wind:</span>
+                <span class="status-value" id="wind-speed">5 mph NW</span>
+            </div>
+            <div class="status-item">
+                <span>Humidity:</span>
+                <span class="status-value" id="humidity">45%</span>
+            </div>
+            <div class="status-item">
+                <span>Visibility:</span>
+                <span class="status-value" id="visibility">10 miles</span>
+            </div>
+            <div class="status-item">
+                <span>Pressure:</span>
+                <span class="status-value" id="pressure">30.15 inHg</span>
+            </div>
+            <div class="weather-effects" style="margin-top: 10px;">
+                <label style="display: flex; align-items: center; font-size: 0.9rem;">
+                    <input type="checkbox" id="weather-effects-enabled" checked style="margin-right: 8px;">
+                    Weather Effects
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/terrain.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/websocket.js"></script>
+
+    <!-- Initialization Script -->
+    <script>
+        // Initialize the AR Sandbox system
+        let terrainEngine, uiController, wsManager;
+
+        async function initializeARSandbox() {
+            try {
+                console.log('🚀 Initializing AR Sandbox Professional Interface...');
+
+                // Get video and canvas elements
+                const video = document.getElementById('video');
+                const canvas = document.getElementById('canvas');
+
+                // Initialize webcam
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({
+                        video: {
+                            width: { ideal: 1280 },
+                            height: { ideal: 720 },
+                            facingMode: 'user'
+                        }
+                    });
+                    video.srcObject = stream;
+                    console.log('📹 Webcam initialized successfully');
+                } catch (error) {
+                    console.warn('⚠️ Webcam access denied or unavailable:', error);
+                    // Continue without webcam - terrain will still work
+                }
+
+                // Initialize terrain engine
+                terrainEngine = new TerrainEngine(canvas);
+                console.log('🗺️ Terrain engine initialized');
+
+                // Initialize UI controller
+                uiController = new UIController(terrainEngine);
+                console.log('🎮 UI controller initialized');
+
+                // Initialize WebSocket manager (optional - will gracefully fail if backend not running)
+                wsManager = new WebSocketManager();
+                try {
+                    await wsManager.connect();
+                    console.log('🔌 Backend services connected');
+                } catch (error) {
+                    console.warn('⚠️ Backend services unavailable - running in standalone mode');
+                }
+
+                // Start the render loop
+                function animate() {
+                    terrainEngine.render();
+                    uiController.update();
+                    requestAnimationFrame(animate);
+                }
+                animate();
+
+                console.log('✅ AR Sandbox Professional Interface ready!');
+
+            } catch (error) {
+                console.error('❌ Failed to initialize AR Sandbox:', error);
+            }
+        }
+
+        // Start initialization when page loads
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeARSandbox);
+        } else {
+            initializeARSandbox();
+        }
+    </script>
+</body>
+</html>

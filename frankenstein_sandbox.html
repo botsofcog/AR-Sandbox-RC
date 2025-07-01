@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FRANKENSTEIN AR SANDBOX - WORKING SPAGHETTI CODE</title>
+    <style>
+        body { margin: 0; padding: 0; background: #000; font-family: Arial; overflow: hidden; }
+        #container { width: 100vw; height: 100vh; position: relative; }
+        #webcamVideo { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; opacity: 0.7; }
+        #gameCanvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 2; cursor: crosshair; }
+        .hud { position: absolute; background: rgba(0,0,0,0.8); color: #0f0; padding: 10px; border: 1px solid #0f0; z-index: 10; font-size: 12px; }
+        #topHUD { top: 10px; left: 10px; }
+        #vehicleHUD { top: 10px; right: 10px; width: 200px; }
+        #toolHUD { bottom: 10px; left: 10px; }
+        #statusHUD { bottom: 10px; right: 10px; }
+        .btn { background: #333; color: #0f0; border: 1px solid #0f0; padding: 5px 10px; margin: 2px; cursor: pointer; display: inline-block; }
+        .btn:hover { background: #0f0; color: #000; }
+        .btn.active { background: #f00; color: #fff; }
+        .vehicle { background: #222; border: 1px solid #ff0; padding: 5px; margin: 2px; cursor: pointer; }
+        .vehicle.working { background: #0a0; color: #000; }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <video id="webcamVideo" autoplay muted playsinline></video>
+        <canvas id="gameCanvas"></canvas>
+        
+        <div id="topHUD" class="hud">
+            <h3>🏗️ FRANKENSTEIN SANDBOX</h3>
+            <div>Tool: <span id="currentTool">SAND</span></div>
+            <div>Brush: <span id="brushSize">20</span>px</div>
+            <div>FPS: <span id="fps">--</span></div>
+            <div>Particles: <span id="particleCount">0</span></div>
+        </div>
+        
+        <div id="vehicleHUD" class="hud">
+            <h4>🚛 VEHICLES</h4>
+            <div class="vehicle" onclick="toggleVehicle('excavator')">🚜 EXCAVATOR <span id="exc-status">IDLE</span></div>
+            <div class="vehicle" onclick="toggleVehicle('bulldozer')">🚛 BULLDOZER <span id="bull-status">IDLE</span></div>
+            <div class="vehicle" onclick="toggleVehicle('dumptruck')">🚚 DUMPTRUCK <span id="dump-status">IDLE</span></div>
+            <div class="vehicle" onclick="toggleVehicle('crane')">🏗️ CRANE <span id="crane-status">IDLE</span></div>
+            <div class="vehicle" onclick="toggleVehicle('compactor')">🚧 COMPACTOR <span id="comp-status">IDLE</span></div>
+        </div>
+        
+        <div id="toolHUD" class="hud">
+            <h4>🛠️ TOOLS</h4>
+            <div class="btn active" onclick="setTool('sand')">🏔️ SAND</div>
+            <div class="btn" onclick="setTool('dig')">⛏️ DIG</div>
+            <div class="btn" onclick="setTool('water')">💧 WATER</div>
+            <div class="btn" onclick="setTool('fire')">🔥 FIRE</div>
+            <div class="btn" onclick="setTool('road')">🛣️ ROAD</div>
+            <br>
+            <input type="range" min="5" max="50" value="20" onchange="setBrushSize(this.value)">
+            <div class="btn" onclick="clearAll()">🗑️ CLEAR</div>
+        </div>
+        
+        <div id="statusHUD" class="hud">
+            <h4>📊 STATUS</h4>
+            <div>Sand: <span id="sandCount">0</span></div>
+            <div>Water: <span id="waterCount">0</span></div>
+            <div>Fire: <span id="fireCount">0</span></div>
+            <div>Active: <span id="activeVehicles">0</span>/5</div>
+        </div>
+    </div>
+
+    <script>
+        // FRANKENSTEIN GLOBAL STATE - MASHED TOGETHER FROM ALL SAMPLES
+        const GAME = {
+            canvas: null, ctx: null, video: null,
+            tool: 'sand', brushSize: 20, isDrawing: false,
+            gridWidth: 150, gridHeight: 100,
+            terrain: [], water: [], fire: [], particles: [],
+            vehicles: {
+                excavator: { x: 100, y: 100, vx: 0, vy: 0, active: false, targetX: 200, targetY: 200, task: 'idle', speed: 2.0 },
+                bulldozer: { x: 150, y: 100, vx: 0, vy: 0, active: false, targetX: 250, targetY: 150, task: 'idle', speed: 2.5 },
+                dumptruck: { x: 200, y: 100, vx: 0, vy: 0, active: false, targetX: 300, targetY: 200, task: 'idle', speed: 3.5 },
+                crane: { x: 250, y: 100, vx: 0, vy: 0, active: false, targetX: 150, targetY: 250, task: 'idle', speed: 1.5 },
+                compactor: { x: 300, y: 100, vx: 0, vy: 0, active: false, targetX: 100, targetY: 300, task: 'idle', speed: 2.0 }
+            },
+            physics: { gravity: 0.1, waterFlow: true, fireSpread: true },
+            frameCount: 0, lastTime: Date.now()
+        };
+
+        // INIT FRANKENSTEIN MONSTER
+        async function initFrankenstein() {
+            console.log('🧟 INITIALIZING FRANKENSTEIN SANDBOX...');
+            
+            GAME.canvas = document.getElementById('gameCanvas');
+            GAME.ctx = GAME.canvas.getContext('2d');
+            GAME.video = document.getElementById('webcamVideo');
+            
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+            
+            // Initialize grids
+            initGrids();
+            
+            // Start webcam
+            await startWebcam();
+            
+            // Setup input
+            setupInput();
+            
+            // Start game loop
+            gameLoop();
+            
+            console.log('✅ FRANKENSTEIN IS ALIVE!');
+        }
+
+        function resizeCanvas() {
+            GAME.canvas.width = window.innerWidth;
+            GAME.canvas.height = window.innerHeight;
+        }
+
+        function initGrids() {
+            // Initialize terrain grid
+            GAME.terrain = [];
+            GAME.water = [];
+            GAME.fire = [];
+            for (let y = 0; y < GAME.gridHeight; y++) {
+                GAME.terrain[y] = [];
+                GAME.water[y] = [];
+                GAME.fire[y] = [];
+                for (let x = 0; x < GAME.gridWidth; x++) {
+                    GAME.terrain[y][x] = 0;
+                    GAME.water[y][x] = 0;
+                    GAME.fire[y][x] = 0;
+                }
+            }
+        }
+
+        async function startWebcam() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                GAME.video.srcObject = stream;
+            } catch (e) {
+                console.log('📹 No webcam, using solid background');
+                GAME.video.style.display = 'none';
+                document.body.style.background = 'linear-gradient(45deg, #001122, #003344)';
+            }
+        }
+
+        function setupInput() {
+            GAME.canvas.addEventListener('mousedown', startDrawing);
+            GAME.canvas.addEventListener('mousemove', draw);
+            GAME.canvas.addEventListener('mouseup', stopDrawing);
+            GAME.canvas.addEventListener('touchstart', handleTouch);
+            GAME.canvas.addEventListener('touchmove', handleTouch);
+            GAME.canvas.addEventListener('touchend', stopDrawing);
+            
+            document.addEventListener('keydown', handleKeys);
+        }
+
+        function startDrawing(e) {
+            GAME.isDrawing = true;
+            draw(e);
+        }
+
+        function stopDrawing() {
+            GAME.isDrawing = false;
+        }
+
+        function draw(e) {
+            if (!GAME.isDrawing) return;
+            
+            const rect = GAME.canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            applyTool(x, y);
+        }
+
+        function handleTouch(e) {
+            e.preventDefault();
+            const touch = e.touches[0];
+            if (touch) {
+                const rect = GAME.canvas.getBoundingClientRect();
+                const x = touch.clientX - rect.left;
+                const y = touch.clientY - rect.top;
+                
+                if (e.type === 'touchstart') GAME.isDrawing = true;
+                if (GAME.isDrawing) applyTool(x, y);
+            }
+        }
+
+        function handleKeys(e) {
+            switch(e.key) {
+                case '1': setTool('sand'); break;
+                case '2': setTool('dig'); break;
+                case '3': setTool('water'); break;
+                case '4': setTool('fire'); break;
+                case '5': setTool('road'); break;
+                case 'c': clearAll(); break;
+                case ' ': e.preventDefault(); clearAll(); break;
+            }
+        }
+
+        // TOOL APPLICATION - MASHED FROM MULTIPLE SAMPLES
+        function applyTool(x, y) {
+            const gridX = Math.floor((x / GAME.canvas.width) * GAME.gridWidth);
+            const gridY = Math.floor((y / GAME.canvas.height) * GAME.gridHeight);
+            const radius = Math.floor(GAME.brushSize / 8);
+            
+            for (let dy = -radius; dy <= radius; dy++) {
+                for (let dx = -radius; dx <= radius; dx++) {
+                    const gx = gridX + dx;
+                    const gy = gridY + dy;
+                    
+                    if (gx >= 0 && gx < GAME.gridWidth && gy >= 0 && gy < GAME.gridHeight) {
+                        const dist = Math.sqrt(dx*dx + dy*dy);
+                        if (dist <= radius) {
+                            applyToolToCell(gx, gy, 1 - dist/radius);
+                        }
+                    }
+                }
+            }
+            
+            // Add particles
+            addParticles(x, y);
+        }
+
+        function applyToolToCell(x, y, strength) {
+            switch(GAME.tool) {
+                case 'sand':
+                    GAME.terrain[y][x] = Math.min(100, GAME.terrain[y][x] + 10 * strength);
+                    break;
+                case 'dig':
+                    GAME.terrain[y][x] = Math.max(0, GAME.terrain[y][x] - 15 * strength);
+                    break;
+                case 'water':
+                    GAME.water[y][x] = Math.min(100, GAME.water[y][x] + 20 * strength);
+                    break;
+                case 'fire':
+                    GAME.fire[y][x] = Math.min(100, GAME.fire[y][x] + 30 * strength);
+                    break;
+                case 'road':
+                    GAME.terrain[y][x] = Math.max(5, Math.min(15, GAME.terrain[y][x]));
+                    break;
+            }
+        }
+
+        function addParticles(x, y) {
+            for (let i = 0; i < 5; i++) {
+                GAME.particles.push({
+                    x: x + (Math.random() - 0.5) * 20,
+                    y: y + (Math.random() - 0.5) * 20,
+                    vx: (Math.random() - 0.5) * 4,
+                    vy: (Math.random() - 0.5) * 4,
+                    life: 60,
+                    color: getToolColor(),
+                    size: Math.random() * 3 + 1
+                });
+            }
+        }
+
+        function getToolColor() {
+            const colors = {
+                sand: '#C4926C', dig: '#654321', water: '#3498DB', 
+                fire: '#E74C3C', road: '#34495E'
+            };
+            return colors[GAME.tool] || '#FFFFFF';
+        }
+
+        // PHYSICS UPDATE - FRANKENSTEIN PHYSICS FROM SAMPLES
+        function updatePhysics() {
+            // Water flow simulation
+            if (GAME.physics.waterFlow) {
+                for (let y = 1; y < GAME.gridHeight - 1; y++) {
+                    for (let x = 1; x < GAME.gridWidth - 1; x++) {
+                        if (GAME.water[y][x] > 5) {
+                            // Flow to lower neighbors
+                            const neighbors = [
+                                {x: x-1, y: y}, {x: x+1, y: y}, 
+                                {x: x, y: y-1}, {x: x, y: y+1}
+                            ];
+                            
+                            neighbors.forEach(n => {
+                                const heightDiff = (GAME.terrain[y][x] + GAME.water[y][x]) - 
+                                                 (GAME.terrain[n.y][n.x] + GAME.water[n.y][n.x]);
+                                if (heightDiff > 2) {
+                                    const flow = Math.min(GAME.water[y][x] * 0.1, heightDiff * 0.5);
+                                    GAME.water[y][x] -= flow;
+                                    GAME.water[n.y][n.x] += flow;
+                                }
+                            });
+                        }
+                    }
+                }
+            }
+            
+            // Fire spread
+            if (GAME.physics.fireSpread) {
+                for (let y = 1; y < GAME.gridHeight - 1; y++) {
+                    for (let x = 1; x < GAME.gridWidth - 1; x++) {
+                        if (GAME.fire[y][x] > 10) {
+                            // Spread to neighbors
+                            const neighbors = [
+                                {x: x-1, y: y}, {x: x+1, y: y}, 
+                                {x: x, y: y-1}, {x: x, y: y+1}
+                            ];
+                            
+                            neighbors.forEach(n => {
+                                if (GAME.terrain[n.y][n.x] > 0 && GAME.water[n.y][n.x] < 5) {
+                                    GAME.fire[n.y][n.x] = Math.min(50, GAME.fire[n.y][n.x] + 2);
+                                }
+                            });
+                            
+                            // Fire consumes terrain and is extinguished by water
+                            if (GAME.water[y][x] > 10) {
+                                GAME.fire[y][x] = Math.max(0, GAME.fire[y][x] - 20);
+                                GAME.water[y][x] -= 5; // Steam effect
+                            } else {
+                                GAME.fire[y][x] = Math.max(0, GAME.fire[y][x] - 0.5);
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Sand gravity
+            for (let y = GAME.gridHeight - 2; y >= 0; y--) {
+                for (let x = 0; x < GAME.gridWidth; x++) {
+                    if (GAME.terrain[y][x] > 20) {
+                        const below = GAME.terrain[y + 1][x];
+                        if (below < GAME.terrain[y][x] - 10) {
+                            const fall = Math.min(5, GAME.terrain[y][x] - below);
+                            GAME.terrain[y][x] -= fall;
+                            GAME.terrain[y + 1][x] += fall;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Initialize Frankenstein Sandbox
+        console.log('🧟 FRANKENSTEIN SANDBOX LOADED - SPAGHETTI CODE ACTIVATED!');
+        gameLoop();
+    </script>
+
+    <!-- Kinect WebSocket Integration -->
+    <script src="js/kinect_websocket_integration.js"></script>
+    <script>
+        // Initialize Kinect WebSocket connection for Frankenstein Sandbox
+        let kinectIntegration;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            kinectIntegration = new KinectWebSocketIntegration({
+                onConnect: () => {
+                    console.log('✅ Frankenstein Sandbox connected to Kinect');
+                    document.getElementById('topHUD').innerHTML += '<br>🔗 KINECT ONLINE';
+                },
+                onDisconnect: () => {
+                    console.log('❌ Frankenstein Sandbox disconnected from Kinect');
+                    document.getElementById('topHUD').innerHTML += '<br>❌ KINECT OFFLINE';
+                },
+                onFrameData: (frameData) => {
+                    if (frameData.mesh_data && frameData.mesh_data.data) {
+                        updateFrankensteinTerrain(frameData.mesh_data);
+                    }
+                },
+                onTopographyData: (topographyData) => {
+                    if (topographyData.ai_metadata) {
+                        enhanceFrankensteinWithAI(topographyData.ai_metadata);
+                    }
+                }
+            });
+
+            kinectIntegration.connect();
+        });
+
+        function updateFrankensteinTerrain(meshData) {
+            // Update GAME.terrain with real Kinect data
+            const data = meshData.data;
+            const meshWidth = meshData.width || 100;
+            const meshHeight = meshData.height || 75;
+
+            for (let y = 0; y < GAME.gridHeight; y++) {
+                for (let x = 0; x < GAME.gridWidth; x++) {
+                    const meshX = Math.floor((x / GAME.gridWidth) * meshWidth);
+                    const meshY = Math.floor((y / GAME.gridHeight) * meshHeight);
+                    const meshIndex = meshY * meshWidth + meshX;
+
+                    if (meshIndex < data.length) {
+                        GAME.terrain[y][x] = data[meshIndex];
+                    }
+                }
+            }
+        }
+
+        function enhanceFrankensteinWithAI(aiMetadata) {
+            if (aiMetadata.features && aiMetadata.features.peaks) {
+                document.getElementById('particleCount').textContent = aiMetadata.features.peaks.count + ' peaks detected';
+            }
+        }
+    </script>
+</body>
+</html>

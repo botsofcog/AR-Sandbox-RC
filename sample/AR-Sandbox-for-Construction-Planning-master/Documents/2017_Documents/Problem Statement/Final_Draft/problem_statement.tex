@@ -1,0 +1,126 @@
+\documentclass[onecolumn, draftclsnofoot,10pt, compsoc]{IEEEtran}
+\usepackage{graphicx}
+\usepackage{url}
+\usepackage{setspace}
+
+\usepackage{geometry}
+\geometry{textheight=9.5in, textwidth=7in}
+
+% 1. Fill in these details
+\def \CapstoneTeamName{		The Cleverly Named Team}
+\def \CapstoneTeamNumber{		44}
+\def \GroupMemberOne{			Raja Petroff}
+\def \GroupMemberTwo{			Andrew Soltesz}
+\def \GroupMemberThree{			Mark Sprouse}
+\def \CapstoneProjectName{		AR Sandbox for Construction Planning}
+\def \CapstoneSponsorCompany{	Civil \& Construction Engineering}
+\def \CapstoneSponsorPerson{		Dr. Joseph Louis}
+\title{Group 44 Problem Statement}
+
+% 2. Uncomment the appropriate line below so that the document type works
+\def \DocType{		Problem Statement
+				%Requirements Document
+				%Technology Review
+				%Design Document
+				%Progress Report
+				}
+			
+\newcommand{\NameSigPair}[1]{\par
+\makebox[2.75in][r]{#1} \hfil 	\makebox[3.25in]{\makebox[2.25in]{\hrulefill} \hfill		\makebox[.75in]{\hrulefill}}
+\par\vspace{-12pt} \textit{\tiny\noindent
+\makebox[2.75in]{} \hfil		\makebox[3.25in]{\makebox[2.25in][r]{Signature} \hfill	\makebox[.75in][r]{Date}}}}
+% 3. If the document is not to be signed, uncomment the RENEWcommand below
+\renewcommand{\NameSigPair}[1]{#1}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{document}
+\begin{titlepage}
+    \pagenumbering{gobble}
+    \begin{singlespace}
+    	\includegraphics[height=4cm]{coe_v_spot1}
+        \hfill 
+        % 4. If you have a logo, use this includegraphics command to put it on the coversheet.
+        %\includegraphics[height=4cm]{CompanyLogo}   
+        \par\vspace{.2in}
+        \centering
+        \scshape{
+            \huge CS Capstone \DocType \par
+            {\large\today}\par
+            \vspace{.5in}
+            \textbf{\Huge\CapstoneProjectName}\par
+            \vfill
+            {\large Prepared for}\par
+            \Huge \CapstoneSponsorCompany\par
+            \vspace{5pt}
+            {\Large\NameSigPair{\CapstoneSponsorPerson}\par}
+            {\large Prepared by }\par
+            Group\CapstoneTeamNumber\par
+            % 5. comment out the line below this one if you do not wish to name your team
+            %\CapstoneTeamName\par 
+            \vspace{5pt}
+            {\Large
+                \NameSigPair{\GroupMemberOne}\par
+                \NameSigPair{\GroupMemberTwo}\par
+                \NameSigPair{\GroupMemberThree}\par
+            }
+            \vspace{20pt}
+        }
+        \begin{abstract}
+        % 6. Fill in your abstract    
+        	Current techniques for building roads, bridges, and other civil engineering projects utilize two dimensional blueprints and three dimensional computer aided design.
+			However, these modern methods can be improved upon by using more interactive and collaborative interfaces.
+			Our project consists of creating an augmented reality sandbox, which will consist of a depth sensor and display projector, a novel software solution utilizing a game engine to project 3D graphics on the sand.
+			The use of the sandbox, in particular, will allow for more tactile user interaction with construction or road data.
+        \end{abstract}     
+    \end{singlespace}
+\end{titlepage}
+\newpage
+\pagenumbering{arabic}
+\tableofcontents
+% 7. uncomment this (if applicable). Consider adding a page break.
+%\listoffigures
+%\listoftables
+\clearpage
+
+% 8. now you write!
+\section{Problem Description}
+The goal of this project is to create a more innovative and interactive method of visualizing construction and highway planning.
+Currently, highway and construction planning uses a static drawing or three dimensional design which is iteratively reworked until sufficient.
+Creating an augmented reality interface will allow for better collaboration and a more tactile experience when planning for construction, road building, or many other forms of civil engineering.
+For our project, we drew inspiration from the UC Davis AR sandbox, the prototype of which was built by the UC Davis Department of Geology. More information about this earlier project can be found at https://arsandbox.ucdavis.edu/.
+The sandbox will allow for near real-time feedback and an easier way to visualize the planning data for all phases of construction and design.
+Also, when applied to education, this tool can give students in civil and construction engineering an interactive way to learn important concepts such as the planning and building of highways and earthwork operations.
+\par
+Collaboration among members of a design committee or different groups (such as state transportation agencies, construction contractors, design agencies, or the public at large) will be greatly enhanced by this augmented reality interface.
+It will ultimately allow those who are not usually involved in the design or planning process to take part and give valid input into a project that may affect them.
+\par
+Eventually, this project can be expanded to include additional real world  problems, such as earthwork planning and disaster recovery.
+Especially when recovering after a disaster, it is important to plan ahead. Likewise, before an earthworks project can go forward, it must be planned out and simulated.
+This sandbox project will allow for interactive physical simulations that users can manipulate with their own hands.
+
+\section{Proposed Solution}
+We aim to create a self contained, interactive, and collaborative device; therefore, our project has elements of both hardware and software.
+Our solution is a sandbox with an integrated depth sensor, display projector, and software that will project 3D graphics onto the sand.
+\par
+For our project we will most likely be using off the shelf parts.
+The depth sensor for example, will probably take the form of a Microsoft Kinect.
+The display projector will be used to overlay the graphics and user interface onto the sand.
+The software used for the 3D graphics will be a game engine (specifically something free such as Unity or the Unreal Engine).
+The benefit of using a game engine is that critical portions of the program, such as interfacing with the depth sensor, are handled by prebuilt plugins.
+
+\section{Performance Metrics}
+The performance metrics for our project will primarily consist of a working prototype, or proof of concept, augmented reality sandbox.
+This entails creating both the sandbox itself and a software program to apply information relevent to construction and road planning. 
+Successfully implementing a 3D graphics engine, either Unity or the Unreal Engine, with our own software interface is required.
+The software should be capable of projecting a computer generated image on the sandbox that aligns with the physical geometry (within a single projected pixel).
+At the very least, the software should display the path of a single road on the sandbox, along with a dynamic cut and fill table for that road that changes as the topography of the sandbox is modified.
+Digital information should begin updating in less than a second so as to allow quick, organic user interaction.
+In previous implementations, the projection would update only a small part of the sandbox at a time, as the user sculpts the sand. 
+This is an acceptable, and actually preferable, solution as it decreases any perceived delay.
+Along with the software, we will need to utilize hardware such as a Microsoft Kinect, or some sort of depth sensor, as well as a projector in order to display imagery on the sand.
+\par
+Lastly, should we have an appropriate amount of time following the completion of the project described above, we will implement additional features.
+These additional features would include the integration of a physical pointing device which would allow the user to interact with features of the sandbox in additional ways or additional tools/analytics that would be beneficial to civil and construction engineers' work and education.
+
+
+\end{document}

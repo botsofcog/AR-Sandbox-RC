@@ -1,0 +1,2296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>🏗️ Ultimate AR Sandbox - Mix & Match</title>
+    <style>
+        /* Professional UI from robust-ar-sandbox.html */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            overflow: hidden;
+            height: 100vh;
+        }
+        
+        #container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+        }
+        
+        /* Webcam background */
+        #video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0.3;
+            z-index: 1;
+            transform: scaleX(-1); /* Mirror for natural interaction */
+        }
+        
+        /* Main canvas */
+        #canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            cursor: crosshair;
+        }
+        
+        /* Left control panel */
+        .left-panel {
+            position: absolute;
+            left: 20px;
+            top: 20px;
+            width: 280px;
+            background: rgba(0, 0, 0, 0.9);
+            border-radius: 15px;
+            padding: 20px;
+            border: 2px solid #00ff88;
+            z-index: 20;
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
+        }
+        
+        /* Right status panel */
+        .right-panel {
+            position: absolute;
+            right: 20px;
+            top: 20px;
+            width: 250px;
+            background: rgba(0, 0, 0, 0.9);
+            border-radius: 15px;
+            padding: 20px;
+            border: 2px solid #ff6b6b;
+            z-index: 20;
+        }
+        
+        .panel-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #00ff88;
+            text-align: center;
+        }
+        
+        .section {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+        
+        .section-title {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #ffeb3b;
+        }
+        
+        /* Tool buttons */
+        .tool-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        
+        .tool-btn {
+            padding: 12px 8px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            background: rgba(70, 70, 70, 0.8);
+            color: white;
+            cursor: pointer;
+            text-align: center;
+            font-size: 12px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        
+        .tool-btn:hover {
+            background: rgba(100, 100, 100, 0.8);
+            border-color: #00ff88;
+            transform: translateY(-2px);
+        }
+        
+        .tool-btn.active {
+            background: #00ff88;
+            border-color: #00ff88;
+            color: #000;
+            box-shadow: 0 0 15px rgba(0, 255, 136, 0.5);
+        }
+        
+        /* Sliders */
+        .slider-group {
+            margin: 10px 0;
+        }
+        
+        .slider-label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 12px;
+            color: #ccc;
+        }
+        
+        .slider {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(255, 255, 255, 0.2);
+            outline: none;
+            -webkit-appearance: none;
+            margin-bottom: 5px;
+        }
+        
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #00ff88;
+            cursor: pointer;
+        }
+        
+        .value-display {
+            font-size: 12px;
+            color: #00ff88;
+            text-align: right;
+        }
+        
+        /* Status displays */
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            margin: 8px 0;
+            font-size: 12px;
+        }
+        
+        .status-value {
+            color: #00ff88;
+            font-weight: bold;
+        }
+        
+        /* Big action buttons */
+        .big-btn {
+            width: 100%;
+            padding: 15px;
+            margin: 10px 0;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .calibrate-btn { background: #ff6b6b; color: white; }
+        .view-btn { background: #4ecdc4; color: white; }
+        .reset-btn { background: #a29bfe; color: white; }
+        
+        .big-btn:hover {
+            transform: scale(1.02);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        /* Bottom HUD */
+        .bottom-hud {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.9);
+            padding: 15px 30px;
+            border-radius: 25px;
+            border: 2px solid #ffeb3b;
+            z-index: 20;
+            font-size: 14px;
+            text-align: center;
+        }
+        
+        .controls-hint {
+            color: #ffeb3b;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <!-- Webcam background -->
+        <video id="video" autoplay muted playsinline></video>
+        
+        <!-- Main terrain canvas -->
+        <canvas id="canvas"></canvas>
+        
+        <!-- Left Control Panel -->
+        <div class="left-panel">
+            <div class="panel-title">🏗️ AR SANDBOX CONTROL</div>
+            
+            <!-- Camera Controls -->
+            <div class="section">
+                <div class="section-title">📷 Camera System</div>
+                <button class="big-btn calibrate-btn" onclick="calibrate()">🎯 CALIBRATE WEBCAM</button>
+                <button class="big-btn view-btn" onclick="toggle3D()">📐 TOGGLE 3D VIEW</button>
+                
+                <div class="tool-grid" style="margin-top: 10px;">
+                    <div class="tool-btn active" onclick="setCameraMode('live')">🎥 LIVE</div>
+                    <div class="tool-btn" onclick="setCameraMode('snapshot')">📸 SNAP</div>
+                    <div class="tool-btn" onclick="setCameraMode('hybrid')">🖱️ HYBRID</div>
+                    <div class="tool-btn" onclick="toggleVideo()">👁️ TOGGLE</div>
+                </div>
+            </div>
+            
+            <!-- Tools -->
+            <div class="section">
+                <div class="section-title">🛠️ Construction Tools</div>
+                <div class="tool-grid">
+                    <div class="tool-btn active" onclick="setTool('raise')">⛰️ RAISE</div>
+                    <div class="tool-btn" onclick="setTool('lower')">🕳️ LOWER</div>
+                    <div class="tool-btn" onclick="setTool('water')">💧 WATER</div>
+                    <div class="tool-btn" onclick="setTool('fire')">🔥 FIRE</div>
+                </div>
+            </div>
+            
+            <!-- Settings -->
+            <div class="section">
+                <div class="section-title">⚙️ Settings</div>
+                <div class="slider-group">
+                    <label class="slider-label">Brush Size: <span class="value-display" id="brush-value">25</span></label>
+                    <input type="range" class="slider" id="brush-size" min="10" max="50" value="25">
+                </div>
+                <div class="slider-group">
+                    <label class="slider-label">Strength: <span class="value-display" id="strength-value">5</span></label>
+                    <input type="range" class="slider" id="strength" min="1" max="10" value="5">
+                </div>
+                <div class="slider-group">
+                    <label class="slider-label">Webcam Sensitivity: <span class="value-display" id="sensitivity-value">10</span></label>
+                    <input type="range" class="slider" id="sensitivity" min="1" max="20" value="10">
+                </div>
+            </div>
+
+            <!-- God Mode Controls -->
+            <div class="section">
+                <div class="section-title">🌊 GOD MODE - PLANET CONTROL</div>
+                <div class="slider-group">
+                    <label class="slider-label">Sea Level: <span class="value-display" id="sea-level-value">0.40</span></label>
+                    <input type="range" class="slider" id="sea-level" min="0.1" max="0.8" step="0.01" value="0.40">
+                </div>
+                <div class="slider-group">
+                    <label class="slider-label">Water Spread Rate: <span class="value-display" id="water-spread-value">0.15</span></label>
+                    <input type="range" class="slider" id="water-spread" min="0.05" max="0.5" step="0.01" value="0.15">
+                </div>
+                <div class="slider-group">
+                    <label class="slider-label">Ocean Saturation: <span class="value-display" id="ocean-saturation-value">0.3</span></label>
+                    <input type="range" class="slider" id="ocean-saturation" min="0.1" max="0.8" step="0.01" value="0.3">
+                </div>
+                <div class="tool-grid" style="margin-top: 10px;">
+                    <div class="tool-btn" onclick="drainOceans()">🏜️ DRAIN</div>
+                    <div class="tool-btn" onclick="floodWorld()">🌊 FLOOD</div>
+                </div>
+            </div>
+
+            <!-- RC Vehicle Controls -->
+            <div class="section">
+                <div class="section-title">🚗 RC CONSTRUCTION VEHICLES</div>
+                <div class="tool-grid">
+                    <div class="tool-btn" onclick="spawnVehicle('excavator')">⛏️ EXCAVATOR</div>
+                    <div class="tool-btn" onclick="spawnVehicle('bulldozer')">🚜 BULLDOZER</div>
+                    <div class="tool-btn" onclick="spawnVehicle('dumpTruck')">🚛 TRUCK</div>
+                    <div class="tool-btn" onclick="spawnVehicle('crane')">🏗️ CRANE</div>
+                </div>
+                <div class="tool-grid" style="margin-top: 5px;">
+                    <div class="tool-btn" onclick="clearVehicles()">🗑️ CLEAR</div>
+                    <div class="tool-btn" onclick="setVehicleTask('excavate')">⛏️ EXCAVATE</div>
+                    <div class="tool-btn" onclick="setVehicleTask('build')">🏗️ BUILD</div>
+                    <div class="tool-btn" onclick="setVehicleTask('wander')">🎯 WANDER</div>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Active Vehicles:</span>
+                    <span class="status-value" id="vehicle-count">0</span>
+                </div>
+            </div>
+            
+            <button class="big-btn reset-btn" onclick="reset()">🔄 RESET TERRAIN</button>
+        </div>
+        
+        <!-- Right Status Panel -->
+        <div class="right-panel">
+            <div class="panel-title">📊 STATUS</div>
+            
+            <div class="section">
+                <div class="section-title">📷 Camera Status</div>
+                <div class="status-item">
+                    <span>Camera:</span>
+                    <span class="status-value" id="camera-status">Starting...</span>
+                </div>
+                <div class="status-item">
+                    <span>Calibrated:</span>
+                    <span class="status-value" id="calibration-status">No</span>
+                </div>
+                <div class="status-item">
+                    <span>Mode:</span>
+                    <span class="status-value" id="camera-mode">Live</span>
+                </div>
+            </div>
+            
+            <div class="section">
+                <div class="section-title">🎮 System Status</div>
+                <div class="status-item">
+                    <span>View:</span>
+                    <span class="status-value" id="view-status">Top-Down</span>
+                </div>
+                <div class="status-item">
+                    <span>Tool:</span>
+                    <span class="status-value" id="tool-status">Raise</span>
+                </div>
+                <div class="status-item">
+                    <span>FPS:</span>
+                    <span class="status-value" id="fps-status">--</span>
+                </div>
+            </div>
+            
+            <div class="section">
+                <div class="section-title">🏔️ Terrain Info</div>
+                <div class="status-item">
+                    <span>Avg Height:</span>
+                    <span class="status-value" id="height-avg">--</span>
+                </div>
+                <div class="status-item">
+                    <span>Water Level:</span>
+                    <span class="status-value" id="water-level">--</span>
+                </div>
+                <div class="status-item">
+                    <span>Active Areas:</span>
+                    <span class="status-value" id="active-areas">--</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Bottom HUD -->
+        <div class="bottom-hud">
+            <div><strong>🏗️ ULTIMATE AR SANDBOX</strong></div>
+            <div class="controls-hint">
+                Left Click: Raise | Right Click: Lower | C: Calibrate | V: 3D View | R: Reset
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Mix & Match: Best components from all your versions
+        class UltimateARSandbox {
+            constructor() {
+                console.log('🏗️ Initializing Ultimate AR Sandbox...');
+                
+                // Canvas setup
+                this.video = document.getElementById('video');
+                this.canvas = document.getElementById('canvas');
+                this.ctx = this.canvas.getContext('2d');
+                
+                // Advanced Environmental Simulation System (Museum-Quality)
+                this.width = 160;
+                this.height = 120;
+
+                // Core terrain and fluid maps
+                this.terrain = new Float32Array(this.width * this.height);
+                this.water = new Float32Array(this.width * this.height);
+                this.sediment = new Float32Array(this.width * this.height);
+
+                // Thermal and atmospheric maps
+                this.temperature = new Float32Array(this.width * this.height);
+                this.fire = new Float32Array(this.width * this.height);
+                this.steam = new Float32Array(this.width * this.height);
+                this.humidity = new Float32Array(this.width * this.height);
+
+                // Geological and environmental maps
+                this.vegetation = new Float32Array(this.width * this.height);
+                this.soil = new Float32Array(this.width * this.height);
+                this.rockHardness = new Float32Array(this.width * this.height);
+                this.windVelocityX = new Float32Array(this.width * this.height);
+                this.windVelocityY = new Float32Array(this.width * this.height);
+                
+                // PROVEN PHYSICS from your working samples (constants.ts + sandbox-master)
+                this.PHYSICS = {
+                    // From your TypeScript demo - PROVEN WORKING
+                    FRICTION: 0.95,
+                    MAX_SPEED: 1.5,
+                    ACCELERATION_FORCE: 0.1,
+                    TERRAIN_SLOPE_SENSITIVITY: 0.05,
+
+                    // Saint-Venant water simulation (from sandbox-master WaterTable2.cpp)
+                    WATER_FLOW_RATE: 0.3,
+                    WATER_VISCOSITY: 0.01,
+                    GRAVITY: 9.81,
+                    MANNING_COEFFICIENT: 0.03, // Surface roughness
+                    MIN_WATER_DEPTH: 0.001,
+                    MAX_WATER_DEPTH: 1.0,
+
+                    // Erosion and sedimentation (from Magic Sand)
+                    EROSION_RATE: 0.002,
+                    DEPOSITION_RATE: 0.001,
+                    CARRYING_CAPACITY: 0.1,
+                    EVAPORATION_RATE: 0.0005,
+
+                    // Fire physics (from Magic Sand Games)
+                    FIRE_SPREAD_RATE: 0.05,
+                    FIRE_DECAY_RATE: 0.02,
+                    IGNITION_THRESHOLD: 0.3,
+
+                    // Vehicle physics (from your constants.ts)
+                    SEPARATION_RADIUS: 30,
+                    COHESION_RADIUS: 60,
+                    WANDER_STRENGTH: 0.1,
+                    SEEK_STRENGTH: 0.05
+                };
+                
+                // State
+                this.currentTool = 'raise';
+                this.brushSize = 25;
+                this.strength = 5;
+                this.sensitivity = 10;
+                this.isDrawing = false;
+                this.is3D = true; // START IN 3D VIEW - user had this working
+                this.cameraMode = 'live';
+
+                // God Mode Controls
+                this.seaLevel = 0.4;
+                this.waterSpreadRate = 0.15;
+                this.oceanSaturation = 0.3;
+
+                // God Mode Controls
+                this.seaLevel = 0.4;
+                this.waterSpreadRate = 0.15;
+                this.oceanSaturation = 0.3;
+
+                // RC VEHICLE SYSTEM (from your samples)
+                this.vehicles = [];
+                this.vehicleSpecs = {
+                    excavator: { name: "Excavator", color: '#FFD700', size: 8, speed: 1.0 },
+                    bulldozer: { name: "Bulldozer", color: '#FFA500', size: 10, speed: 0.8 },
+                    dumpTruck: { name: "Dump Truck", color: '#FF4500', size: 9, speed: 1.2 },
+                    crane: { name: "Crane", color: '#FFFF00', size: 7, speed: 0.6 },
+                    compactor: { name: "Compactor", color: '#B0B0B0', size: 10, speed: 0.7 }
+                };
+
+                // GEOLOGICAL ACTIVITY SYSTEM
+                this.volcanoes = [];
+                this.lava = new Float32Array(this.width * this.height);
+                this.magmaPressure = new Float32Array(this.width * this.height);
+                this.plateVelocityX = new Float32Array(this.width * this.height);
+                this.plateVelocityY = new Float32Array(this.width * this.height);
+
+                // WEATHER AND CLIMATE SYSTEM
+                this.precipitation = new Float32Array(this.width * this.height);
+                this.cloudCover = new Float32Array(this.width * this.height);
+                this.windSpeed = new Float32Array(this.width * this.height);
+                this.pressure = new Float32Array(this.width * this.height);
+                this.weatherSystems = [];
+                this.season = 0; // 0-1 cycle through seasons
+                
+                // Webcam system
+                this.isCalibrated = false;
+                this.baseline = null;
+                this.videoVisible = true;
+                
+                this.initialize();
+            }
+            
+            async initialize() {
+                console.log('🔄 Starting Ultimate AR Sandbox initialization...');
+
+                this.setupCanvas();
+                console.log('✅ Canvas setup complete');
+
+                await this.setupCamera();
+                console.log('✅ Camera setup complete');
+
+                this.setupEvents();
+                console.log('✅ Events setup complete');
+
+                this.initTerrain();
+                console.log('✅ Terrain initialization complete');
+
+                this.startLoop();
+                console.log('✅ Render loop started');
+
+                console.log('✅ Ultimate AR Sandbox ready!');
+
+                // Force initial render
+                this.render();
+                console.log('✅ Initial render complete');
+
+                // Visual test - draw a test pattern to verify canvas is working
+                this.ctx.fillStyle = 'red';
+                this.ctx.fillRect(50, 50, 100, 100);
+                this.ctx.fillStyle = 'green';
+                this.ctx.fillRect(200, 50, 100, 100);
+                this.ctx.fillStyle = 'blue';
+                this.ctx.fillRect(350, 50, 100, 100);
+                console.log('🎨 Test pattern drawn - if you see colored squares, canvas is working');
+            }
+            
+            setupCanvas() {
+                this.canvas.width = window.innerWidth;
+                this.canvas.height = window.innerHeight;
+            }
+            
+            async setupCamera() {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({
+                        video: { width: 640, height: 480, facingMode: 'user' }
+                    });
+                    
+                    this.video.srcObject = stream;
+                    document.getElementById('camera-status').textContent = 'Ready';
+                    console.log('📷 Camera ready');
+                    
+                } catch (error) {
+                    console.error('Camera failed:', error);
+                    document.getElementById('camera-status').textContent = 'Failed';
+                }
+            }
+            
+            setupEvents() {
+                // Mouse events
+                this.canvas.addEventListener('mousedown', (e) => {
+                    this.isDrawing = true;
+                    this.editTerrain(e);
+                });
+                
+                this.canvas.addEventListener('mousemove', (e) => {
+                    if (this.isDrawing) this.editTerrain(e);
+                });
+                
+                this.canvas.addEventListener('mouseup', () => {
+                    this.isDrawing = false;
+                });
+                
+                this.canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+                
+                // Keyboard shortcuts
+                document.addEventListener('keydown', (e) => {
+                    switch(e.key.toLowerCase()) {
+                        case 'c': this.calibrate(); break;
+                        case 'v': this.toggle3D(); break;
+                        case 'r': this.reset(); break;
+                        case '1': this.setCameraMode('live'); break;
+                        case '2': this.setCameraMode('snapshot'); break;
+                        case '3': this.setCameraMode('hybrid'); break;
+                    }
+                });
+                
+                // Sliders
+                document.getElementById('brush-size').addEventListener('input', (e) => {
+                    this.brushSize = parseInt(e.target.value);
+                    document.getElementById('brush-value').textContent = this.brushSize;
+                });
+                
+                document.getElementById('strength').addEventListener('input', (e) => {
+                    this.strength = parseInt(e.target.value);
+                    document.getElementById('strength-value').textContent = this.strength;
+                });
+                
+                document.getElementById('sensitivity').addEventListener('input', (e) => {
+                    this.sensitivity = parseInt(e.target.value);
+                    document.getElementById('sensitivity-value').textContent = this.sensitivity;
+                });
+
+                // God Mode Controls
+                document.getElementById('sea-level').addEventListener('input', (e) => {
+                    this.seaLevel = parseFloat(e.target.value);
+                    document.getElementById('sea-level-value').textContent = this.seaLevel.toFixed(2);
+                });
+
+                document.getElementById('water-spread').addEventListener('input', (e) => {
+                    this.waterSpreadRate = parseFloat(e.target.value);
+                    document.getElementById('water-spread-value').textContent = this.waterSpreadRate.toFixed(2);
+                });
+
+                document.getElementById('ocean-saturation').addEventListener('input', (e) => {
+                    this.oceanSaturation = parseFloat(e.target.value);
+                    document.getElementById('ocean-saturation-value').textContent = this.oceanSaturation.toFixed(2);
+                });
+            }
+            
+            initTerrain() {
+                console.log('🏔️ EMERGENCY FIX: Generating VISIBLE terrain...');
+
+                // SIMPLE WORKING TERRAIN - guaranteed to show up!
+                for (let y = 0; y < this.height; y++) {
+                    for (let x = 0; x < this.width; x++) {
+                        const index = y * this.width + x;
+
+                        // Create obvious height variation
+                        let height = 0.3; // Base height
+                        height += Math.sin(x * 0.1) * 0.2; // Big waves
+                        height += Math.cos(y * 0.1) * 0.2; // Big waves
+                        height += (Math.random() - 0.5) * 0.1; // Random variation
+
+                        // Ensure dramatic height differences
+                        if (x < 40) height += 0.3; // Left side higher
+                        if (y < 30) height += 0.2; // Top higher
+
+                        this.terrain[index] = Math.max(0.1, Math.min(0.9, height));
+                    }
+                }
+                console.log('🏔️ EMERGENCY terrain generated with dramatic height variation');
+
+                // Initialize all environmental maps PROPERLY
+                for (let i = 0; i < this.terrain.length; i++) {
+                    this.water[i] = 0;
+                    this.fire[i] = 0;
+                    this.temperature[i] = 20;
+                    this.sediment[i] = 0;
+                    this.vegetation[i] = 0;
+                    this.soil[i] = 0.1;
+                    this.humidity[i] = 0.5;
+                    this.rockHardness[i] = Math.random() * 0.5 + 0.5;
+                }
+
+                // Debug: Check terrain generation
+                let minHeight = 1, maxHeight = 0, avgHeight = 0;
+                for (let i = 0; i < this.terrain.length; i++) {
+                    minHeight = Math.min(minHeight, this.terrain[i]);
+                    maxHeight = Math.max(maxHeight, this.terrain[i]);
+                    avgHeight += this.terrain[i];
+                }
+                avgHeight /= this.terrain.length;
+
+                console.log(`✅ Terrain generated! Min: ${minHeight.toFixed(3)}, Max: ${maxHeight.toFixed(3)}, Avg: ${avgHeight.toFixed(3)}, Sea Level: ${this.seaLevel}`);
+            }
+
+            generateTerrainFromCamera() {
+                console.log('📷 Reading terrain from camera...');
+
+                const tempCanvas = document.createElement('canvas');
+                const tempCtx = tempCanvas.getContext('2d');
+                tempCanvas.width = this.width;
+                tempCanvas.height = this.height;
+
+                tempCtx.drawImage(this.video, 0, 0, this.width, this.height);
+                const imageData = tempCtx.getImageData(0, 0, this.width, this.height);
+
+                for (let y = 0; y < this.height; y++) {
+                    for (let x = 0; x < this.width; x++) {
+                        const index = y * this.width + x;
+                        const pixelIndex = index * 4;
+
+                        // Convert brightness to height
+                        const brightness = (imageData.data[pixelIndex] +
+                                          imageData.data[pixelIndex + 1] +
+                                          imageData.data[pixelIndex + 2]) / 3;
+
+                        // Invert brightness (darker = higher, like shadows)
+                        let height = 0.2 + (1 - brightness / 255) * 0.6;
+
+                        // Add some smoothing and variation
+                        height += (Math.random() - 0.5) * 0.1;
+                        height = Math.max(0.1, Math.min(0.9, height));
+
+                        this.terrain[index] = height;
+                    }
+                }
+
+                // Smooth the terrain
+                this.smoothTerrain(2);
+            }
+
+            generateProceduralTerrain() {
+                console.log('🌍 Creating Earth-like planet - YOU ARE GOD!');
+
+                const seaLevel = this.seaLevel; // Use dynamic sea level
+
+                // Create realistic Earth-like continents and ocean basins
+                for (let y = 0; y < this.height; y++) {
+                    for (let x = 0; x < this.width; x++) {
+                        const index = y * this.width + x;
+
+                        // Normalize coordinates (0-1)
+                        const nx = x / this.width;
+                        const ny = y / this.height;
+
+                        // Start with deep ocean floor
+                        let height = 0.15; // Deep ocean floor
+
+                        // Create ROBUST continental plates (Earth-like landmasses)
+                        const continent1 = this.continentNoise(nx - 0.25, ny - 0.35, 0.3); // Major continent
+                        const continent2 = this.continentNoise(nx - 0.75, ny - 0.25, 0.25); // Second continent
+                        const continent3 = this.continentNoise(nx - 0.15, ny - 0.75, 0.2);  // Southern continent
+                        const continent4 = this.continentNoise(nx - 0.85, ny - 0.85, 0.15); // Island continent
+
+                        // Create archipelagos and island chains
+                        const islands1 = this.islandChain(nx, ny, 0.1, 0.6, 5);
+                        const islands2 = this.islandChain(nx, ny, 0.9, 0.4, 4);
+
+                        // Add continental masses with proper elevation
+                        height += continent1 * 0.6;  // Taller continents
+                        height += continent2 * 0.55;
+                        height += continent3 * 0.5;
+                        height += continent4 * 0.4;
+                        height += islands1 * 0.3;
+                        height += islands2 * 0.25;
+
+                        // Add mountain ranges along continent edges (like real Earth)
+                        if (height > seaLevel - 0.05) { // Only on land
+                            const mountains1 = this.ridgeNoise(nx * 8, ny * 6) * 0.2; // Rockies/Andes
+                            const mountains2 = this.ridgeNoise(nx * 6, ny * 8) * 0.15; // Himalayas/Alps
+                            height += mountains1 + mountains2;
+                        }
+
+                        // Add smaller hills and valleys
+                        height += this.noise(nx * 20, ny * 20) * 0.06;
+                        height += this.noise(nx * 35, ny * 35) * 0.03;
+
+                        // Create ocean trenches (very deep areas)
+                        const trench = this.trenchNoise(nx, ny);
+                        if (height < seaLevel - 0.1) {
+                            height -= trench * 0.2; // Deep ocean trenches
+                        }
+
+                        // Clamp to realistic Earth-like range
+                        this.terrain[index] = Math.max(0.05, Math.min(0.95, height));
+                    }
+                }
+
+                // Smooth for realistic continental shapes
+                this.smoothTerrain(2);
+
+                // Ensure we have some variation
+                let hasVariation = false;
+                for (let i = 0; i < this.terrain.length; i++) {
+                    if (this.terrain[i] > seaLevel + 0.1) {
+                        hasVariation = true;
+                        break;
+                    }
+                }
+
+                // If no variation, create some basic landforms
+                if (!hasVariation) {
+                    console.log('⚠️ No terrain variation detected, creating basic landforms...');
+                    this.createBasicLandforms();
+                }
+
+                console.log('🌍 Planet Earth created! Control continents like a god!');
+            }
+
+            createBasicLandforms() {
+                const centerX = Math.floor(this.width / 2);
+                const centerY = Math.floor(this.height / 2);
+
+                // Create a central continent
+                for (let y = 0; y < this.height; y++) {
+                    for (let x = 0; x < this.width; x++) {
+                        const index = y * this.width + x;
+                        const dx = x - centerX;
+                        const dy = y - centerY;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+
+                        if (distance < 30) {
+                            const height = this.seaLevel + 0.2 * (1 - distance / 30);
+                            this.terrain[index] = Math.max(this.terrain[index], height);
+                        }
+                    }
+                }
+
+                // Add some smaller islands
+                const islands = [
+                    {x: this.width * 0.2, y: this.height * 0.3, size: 15},
+                    {x: this.width * 0.8, y: this.height * 0.7, size: 12},
+                    {x: this.width * 0.7, y: this.height * 0.2, size: 10}
+                ];
+
+                for (const island of islands) {
+                    for (let y = 0; y < this.height; y++) {
+                        for (let x = 0; x < this.width; x++) {
+                            const index = y * this.width + x;
+                            const dx = x - island.x;
+                            const dy = y - island.y;
+                            const distance = Math.sqrt(dx * dx + dy * dy);
+
+                            if (distance < island.size) {
+                                const height = this.seaLevel + 0.15 * (1 - distance / island.size);
+                                this.terrain[index] = Math.max(this.terrain[index], height);
+                            }
+                        }
+                    }
+                }
+
+                console.log('🏝️ Basic landforms created');
+            }
+
+            // Generate continent-shaped landmasses
+            continentNoise(x, y, size) {
+                const distance = Math.sqrt(x * x + y * y);
+                if (distance > size) return 0;
+
+                // Smooth falloff from center (realistic continental shape)
+                const falloff = 1 - (distance / size);
+                const noise = (this.noise(x * 6, y * 6) + 1) / 2; // 0-1 range
+
+                return falloff * falloff * noise;
+            }
+
+            // Generate mountain ridges
+            ridgeNoise(x, y) {
+                const n1 = this.noise(x, y);
+                const n2 = this.noise(x * 2, y * 2) * 0.5;
+                return Math.abs(n1 + n2) > 0.6 ? Math.abs(n1 + n2) : 0;
+            }
+
+            // Generate ocean trenches
+            trenchNoise(x, y) {
+                const trench1 = Math.abs(this.noise(x * 15, y * 4));
+                const trench2 = Math.abs(this.noise(x * 4, y * 15));
+                return Math.max(trench1, trench2) > 0.8 ? 1 : 0;
+            }
+
+            // Generate island chains (like Hawaii, Philippines)
+            islandChain(x, y, centerX, centerY, count) {
+                let totalHeight = 0;
+                const spacing = 0.08;
+
+                for (let i = 0; i < count; i++) {
+                    const islandX = centerX + (i - count/2) * spacing;
+                    const islandY = centerY + Math.sin(i * 0.5) * 0.05; // Curved chain
+
+                    const distance = Math.sqrt((x - islandX) * (x - islandX) + (y - islandY) * (y - islandY));
+                    const islandSize = 0.03 + Math.random() * 0.02; // Variable sizes
+
+                    if (distance < islandSize) {
+                        const falloff = 1 - (distance / islandSize);
+                        const noise = (this.noise(x * 20, y * 20) + 1) / 2;
+                        totalHeight += falloff * falloff * noise * (0.5 + Math.random() * 0.3);
+                    }
+                }
+
+                return Math.min(1, totalHeight);
+            }
+
+            // Simple noise function for terrain generation
+            noise(x, y) {
+                // Simple pseudo-random noise based on coordinates
+                const n = Math.sin(x * 12.9898 + y * 78.233) * 43758.5453;
+                return (n - Math.floor(n)) * 2 - 1; // Return value between -1 and 1
+            }
+
+            smoothTerrain(iterations = 1) {
+                for (let iter = 0; iter < iterations; iter++) {
+                    const smoothed = new Float32Array(this.terrain);
+
+                    for (let y = 1; y < this.height - 1; y++) {
+                        for (let x = 1; x < this.width - 1; x++) {
+                            const index = y * this.width + x;
+
+                            // Average with neighbors
+                            let sum = 0;
+                            let count = 0;
+
+                            for (let dy = -1; dy <= 1; dy++) {
+                                for (let dx = -1; dx <= 1; dx++) {
+                                    const ni = (y + dy) * this.width + (x + dx);
+                                    sum += this.terrain[ni];
+                                    count++;
+                                }
+                            }
+
+                            // Blend original with smoothed
+                            smoothed[index] = this.terrain[index] * 0.6 + (sum / count) * 0.4;
+                        }
+                    }
+
+                    this.terrain = smoothed;
+                }
+            }
+
+            editTerrain(e) {
+                const rect = this.canvas.getBoundingClientRect();
+                const x = Math.floor((e.clientX - rect.left) / this.canvas.width * this.width);
+                const y = Math.floor((e.clientY - rect.top) / this.canvas.height * this.height);
+
+                const radius = Math.floor(this.brushSize / 8);
+                const isRaising = e.button !== 2;
+
+                for (let dy = -radius; dy <= radius; dy++) {
+                    for (let dx = -radius; dx <= radius; dx++) {
+                        const nx = x + dx;
+                        const ny = y + dy;
+
+                        if (nx >= 0 && nx < this.width && ny >= 0 && ny < this.height) {
+                            const distance = Math.sqrt(dx * dx + dy * dy);
+                            if (distance <= radius) {
+                                const index = ny * this.width + nx;
+                                const influence = (1 - distance / radius) * (this.strength / 100);
+
+                                switch(this.currentTool) {
+                                    case 'raise':
+                                        this.terrain[index] = Math.min(0.9, this.terrain[index] + influence);
+                                        break;
+                                    case 'lower':
+                                        this.terrain[index] = Math.max(0.1, this.terrain[index] - influence);
+                                        break;
+                                    case 'water':
+                                        this.water[index] = Math.min(0.5, this.water[index] + influence);
+                                        break;
+                                    case 'fire':
+                                        this.fire[index] = Math.min(0.8, this.fire[index] + influence);
+                                        this.temperature[index] = Math.min(100, this.temperature[index] + 20);
+                                        break;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            calibrate() {
+                if (!this.video || this.video.readyState !== this.video.HAVE_ENOUGH_DATA) {
+                    alert('Camera not ready for calibration');
+                    return;
+                }
+
+                console.log('🎯 Calibrating webcam...');
+
+                const tempCanvas = document.createElement('canvas');
+                const tempCtx = tempCanvas.getContext('2d');
+                tempCanvas.width = this.width;
+                tempCanvas.height = this.height;
+
+                tempCtx.drawImage(this.video, 0, 0, this.width, this.height);
+                this.baseline = tempCtx.getImageData(0, 0, this.width, this.height);
+
+                this.isCalibrated = true;
+                document.getElementById('calibration-status').textContent = 'Yes';
+                console.log('✅ Calibrated! Move hand closer to camera');
+            }
+
+            toggle3D() {
+                this.is3D = !this.is3D;
+                document.getElementById('view-status').textContent = this.is3D ? '3D Isometric' : 'Top-Down';
+                console.log(`📐 Switched to ${this.is3D ? '3D' : 'top-down'} view`);
+            }
+
+            setCameraMode(mode) {
+                this.cameraMode = mode;
+                document.getElementById('camera-mode').textContent = mode.charAt(0).toUpperCase() + mode.slice(1);
+
+                // Update button states
+                document.querySelectorAll('.tool-btn').forEach(btn => {
+                    if (btn.textContent.includes(mode.toUpperCase())) {
+                        btn.classList.add('active');
+                    } else if (btn.textContent.includes('LIVE') || btn.textContent.includes('SNAP') || btn.textContent.includes('HYBRID')) {
+                        btn.classList.remove('active');
+                    }
+                });
+
+                // Special actions for each mode
+                if (mode === 'snapshot') {
+                    this.takeSnapshot();
+                } else if (mode === 'live') {
+                    this.snapshotTaken = false; // Reset snapshot mode
+                }
+
+                console.log(`📹 Camera mode: ${mode}`);
+            }
+
+            takeSnapshot() {
+                if (!this.isCalibrated) {
+                    alert('Please calibrate webcam first!');
+                    return;
+                }
+
+                console.log('📸 Taking snapshot for editing...');
+
+                // Capture current frame as new baseline
+                const tempCanvas = document.createElement('canvas');
+                const tempCtx = tempCanvas.getContext('2d');
+                tempCanvas.width = this.width;
+                tempCanvas.height = this.height;
+
+                tempCtx.drawImage(this.video, 0, 0, this.width, this.height);
+                this.baseline = tempCtx.getImageData(0, 0, this.width, this.height);
+
+                this.snapshotTaken = true;
+                console.log('✅ Snapshot taken! Now edit with mouse only');
+            }
+
+            setTool(tool) {
+                this.currentTool = tool;
+                document.getElementById('tool-status').textContent = tool.charAt(0).toUpperCase() + tool.slice(1);
+
+                // Update button states
+                document.querySelectorAll('.tool-btn').forEach(btn => {
+                    if (btn.textContent.includes(tool.toUpperCase())) {
+                        btn.classList.add('active');
+                    } else if (btn.textContent.includes('RAISE') || btn.textContent.includes('LOWER') || btn.textContent.includes('WATER') || btn.textContent.includes('FIRE')) {
+                        btn.classList.remove('active');
+                    }
+                });
+
+                console.log(`🛠️ Tool: ${tool}`);
+            }
+
+            toggleVideo() {
+                this.videoVisible = !this.videoVisible;
+                this.video.style.opacity = this.videoVisible ? '0.3' : '0';
+
+                // Update button appearance
+                const toggleBtn = document.querySelector('.tool-btn:nth-child(4)'); // TOGGLE button
+                if (toggleBtn) {
+                    toggleBtn.style.background = this.videoVisible ? 'rgba(70, 70, 70, 0.8)' : '#ff6b6b';
+                    toggleBtn.innerHTML = this.videoVisible ? '👁️ TOGGLE' : '🚫 HIDDEN';
+                }
+
+                console.log(`👁️ Video ${this.videoVisible ? 'visible' : 'hidden'}`);
+            }
+
+            reset() {
+                this.initTerrain();
+                console.log('🔄 Terrain reset');
+            }
+
+            drainOceans() {
+                console.log('🏜️ Draining the oceans...');
+                for (let i = 0; i < this.water.length; i++) {
+                    this.water[i] *= 0.1; // Drain 90% of water
+                }
+                console.log('🏜️ Oceans drained! Welcome to the desert planet!');
+            }
+
+            floodWorld() {
+                console.log('🌊 FLOODING THE WORLD...');
+                for (let i = 0; i < this.terrain.length; i++) {
+                    const terrainHeight = this.terrain[i];
+                    if (terrainHeight < this.seaLevel + 0.2) {
+                        this.water[i] = Math.max(this.water[i], (this.seaLevel + 0.2 - terrainHeight) * 0.8);
+                    }
+                }
+                console.log('🌊 WORLD FLOODED! Welcome to Waterworld!');
+            }
+
+            // RC VEHICLE SYSTEM (from your working samples)
+            createVehicle(type, x, y) {
+                const spec = this.vehicleSpecs[type];
+                if (!spec) return null;
+
+                const vehicle = {
+                    id: Date.now() + Math.random(),
+                    type: type,
+                    x: x || Math.random() * this.width,
+                    y: y || Math.random() * this.height,
+                    vx: 0,
+                    vy: 0,
+                    angle: Math.random() * Math.PI * 2,
+                    size: spec.size,
+                    color: spec.color,
+                    speed: spec.speed,
+                    task: 'wander',
+                    targetX: 0,
+                    targetY: 0,
+                    payload: 0,
+                    maxPayload: type === 'excavator' ? 10 : type === 'dumpTruck' ? 15 : 0
+                };
+
+                this.vehicles.push(vehicle);
+                console.log(`🚗 Created ${spec.name} at (${x}, ${y})`);
+                return vehicle;
+            }
+
+            updateVehicles() {
+                // AI and physics from your constants.ts
+                for (const vehicle of this.vehicles) {
+                    // Get terrain height at vehicle position
+                    const terrainIndex = Math.floor(vehicle.y) * this.width + Math.floor(vehicle.x);
+                    const terrainHeight = this.terrain[terrainIndex] || 0.5;
+
+                    // Vehicle AI behavior (from your samples)
+                    this.updateVehicleAI(vehicle, terrainHeight);
+
+                    // Physics update
+                    vehicle.x += vehicle.vx;
+                    vehicle.y += vehicle.vy;
+
+                    // Apply friction
+                    vehicle.vx *= this.PHYSICS.FRICTION;
+                    vehicle.vy *= this.PHYSICS.FRICTION;
+
+                    // Boundary constraints
+                    vehicle.x = Math.max(5, Math.min(this.width - 5, vehicle.x));
+                    vehicle.y = Math.max(5, Math.min(this.height - 5, vehicle.y));
+
+                    // Vehicle-specific actions
+                    this.performVehicleAction(vehicle, terrainHeight);
+                }
+            }
+
+            updateVehicleAI(vehicle, terrainHeight) {
+                // ORGANIC ENHANCEMENT: Magic Sand flocking behaviors woven in
+                const wanderForce = this.PHYSICS.WANDER_STRENGTH;
+                const seekForce = this.PHYSICS.SEEK_STRENGTH;
+
+                // Magic Sand wander behavior (from vehicle.cpp)
+                vehicle.wanderTheta = vehicle.wanderTheta || 0;
+                vehicle.wanderTheta += (Math.random() - 0.5) * 0.3; // Magic Sand change rate
+
+                const wanderRadius = 10;
+                const wanderDistance = 80;
+                const front = { x: Math.cos(vehicle.angle), y: Math.sin(vehicle.angle) };
+                const circleCenter = {
+                    x: vehicle.x + front.x * wanderDistance,
+                    y: vehicle.y + front.y * wanderDistance
+                };
+                const wanderTarget = {
+                    x: circleCenter.x + Math.cos(vehicle.wanderTheta + vehicle.angle) * wanderRadius,
+                    y: circleCenter.y + Math.sin(vehicle.wanderTheta + vehicle.angle) * wanderRadius
+                };
+
+                const wanderX = (wanderTarget.x - vehicle.x) * 0.01;
+                const wanderY = (wanderTarget.y - vehicle.y) * 0.01;
+
+                // Seek behavior (find work areas)
+                let seekX = 0, seekY = 0;
+                if (vehicle.task === 'excavate') {
+                    // Find high terrain to excavate
+                    const targetIndex = this.findHighTerrain();
+                    if (targetIndex >= 0) {
+                        vehicle.targetX = targetIndex % this.width;
+                        vehicle.targetY = Math.floor(targetIndex / this.width);
+                    }
+                } else if (vehicle.task === 'build') {
+                    // Find low terrain to build up
+                    const targetIndex = this.findLowTerrain();
+                    if (targetIndex >= 0) {
+                        vehicle.targetX = targetIndex % this.width;
+                        vehicle.targetY = Math.floor(targetIndex / this.width);
+                    }
+                }
+
+                // Calculate seek force
+                const dx = vehicle.targetX - vehicle.x;
+                const dy = vehicle.targetY - vehicle.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+
+                if (distance > 0) {
+                    seekX = (dx / distance) * seekForce;
+                    seekY = (dy / distance) * seekForce;
+                }
+
+                // Apply forces
+                vehicle.vx += wanderX + seekX;
+                vehicle.vy += wanderY + seekY;
+
+                // Speed limit
+                const speed = Math.sqrt(vehicle.vx * vehicle.vx + vehicle.vy * vehicle.vy);
+                if (speed > this.PHYSICS.MAX_SPEED * vehicle.speed) {
+                    vehicle.vx = (vehicle.vx / speed) * this.PHYSICS.MAX_SPEED * vehicle.speed;
+                    vehicle.vy = (vehicle.vy / speed) * this.PHYSICS.MAX_SPEED * vehicle.speed;
+                }
+            }
+
+            performVehicleAction(vehicle, terrainHeight) {
+                const index = Math.floor(vehicle.y) * this.width + Math.floor(vehicle.x);
+
+                if (vehicle.type === 'excavator' && vehicle.task === 'excavate') {
+                    // Excavate terrain
+                    if (terrainHeight > this.seaLevel + 0.1 && vehicle.payload < vehicle.maxPayload) {
+                        const excavated = 0.002;
+                        this.terrain[index] -= excavated;
+                        vehicle.payload += excavated;
+
+                        // Create dust effect
+                        if (Math.random() < 0.1) {
+                            console.log(`⛏️ Excavator digging at (${vehicle.x.toFixed(1)}, ${vehicle.y.toFixed(1)})`);
+                        }
+                    }
+                } else if (vehicle.type === 'bulldozer') {
+                    // Level terrain
+                    const neighbors = [
+                        index - 1, index + 1,
+                        index - this.width, index + this.width
+                    ];
+
+                    let avgHeight = terrainHeight;
+                    let count = 1;
+
+                    for (const ni of neighbors) {
+                        if (ni >= 0 && ni < this.terrain.length) {
+                            avgHeight += this.terrain[ni];
+                            count++;
+                        }
+                    }
+
+                    avgHeight /= count;
+                    const levelingForce = 0.001;
+                    this.terrain[index] = this.terrain[index] * (1 - levelingForce) + avgHeight * levelingForce;
+                }
+            }
+
+            findHighTerrain() {
+                let maxHeight = 0;
+                let maxIndex = -1;
+
+                for (let i = 0; i < this.terrain.length; i++) {
+                    if (this.terrain[i] > maxHeight && this.terrain[i] > this.seaLevel + 0.2) {
+                        maxHeight = this.terrain[i];
+                        maxIndex = i;
+                    }
+                }
+
+                return maxIndex;
+            }
+
+            findLowTerrain() {
+                let minHeight = 1;
+                let minIndex = -1;
+
+                for (let i = 0; i < this.terrain.length; i++) {
+                    if (this.terrain[i] < minHeight && this.terrain[i] > this.seaLevel - 0.1) {
+                        minHeight = this.terrain[i];
+                        minIndex = i;
+                    }
+                }
+
+                return minIndex;
+            }
+
+            createVolcanicEruption(centerIndex) {
+                const x = centerIndex % this.width;
+                const y = Math.floor(centerIndex / this.width);
+
+                console.log(`🌋 VOLCANIC ERUPTION at (${x}, ${y})!`);
+
+                // Create volcano if it doesn't exist
+                const volcano = {
+                    x: x,
+                    y: y,
+                    intensity: 0.8 + Math.random() * 0.2,
+                    age: 0,
+                    active: true
+                };
+                this.volcanoes.push(volcano);
+
+                // Initial eruption effects
+                const radius = 5 + Math.random() * 5;
+                for (let dy = -radius; dy <= radius; dy++) {
+                    for (let dx = -radius; dx <= radius; dx++) {
+                        const nx = x + dx;
+                        const ny = y + dy;
+
+                        if (nx >= 0 && nx < this.width && ny >= 0 && ny < this.height) {
+                            const ni = ny * this.width + nx;
+                            const distance = Math.sqrt(dx * dx + dy * dy);
+
+                            if (distance <= radius) {
+                                const falloff = 1 - (distance / radius);
+
+                                // Add lava
+                                this.lava[ni] = Math.min(1, this.lava[ni] + falloff * volcano.intensity);
+
+                                // Raise terrain (volcanic cone building)
+                                this.terrain[ni] += falloff * 0.02;
+
+                                // Extreme heat
+                                this.temperature[ni] = Math.max(this.temperature[ni], 200 * falloff);
+
+                                // Destroy vegetation
+                                this.vegetation[ni] *= (1 - falloff * 0.8);
+
+                                // Create fire
+                                this.fire[ni] = Math.min(1, this.fire[ni] + falloff * 0.5);
+                            }
+                        }
+                    }
+                }
+
+                // Reset magma pressure
+                this.magmaPressure[centerIndex] = 0;
+            }
+
+            simulateLavaFlow() {
+                const newLava = new Float32Array(this.lava);
+
+                for (let y = 1; y < this.height - 1; y++) {
+                    for (let x = 1; x < this.width - 1; x++) {
+                        const index = y * this.width + x;
+                        const lava = this.lava[index];
+
+                        if (lava > 0.01) {
+                            const terrainHeight = this.terrain[index];
+                            const lavaLevel = terrainHeight + lava;
+
+                            // Lava flows to lower neighbors
+                            const neighbors = [
+                                index - 1, index + 1,
+                                index - this.width, index + this.width
+                            ];
+
+                            for (const ni of neighbors) {
+                                if (ni >= 0 && ni < this.terrain.length) {
+                                    const neighborTerrain = this.terrain[ni];
+                                    const neighborLava = this.lava[ni];
+                                    const neighborLevel = neighborTerrain + neighborLava;
+
+                                    if (lavaLevel > neighborLevel + 0.02) {
+                                        const flow = Math.min(lava * 0.1, (lavaLevel - neighborLevel) * 0.5);
+                                        newLava[index] -= flow;
+                                        newLava[ni] += flow;
+
+                                        // Lava burns vegetation
+                                        this.vegetation[ni] *= 0.9;
+
+                                        // Lava creates fire
+                                        this.fire[ni] = Math.min(1, this.fire[ni] + flow);
+
+                                        // Extreme heat
+                                        this.temperature[ni] = Math.max(this.temperature[ni], 150);
+                                    }
+                                }
+                            }
+
+                            // Lava slowly cools and solidifies
+                            if (this.temperature[index] < 100) {
+                                // Cooling lava becomes rock (raises terrain)
+                                const solidification = lava * 0.01;
+                                this.terrain[index] += solidification;
+                                newLava[index] -= solidification;
+
+                                // Create new soil from volcanic ash
+                                this.soil[index] = Math.min(0.5, this.soil[index] + solidification * 2);
+                            }
+                        }
+                    }
+                }
+
+                this.lava = newLava;
+            }
+
+            simulateEcosystem() {
+                // ADVANCED ECOSYSTEM SIMULATION (vegetation, soil, climate)
+                for (let y = 1; y < this.height - 1; y++) {
+                    for (let x = 1; x < this.width - 1; x++) {
+                        const index = y * this.width + x;
+                        const terrainHeight = this.terrain[index];
+                        const water = this.water[index];
+                        const temperature = this.temperature[index];
+                        const soil = this.soil[index];
+                        const vegetation = this.vegetation[index];
+
+                        // SOIL FORMATION (weathering and organic matter)
+                        if (terrainHeight > this.seaLevel) {
+                            const weatheringRate = this.PHYSICS.WEATHERING_RATE * (1 + water * 2);
+                            const organicMatter = vegetation * 0.001;
+                            this.soil[index] = Math.min(0.5, soil + weatheringRate + organicMatter);
+                        }
+
+                        // VEGETATION GROWTH (based on elevation, water, soil, temperature)
+                        const elevation = terrainHeight - this.seaLevel;
+                        let growthRate = 0;
+
+                        if (terrainHeight > this.seaLevel && terrainHeight < this.seaLevel + 0.4) {
+                            // Optimal growth zone
+                            const waterFactor = Math.min(1, water * 10 + 0.2); // Need some water
+                            const soilFactor = Math.min(1, soil * 2); // Need soil
+                            const tempFactor = Math.max(0, 1 - Math.abs(temperature - 25) / 30); // Optimal temp ~25°C
+                            const elevationFactor = Math.max(0, 1 - elevation * 2); // Lower elevations better
+
+                            growthRate = this.PHYSICS.VEGETATION_GROWTH * waterFactor * soilFactor * tempFactor * elevationFactor;
+
+                            // Vegetation spreads from neighbors
+                            const neighbors = [
+                                index - 1, index + 1,
+                                index - this.width, index + this.width
+                            ];
+
+                            let neighborVegetation = 0;
+                            for (const ni of neighbors) {
+                                if (ni >= 0 && ni < this.vegetation.length) {
+                                    neighborVegetation += this.vegetation[ni];
+                                }
+                            }
+
+                            const spreadRate = (neighborVegetation / 4) * 0.01;
+                            growthRate += spreadRate;
+                        }
+
+                        // Apply vegetation growth
+                        this.vegetation[index] = Math.min(1, Math.max(0, vegetation + growthRate));
+
+                        // FIRE SPREAD (vegetation fuels fire)
+                        if (this.fire[index] > 0.1 && vegetation > 0.1) {
+                            // Fire consumes vegetation
+                            this.vegetation[index] *= 0.95;
+
+                            // Fire spreads to vegetated neighbors
+                            const neighbors = [
+                                index - 1, index + 1,
+                                index - this.width, index + this.width
+                            ];
+
+                            for (const ni of neighbors) {
+                                if (ni >= 0 && ni < this.fire.length && this.vegetation[ni] > 0.2) {
+                                    const spreadChance = this.PHYSICS.FIRE_SPREAD_RATE * this.vegetation[ni];
+                                    if (Math.random() < spreadChance) {
+                                        this.fire[ni] = Math.min(1, this.fire[ni] + 0.1);
+                                    }
+                                }
+                            }
+                        }
+
+                        // HUMIDITY SIMULATION (affected by water and vegetation)
+                        const baseHumidity = 0.3;
+                        const waterHumidity = water * 0.5;
+                        const vegetationHumidity = vegetation * 0.2;
+                        this.humidity[index] = Math.min(1, baseHumidity + waterHumidity + vegetationHumidity);
+
+                        // TEMPERATURE REGULATION (vegetation and water cool, elevation affects temp)
+                        const baseTemp = 25; // Base temperature
+                        const elevationCooling = elevation * 20; // Higher = cooler
+                        const vegetationCooling = vegetation * 5; // Vegetation cools
+                        const waterCooling = water * 3; // Water cools
+                        const firHeating = this.fire[index] * 50; // Fire heats
+
+                        this.temperature[index] = baseTemp - elevationCooling - vegetationCooling - waterCooling + firHeating;
+                        this.temperature[index] = Math.max(-10, Math.min(60, this.temperature[index]));
+                    }
+                }
+            }
+
+            simulateGeology() {
+                // VOLCANIC AND TECTONIC ACTIVITY
+
+                // Build magma pressure in high terrain areas
+                for (let i = 0; i < this.terrain.length; i++) {
+                    const terrainHeight = this.terrain[i];
+                    const temperature = this.temperature[i];
+
+                    // Magma pressure builds in high, hot areas
+                    if (terrainHeight > this.seaLevel + 0.3 && temperature > 30) {
+                        this.magmaPressure[i] += 0.001;
+
+                        // Volcanic eruption threshold
+                        if (this.magmaPressure[i] > 0.5 && Math.random() < 0.001) {
+                            this.createVolcanicEruption(i);
+                        }
+                    }
+
+                    // Magma pressure slowly dissipates
+                    this.magmaPressure[i] *= 0.999;
+                }
+
+                // Simulate lava flows
+                this.simulateLavaFlow();
+
+                // Tectonic plate movement (very slow)
+                if (Math.random() < 0.0001) {
+                    this.simulateTectonicMovement();
+                }
+            }
+
+            updateFromWebcam() {
+                if (!this.isCalibrated || !this.baseline) return;
+                if (this.video.readyState !== this.video.HAVE_ENOUGH_DATA) return;
+
+                // In snapshot mode, only update if snapshot was taken
+                if (this.cameraMode === 'snapshot' && !this.snapshotTaken) return;
+
+                const tempCanvas = document.createElement('canvas');
+                const tempCtx = tempCanvas.getContext('2d');
+                tempCanvas.width = this.width;
+                tempCanvas.height = this.height;
+
+                tempCtx.drawImage(this.video, 0, 0, this.width, this.height);
+                const current = tempCtx.getImageData(0, 0, this.width, this.height);
+
+                // ROBUST DETECTION: Multi-pass analysis for strong response
+
+                // ROBUST DETECTION: Find areas of significant change
+                const changeMap = new Float32Array(this.width * this.height);
+                const smoothedChange = new Float32Array(this.width * this.height);
+                let maxChange = 0;
+
+                // MAGIC SAND DETECTION: Multi-channel analysis for ROBUST detection
+                for (let y = 0; y < this.height; y++) {
+                    for (let x = 0; x < this.width; x++) {
+                        const i = (y * this.width + x) * 4;
+                        const index = y * this.width + x;
+
+                        // Multi-channel color analysis (more robust than brightness)
+                        const currentR = current.data[i];
+                        const currentG = current.data[i + 1];
+                        const currentB = current.data[i + 2];
+                        const baseR = this.baseline.data[i];
+                        const baseG = this.baseline.data[i + 1];
+                        const baseB = this.baseline.data[i + 2];
+
+                        // Color distance in RGB space
+                        const colorDiff = Math.sqrt(
+                            Math.pow(currentR - baseR, 2) +
+                            Math.pow(currentG - baseG, 2) +
+                            Math.pow(currentB - baseB, 2)
+                        );
+
+                        // Shadow depth analysis (hand closer = darker shadow)
+                        const currentBright = (currentR + currentG + currentB) / 3;
+                        const baseBright = (baseR + baseG + baseB) / 3;
+                        const shadowDepth = Math.max(0, baseBright - currentBright);
+
+                        // Combine for STRONG detection
+                        const totalChange = colorDiff * 0.4 + shadowDepth * 0.6;
+                        changeMap[index] = totalChange;
+                        maxChange = Math.max(maxChange, totalChange);
+                    }
+                }
+
+                // Second pass: Smooth and amplify changes for robustness
+                for (let y = 1; y < this.height - 1; y++) {
+                    for (let x = 1; x < this.width - 1; x++) {
+                        const index = y * this.width + x;
+
+                        // Average with neighbors for stability
+                        let avgChange = changeMap[index];
+                        let count = 1;
+
+                        for (let dy = -1; dy <= 1; dy++) {
+                            for (let dx = -1; dx <= 1; dx++) {
+                                if (dx === 0 && dy === 0) continue;
+                                const ni = (y + dy) * this.width + (x + dx);
+                                if (ni >= 0 && ni < changeMap.length) {
+                                    avgChange += changeMap[ni];
+                                    count++;
+                                }
+                            }
+                        }
+
+                        smoothedChange[index] = avgChange / count;
+                    }
+                }
+
+                // Third pass: STRONG terrain modification
+                for (let y = 2; y < this.height - 2; y++) {
+                    for (let x = 2; x < this.width - 2; x++) {
+                        const index = y * this.width + x;
+                        const change = smoothedChange[index];
+
+                        if (this.cameraMode === 'live') {
+                            // MAGIC SAND BEHAVIOR - MAXIMUM STRENGTH AND RESPONSIVENESS
+                            if (change > 8) { // Very low threshold for instant response
+                                // POWERFUL presence detection with exponential response
+                                const rawIntensity = Math.min(1, change / 50); // Super sensitive
+                                const boostedIntensity = Math.pow(rawIntensity, 0.5); // Aggressive power curve
+                                const targetHeight = this.seaLevel + boostedIntensity * 0.8; // Dramatic mountains
+
+                                // IMMEDIATE response - no lag like real Magic Sand
+                                this.terrain[index] = this.terrain[index] * 0.3 + targetHeight * 0.7;
+
+                                // DRAMATIC spreading for natural landform creation
+                                const spreadRadius = Math.floor(3 + boostedIntensity * 5); // Larger spread
+                                const maxSpread = Math.min(8, spreadRadius); // Cap for performance
+
+                                for (let dy = -maxSpread; dy <= maxSpread; dy++) {
+                                    for (let dx = -maxSpread; dx <= maxSpread; dx++) {
+                                        const nx = x + dx;
+                                        const ny = y + dy;
+
+                                        if (nx >= 0 && nx < this.width && ny >= 0 && ny < this.height) {
+                                            const ni = ny * this.width + nx;
+                                            const distance = Math.sqrt(dx * dx + dy * dy);
+
+                                            if (distance <= maxSpread && distance > 0) {
+                                                // Gaussian-like falloff for natural landforms
+                                                const falloff = Math.exp(-(distance * distance) / (maxSpread * maxSpread));
+                                                const neighborEffect = boostedIntensity * falloff * 0.25; // Stronger effect
+                                                this.terrain[ni] = Math.max(this.terrain[ni],
+                                                    this.terrain[ni] + neighborEffect);
+                                            }
+                                        }
+                                    }
+                                }
+                            } else if (change < 5) {
+                                // Gentle return to natural state when no hand present
+                                const naturalHeight = this.seaLevel * 0.9;
+                                this.terrain[index] = this.terrain[index] * 0.998 + naturalHeight * 0.002;
+                            }
+                        } else if (this.cameraMode === 'hybrid') {
+                            // HYBRID: Strong permanent terrain building
+                            if (change > 20) {
+                                const intensity = (change / 150) * (this.sensitivity / 5); // Much stronger
+                                this.terrain[index] = Math.min(0.95, this.terrain[index] + intensity);
+
+                                // Spread to neighbors in hybrid mode too
+                                const neighbors = [
+                                    index - 1, index + 1,
+                                    index - this.width, index + this.width,
+                                    index - this.width - 1, index - this.width + 1,
+                                    index + this.width - 1, index + this.width + 1
+                                ];
+
+                                for (const ni of neighbors) {
+                                    if (ni >= 0 && ni < this.terrain.length) {
+                                        const neighborEffect = intensity * 0.3;
+                                        this.terrain[ni] = Math.min(0.95, this.terrain[ni] + neighborEffect);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            simulatePhysics() {
+                // HYBRID WATER SYSTEM: Simple working base + advanced features
+                const newWater = new Float32Array(this.water);
+                const seaLevel = this.seaLevel;
+
+                // Choose physics mode based on performance/complexity needs
+                const useAdvancedPhysics = this.vehicles.length < 3; // Advanced only when not too many vehicles
+
+                // SAINT-VENANT WATER FLOW EQUATIONS (from sandbox-master WaterTable2.cpp)
+                for (let y = 1; y < this.height - 1; y++) {
+                    for (let x = 1; x < this.width - 1; x++) {
+                        const index = y * this.width + x;
+                        const h = this.water[index]; // Water depth
+                        const z = this.terrain[index]; // Terrain elevation
+
+                        if (h > 0.001) { // Minimum water depth threshold
+                            // Calculate hydraulic gradients (Saint-Venant)
+                            const eta = z + h; // Water surface elevation
+
+                            // Get neighbor elevations
+                            const etaLeft = this.terrain[index - 1] + this.water[index - 1];
+                            const etaRight = this.terrain[index + 1] + this.water[index + 1];
+                            const etaUp = this.terrain[index - this.width] + this.water[index - this.width];
+                            const etaDown = this.terrain[index + this.width] + this.water[index + this.width];
+
+                            // Calculate hydraulic gradients
+                            const gradX = (etaRight - etaLeft) / 2.0;
+                            const gradY = (etaDown - etaUp) / 2.0;
+
+                            // Manning's equation for flow velocity
+                            const manningN = 0.03; // Surface roughness coefficient
+                            const slope = Math.sqrt(gradX * gradX + gradY * gradY);
+
+                            if (slope > 0.001) {
+                                // Calculate flow velocity using Manning's equation
+                                const velocity = (1.0 / manningN) * Math.pow(h, 2.0/3.0) * Math.sqrt(slope);
+                                const maxVelocity = Math.sqrt(9.81 * h); // Froude number limit
+                                const actualVelocity = Math.min(velocity, maxVelocity);
+
+                                // Calculate flow rates in each direction
+                                const flowRate = actualVelocity * h * this.waterSpreadRate;
+
+                                // Distribute flow to neighbors based on gradient
+                                const totalGrad = Math.abs(gradX) + Math.abs(gradY);
+                                if (totalGrad > 0) {
+                                    const flowX = flowRate * (Math.abs(gradX) / totalGrad);
+                                    const flowY = flowRate * (Math.abs(gradY) / totalGrad);
+
+                                    // Apply flows
+                                    if (gradX > 0) { // Flow right
+                                        const flow = Math.min(flowX, h * 0.3);
+                                        newWater[index] -= flow;
+                                        newWater[index + 1] += flow;
+                                    } else if (gradX < 0) { // Flow left
+                                        const flow = Math.min(flowX, h * 0.3);
+                                        newWater[index] -= flow;
+                                        newWater[index - 1] += flow;
+                                    }
+
+                                    if (gradY > 0) { // Flow down
+                                        const flow = Math.min(flowY, h * 0.3);
+                                        newWater[index] -= flow;
+                                        newWater[index + this.width] += flow;
+                                    } else if (gradY < 0) { // Flow up
+                                        const flow = Math.min(flowY, h * 0.3);
+                                        newWater[index] -= flow;
+                                        newWater[index - this.width] += flow;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Second pass: Apply global sea level (like real Earth)
+                for (let i = 0; i < this.terrain.length; i++) {
+                    const terrainHeight = this.terrain[i];
+
+                    // Areas below sea level should be ocean
+                    if (terrainHeight < seaLevel) {
+                        const oceanDepth = (seaLevel - terrainHeight) * 1.2;
+                        newWater[i] = Math.max(newWater[i], oceanDepth * this.oceanSaturation); // Dynamic ocean filling
+                    }
+
+                    // Remove tiny amounts and cap maximum ocean depth
+                    if (newWater[i] < 0.01) {
+                        newWater[i] = 0;
+                    } else if (newWater[i] > 0.6) {
+                        newWater[i] = 0.6; // Deep ocean maximum
+                    }
+
+                    // No evaporation from oceans (like real Earth)
+                    if (terrainHeight > seaLevel && newWater[i] > 0.02) {
+                        newWater[i] *= 0.995; // Only lakes/rivers evaporate slowly
+                    }
+                }
+
+                // EROSION AND SEDIMENTATION (from Magic Sand algorithms)
+                this.simulateErosion(newWater, newSediment);
+
+                // ECOSYSTEM SIMULATION (vegetation, soil formation, climate)
+                this.simulateEcosystem();
+
+                // GEOLOGICAL ACTIVITY (volcanoes, lava, tectonic movement)
+                this.simulateGeology();
+
+                // WEATHER AND CLIMATE SYSTEMS (rain, storms, seasons)
+                this.simulateWeather();
+
+                // WEATHER AND CLIMATE SYSTEMS (rain, storms, seasons)
+                this.simulateWeather();
+
+                // ORGANIC ENHANCEMENT: Gentle water stabilization to stop flickering
+                for (let i = 0; i < this.water.length; i++) {
+                    // Smooth transition - blend old and new to prevent flickering
+                    this.water[i] = this.water[i] * 0.7 + newWater[i] * 0.3;
+                }
+                this.sediment = newSediment;
+
+                // Simple fire spread
+                const newFire = new Float32Array(this.fire);
+
+                for (let y = 1; y < this.height - 1; y++) {
+                    for (let x = 1; x < this.width - 1; x++) {
+                        const index = y * this.width + x;
+                        const fire = this.fire[index];
+
+                        if (fire > 0.01) {
+                            // Fire spreads slowly
+                            if (Math.random() < this.PHYSICS.FIRE_SPREAD_RATE) {
+                                const neighbors = [index - 1, index + 1, index - this.width, index + this.width];
+                                for (const ni of neighbors) {
+                                    if (this.water[ni] < 0.1) {
+                                        newFire[ni] = Math.min(0.8, this.fire[ni] + fire * 0.1);
+                                    }
+                                }
+                            }
+
+                            // Fire burns out
+                            newFire[index] *= 0.98;
+                        }
+                    }
+                }
+
+                this.fire = newFire;
+            }
+
+            simulateErosion(newWater, newSediment) {
+                // PROFESSIONAL EROSION SIMULATION (from Magic Sand + your samples)
+                const erosionRate = 0.002;
+                const depositionRate = 0.001;
+                const carryingCapacity = 0.1;
+
+                for (let y = 1; y < this.height - 1; y++) {
+                    for (let x = 1; x < this.width - 1; x++) {
+                        const index = y * this.width + x;
+                        const water = newWater[index];
+                        const sediment = newSediment[index];
+
+                        if (water > 0.01) {
+                            // Calculate flow velocity for erosion
+                            const neighbors = [
+                                index - 1, index + 1,
+                                index - this.width, index + this.width
+                            ];
+
+                            let maxGradient = 0;
+                            for (const ni of neighbors) {
+                                if (ni >= 0 && ni < this.terrain.length) {
+                                    const heightDiff = this.terrain[index] - this.terrain[ni];
+                                    maxGradient = Math.max(maxGradient, heightDiff);
+                                }
+                            }
+
+                            const velocity = Math.sqrt(maxGradient * 9.81); // Flow velocity
+                            const maxSediment = carryingCapacity * velocity * water;
+
+                            if (sediment < maxSediment) {
+                                // EROSION: Water can carry more sediment
+                                const erosion = erosionRate * (maxSediment - sediment) * velocity;
+                                this.terrain[index] -= erosion;
+                                newSediment[index] += erosion;
+                            } else {
+                                // DEPOSITION: Water carrying too much sediment
+                                const deposition = depositionRate * (sediment - maxSediment);
+                                this.terrain[index] += deposition;
+                                newSediment[index] -= deposition;
+                            }
+
+                            // Transport sediment with water flow
+                            if (maxGradient > 0.01) {
+                                const sedimentFlow = sediment * 0.1;
+
+                                // Find lowest neighbor for sediment transport
+                                let lowestNeighbor = index;
+                                let lowestHeight = this.terrain[index];
+
+                                for (const ni of neighbors) {
+                                    if (ni >= 0 && ni < this.terrain.length) {
+                                        if (this.terrain[ni] < lowestHeight) {
+                                            lowestHeight = this.terrain[ni];
+                                            lowestNeighbor = ni;
+                                        }
+                                    }
+                                }
+
+                                if (lowestNeighbor !== index) {
+                                    newSediment[index] -= sedimentFlow;
+                                    newSediment[lowestNeighbor] += sedimentFlow;
+                                }
+                            }
+                        }
+
+                        // Clamp values
+                        newSediment[index] = Math.max(0, Math.min(0.5, newSediment[index]));
+                        this.terrain[index] = Math.max(0.05, Math.min(0.95, this.terrain[index]));
+                    }
+                }
+            }
+
+            render() {
+                // MUSEUM-QUALITY BACKGROUND - clean and professional
+                this.ctx.fillStyle = '#f5f5f5'; // Light gray museum background
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+                if (this.is3D) {
+                    this.render3D();
+                } else {
+                    this.renderTopDown();
+                }
+            }
+
+            renderTopDown() {
+                const scaleX = this.canvas.width / this.width;
+                const scaleY = this.canvas.height / this.height;
+
+                for (let y = 0; y < this.height; y++) {
+                    for (let x = 0; x < this.width; x++) {
+                        const index = y * this.width + x;
+                        const height = this.terrain[index];
+                        const water = this.water[index];
+                        const fire = this.fire[index];
+
+                        const color = this.getTopographicColor(height, water, fire);
+
+                        this.ctx.fillStyle = color;
+                        this.ctx.fillRect(
+                            Math.floor(x * scaleX),
+                            Math.floor(y * scaleY),
+                            Math.ceil(scaleX),
+                            Math.ceil(scaleY)
+                        );
+                    }
+                }
+
+                // Draw contour lines
+                this.drawContourLines();
+
+                // Draw RC vehicles
+                this.drawVehicles();
+            }
+
+            render3D() {
+                const centerX = this.canvas.width / 2;
+                const centerY = this.canvas.height * 0.7;
+
+                // Render back to front for proper depth
+                for (let y = this.height - 1; y >= 0; y--) {
+                    for (let x = 0; x < this.width; x++) {
+                        const index = y * this.width + x;
+                        const height = this.terrain[index];
+                        const water = this.water[index];
+                        const fire = this.fire[index];
+
+                        // Isometric projection
+                        const isoX = (x - y) * 4;
+                        const isoY = (x + y) * 2 - height * 100;
+
+                        const screenX = centerX + isoX;
+                        const screenY = centerY + isoY;
+
+                        const color = this.getTopographicColor(height, water, fire);
+
+                        // Draw 3D block
+                        const blockSize = 6;
+                        this.ctx.fillStyle = color;
+
+                        // Main face
+                        this.ctx.fillRect(screenX - blockSize/2, screenY - blockSize/2, blockSize, Math.max(2, height * 50));
+
+                        // Right face (darker)
+                        const [r, g, b] = this.parseColor(color);
+                        this.ctx.fillStyle = `rgb(${Math.floor(r*0.7)}, ${Math.floor(g*0.7)}, ${Math.floor(b*0.7)})`;
+                        this.ctx.fillRect(screenX + blockSize/2, screenY - blockSize/2, blockSize/2, Math.max(2, height * 50));
+
+                        // Top face (lighter)
+                        this.ctx.fillStyle = `rgb(${Math.min(255, Math.floor(r*1.2))}, ${Math.min(255, Math.floor(g*1.2))}, ${Math.min(255, Math.floor(b*1.2))})`;
+                        this.ctx.fillRect(screenX - blockSize/2, screenY - Math.max(2, height * 50), blockSize, blockSize/2);
+                    }
+                }
+            }
+
+            getTopographicColor(height, water, fire) {
+                // EMERGENCY FIX: DRAMATIC COLORS to ensure visibility
+
+                if (fire > 0.1) {
+                    return `rgb(255, 0, 0)`; // Bright red fire
+                } else if (water > 0.05) {
+                    return `rgb(0, 100, 255)`; // Bright blue water
+                } else {
+                    // DRAMATIC HEIGHT-BASED COLORS
+                    if (height < 0.2) {
+                        return `rgb(0, 0, 255)`; // Deep blue (low)
+                    } else if (height < 0.4) {
+                        return `rgb(0, 255, 0)`; // Bright green (medium-low)
+                    } else if (height < 0.6) {
+                        return `rgb(255, 255, 0)`; // Bright yellow (medium)
+                    } else if (height < 0.8) {
+                        return `rgb(255, 165, 0)`; // Orange (high)
+                    } else {
+                        return `rgb(255, 0, 255)`; // Magenta (very high)
+                    }
+                }
+            }
+
+            parseColor(colorStr) {
+                const match = colorStr.match(/rgb\((\d+), (\d+), (\d+)\)/);
+                return match ? [parseInt(match[1]), parseInt(match[2]), parseInt(match[3])] : [255, 255, 255];
+            }
+
+            drawContourLines() {
+                this.ctx.strokeStyle = 'rgba(0, 0, 0, 0.6)';
+                this.ctx.lineWidth = 1;
+
+                const scaleX = this.canvas.width / this.width;
+                const scaleY = this.canvas.height / this.height;
+
+                // Draw contour lines at regular intervals
+                for (let contourLevel = 0.2; contourLevel < 0.9; contourLevel += 0.1) {
+                    this.ctx.beginPath();
+
+                    for (let y = 1; y < this.height - 1; y++) {
+                        for (let x = 1; x < this.width - 1; x++) {
+                            const height = this.terrain[y * this.width + x];
+
+                            if (Math.abs(height - contourLevel) < 0.02) {
+                                const screenX = x * scaleX + scaleX/2;
+                                const screenY = y * scaleY + scaleY/2;
+
+                                this.ctx.moveTo(screenX - 2, screenY);
+                                this.ctx.lineTo(screenX + 2, screenY);
+                            }
+                        }
+                    }
+
+                    this.ctx.stroke();
+                }
+            }
+
+            drawVehicles() {
+                const scaleX = this.canvas.width / this.width;
+                const scaleY = this.canvas.height / this.height;
+
+                for (const vehicle of this.vehicles) {
+                    const x = vehicle.x * scaleX;
+                    const y = vehicle.y * scaleY;
+                    const size = vehicle.size * Math.min(scaleX, scaleY);
+
+                    this.ctx.save();
+                    this.ctx.translate(x, y);
+                    this.ctx.rotate(vehicle.angle);
+
+                    // Draw vehicle body
+                    this.ctx.fillStyle = vehicle.color;
+                    this.ctx.fillRect(-size/2, -size/2, size, size);
+
+                    // Draw vehicle direction indicator
+                    this.ctx.fillStyle = '#000000';
+                    this.ctx.fillRect(size/3, -size/6, size/3, size/3);
+
+                    // Draw vehicle type indicator
+                    this.ctx.fillStyle = '#FFFFFF';
+                    this.ctx.font = `${size/2}px Arial`;
+                    this.ctx.textAlign = 'center';
+                    this.ctx.fillText(vehicle.type[0].toUpperCase(), 0, size/6);
+
+                    // Draw payload indicator for excavators/trucks
+                    if (vehicle.maxPayload > 0 && vehicle.payload > 0) {
+                        this.ctx.fillStyle = '#8B4513'; // Brown for dirt
+                        const payloadHeight = (vehicle.payload / vehicle.maxPayload) * size/2;
+                        this.ctx.fillRect(-size/4, -size/2, size/2, payloadHeight);
+                    }
+
+                    this.ctx.restore();
+
+                    // Draw task indicator
+                    this.ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+                    this.ctx.font = '10px Arial';
+                    this.ctx.textAlign = 'center';
+                    this.ctx.fillText(vehicle.task, x, y + size + 12);
+                }
+            }
+
+            startLoop() {
+                let frameCount = 0;
+                let lastTime = performance.now();
+
+                const loop = () => {
+                    // Update from webcam
+                    this.updateFromWebcam();
+
+                    // Simulate physics less frequently for stability
+                    if (frameCount % 6 === 0) { // Every 6th frame for stability
+                        this.simulatePhysics();
+                    }
+
+                    // Update RC vehicles
+                    if (frameCount % 3 === 0) { // Update vehicles every 3rd frame
+                        this.updateVehicles();
+                    }
+
+                    // Render
+                    this.render();
+
+                    // Update stats
+                    frameCount++;
+                    const now = performance.now();
+                    if (now - lastTime >= 1000) {
+                        document.getElementById('fps-status').textContent = frameCount;
+                        frameCount = 0;
+                        lastTime = now;
+
+                        // Update terrain stats
+                        this.updateStats();
+                    }
+
+                    requestAnimationFrame(loop);
+                };
+
+                loop();
+            }
+
+            updateStats() {
+                let totalHeight = 0;
+                let totalWater = 0;
+                let activeAreas = 0;
+
+                for (let i = 0; i < this.terrain.length; i++) {
+                    totalHeight += this.terrain[i];
+                    totalWater += this.water[i];
+                    if (this.terrain[i] > 0.4 || this.water[i] > 0.1 || this.fire[i] > 0.1) {
+                        activeAreas++;
+                    }
+                }
+
+                document.getElementById('height-avg').textContent = (totalHeight / this.terrain.length).toFixed(2);
+                document.getElementById('water-level').textContent = (totalWater / this.terrain.length).toFixed(3);
+                document.getElementById('active-areas').textContent = activeAreas;
+            }
+
+            // Kinect integration methods
+            updateTerrainFromKinect(frameData) {
+                if (frameData.mesh_data && frameData.mesh_data.data) {
+                    const meshData = frameData.mesh_data.data;
+                    const meshWidth = frameData.mesh_data.width || 100;
+                    const meshHeight = frameData.mesh_data.height || 75;
+
+                    // Update terrain from real Kinect data
+                    for (let y = 0; y < this.height; y++) {
+                        for (let x = 0; x < this.width; x++) {
+                            const meshX = Math.floor((x / this.width) * meshWidth);
+                            const meshY = Math.floor((y / this.height) * meshHeight);
+                            const meshIndex = meshY * meshWidth + meshX;
+
+                            if (meshIndex < meshData.length) {
+                                const terrainIndex = y * this.width + x;
+                                this.terrain[terrainIndex] = meshData[meshIndex] / 255.0; // Normalize to 0-1
+                            }
+                        }
+                    }
+
+                    console.log('✅ Ultimate AR Sandbox updated terrain from Kinect depth data');
+                }
+            }
+
+            updateAIAnalysis(topographyData) {
+                if (!topographyData || !topographyData.ai_metadata) return;
+
+                const aiData = topographyData.ai_metadata;
+
+                // Update terrain stats display
+                if (aiData.terrain_stats) {
+                    const stats = aiData.terrain_stats;
+                    document.getElementById('terrain-height').textContent =
+                        `${stats.min_elevation.toFixed(2)} - ${stats.max_elevation.toFixed(2)}`;
+                    document.getElementById('terrain-roughness').textContent = stats.terrain_roughness.toFixed(3);
+                }
+
+                // Update feature detection display
+                if (aiData.features) {
+                    const features = aiData.features;
+                    let featureText = '';
+
+                    if (features.peaks) {
+                        featureText += `Peaks: ${features.peaks.count} `;
+                    }
+                    if (features.valleys) {
+                        featureText += `Valleys: ${features.valleys.count} `;
+                    }
+                    if (features.slopes) {
+                        featureText += `Avg Slope: ${features.slopes.average_slope.toFixed(1)}° `;
+                    }
+
+                    // Update feature display
+                    const featureElement = document.getElementById('detected-features');
+                    if (featureElement) {
+                        featureElement.textContent = featureText;
+                    }
+                }
+
+                console.log('🤖 Ultimate AR Sandbox updated AI analysis display');
+            }
+
+            updateFromKinectDepth(depthData) {
+                console.log('📡 Updating Ultimate AR Sandbox from Kinect depth data');
+
+                if (!depthData || depthData.length === 0) return;
+
+                // Convert Kinect depth data to terrain using Magic Sand approach
+                const width = Math.sqrt(depthData.length) || 640;
+                const height = Math.floor(depthData.length / width) || 480;
+
+                // Scale to our terrain dimensions
+                const scaleX = this.width / width;
+                const scaleY = this.height / height;
+
+                for (let y = 0; y < height; y += 4) {
+                    for (let x = 0; x < width; x += 4) {
+                        const depthIndex = y * width + x;
+                        const depthValue = depthData[depthIndex];
+
+                        if (depthValue > 500 && depthValue < 4000) { // Valid Kinect range
+                            // Convert depth to elevation (Magic Sand style)
+                            const elevation = (4000 - depthValue) / 3500; // Normalize 0-1
+
+                            // Map to terrain coordinates
+                            const terrainX = Math.floor(x * scaleX);
+                            const terrainY = Math.floor(y * scaleY);
+
+                            if (terrainX < this.width && terrainY < this.height) {
+                                const terrainIndex = terrainY * this.width + terrainX;
+                                this.terrain[terrainIndex] = Math.max(0.1, Math.min(0.9, elevation));
+                            }
+                        }
+                    }
+                }
+
+                console.log('🎨 Ultimate AR Sandbox terrain updated from real Kinect depth');
+            }
+        }
+
+        // Global functions for buttons
+        let sandbox;
+        
+        function calibrate() { sandbox.calibrate(); }
+        function toggle3D() { sandbox.toggle3D(); }
+        function reset() { sandbox.reset(); }
+        function setCameraMode(mode) { sandbox.setCameraMode(mode); }
+        function setTool(tool) { sandbox.setTool(tool); }
+        function toggleVideo() { sandbox.toggleVideo(); }
+        function drainOceans() { sandbox.drainOceans(); }
+        function floodWorld() { sandbox.floodWorld(); }
+
+        // RC Vehicle Controls
+        function spawnVehicle(type) {
+            const x = sandbox.width * 0.1 + Math.random() * sandbox.width * 0.8;
+            const y = sandbox.height * 0.1 + Math.random() * sandbox.height * 0.8;
+            sandbox.createVehicle(type, x, y);
+        }
+        function clearVehicles() {
+            sandbox.vehicles = [];
+            console.log('🗑️ All vehicles cleared');
+        }
+        function setVehicleTask(task) {
+            sandbox.vehicles.forEach(v => v.task = task);
+            console.log(`🎯 All vehicles set to: ${task}`);
+        }
+        
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            sandbox = new UltimateARSandbox();
+        });
+    </script>
+
+    <!-- External Library Integrations - Puzzle Piece Approach -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.17.1/matter.min.js"></script>
+    <script>
+        // ML5 fallback - create minimal stub to prevent errors
+        if (typeof ml5 === 'undefined') {
+            window.ml5 = {
+                imageClassifier: () => ({ predict: () => Promise.resolve([]) }),
+                bodyPix: () => ({ segment: () => Promise.resolve(null) })
+            };
+        }
+    </script>
+
+    <!-- Kinect WebSocket Integration -->
+    <script src="js/kinect_websocket_integration.js"></script>
+    <script>
+        // Initialize Kinect WebSocket connection for ultimate-ar-sandbox
+        let kinectIntegration;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            kinectIntegration = new KinectWebSocketIntegration({
+                serverUrl: 'ws://localhost:8767', // Connect to our working triple camera fusion system
+                onConnect: () => {
+                    console.log('✅ Ultimate AR Sandbox connected to Triple Camera Fusion System');
+                    showNotification('Connected to Kinect depth server', 'success');
+                },
+                onDisconnect: () => {
+                    console.log('❌ Ultimate AR Sandbox disconnected from Kinect');
+                    showNotification('Disconnected from Kinect', 'warning');
+                },
+                onFrameData: (frameData) => {
+                    if (sandbox && frameData.kinect_depth) {
+                        console.log('📡 Processing Kinect depth data in Ultimate AR Sandbox');
+                        sandbox.updateFromKinectDepth(frameData.kinect_depth);
+                    }
+                },
+                onTopographyData: (topographyData) => {
+                    if (sandbox && sandbox.updateAIAnalysis) {
+                        sandbox.updateAIAnalysis(topographyData);
+                    }
+                },
+                onError: (error) => {
+                    console.warn('🔥 WebSocket error:', error);
+                    showNotification('Connection error', 'error');
+                }
+            });
+
+            kinectIntegration.connect();
+        });
+
+        function showNotification(message, type) {
+            console.log(`[${type.toUpperCase()}] ${message}`);
+            // Add visual notification if needed
+        }
+    </script>
+</body>
+</html>

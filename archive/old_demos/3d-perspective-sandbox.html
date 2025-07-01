@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📐 3D Perspective AR Sandbox</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            color: white;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+        }
+
+        #container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            width: 100vw;
+            height: 100vh;
+            gap: 2px;
+        }
+
+        .panel {
+            position: relative;
+            border: 2px solid #00ff00;
+            background: #000;
+            overflow: hidden;
+        }
+
+        #camera-panel {
+            grid-column: 1;
+            grid-row: 1;
+        }
+
+        #perspective-panel {
+            grid-column: 2;
+            grid-row: 1;
+        }
+
+        #topdown-panel {
+            grid-column: 1;
+            grid-row: 2;
+        }
+
+        #topo-panel {
+            grid-column: 2;
+            grid-row: 2;
+        }
+
+        .panel-title {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 14px;
+            font-weight: bold;
+            color: #00ff00;
+            z-index: 10;
+        }
+
+        .panel-canvas, .panel-video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        #controls {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.95);
+            padding: 20px;
+            border-radius: 15px;
+            border: 2px solid #00ff00;
+            z-index: 20;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .big-btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            min-width: 120px;
+        }
+
+        .big-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .big-btn.active {
+            box-shadow: 0 0 15px currentColor;
+        }
+
+        #calibrate-btn { background: #ff6b6b; color: white; }
+        #perspective-btn { background: #4ecdc4; color: white; }
+        #topdown-btn { background: #ffa500; color: white; }
+        #reset-btn { background: #a29bfe; color: white; }
+
+        .slider-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .slider-label {
+            font-size: 12px;
+            color: #ccc;
+            text-align: center;
+        }
+
+        .slider {
+            width: 100px;
+            height: 6px;
+        }
+
+        .value-display {
+            font-size: 12px;
+            color: #00ff00;
+            font-weight: bold;
+        }
+
+        #status {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.95);
+            padding: 15px 25px;
+            border-radius: 10px;
+            border: 2px solid #00ff00;
+            z-index: 20;
+            text-align: center;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .status-good { color: #00ff00; }
+        .status-working { color: #ffa500; }
+        .status-error { color: #ff6b6b; }
+
+        .perspective-grid {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .grid-line {
+            stroke: rgba(0, 255, 0, 0.3);
+            stroke-width: 1;
+            fill: none;
+        }
+
+        .calibration-point {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            border: 2px solid #ff6b6b;
+            border-radius: 50%;
+            background: rgba(255, 107, 107, 0.3);
+            transform: translate(-50%, -50%);
+            z-index: 15;
+            cursor: pointer;
+        }
+
+        .depth-indicator {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.8);
+            color: #00ff00;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: bold;
+            pointer-events: none;
+            z-index: 16;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <!-- Raw Camera Feed -->
+        <div class="panel" id="camera-panel">
+            <div class="panel-title">📷 RAW CAMERA FEED</div>
+            <video id="video" class="panel-video" autoplay muted playsinline></video>
+            <svg class="perspective-grid" id="camera-grid"></svg>
+        </div>
+
+        <!-- Perspective Corrected View -->
+        <div class="panel" id="perspective-panel">
+            <div class="panel-title">📐 PERSPECTIVE CORRECTED</div>
+            <canvas id="perspective-canvas" class="panel-canvas"></canvas>
+        </div>
+
+        <!-- Top-Down Projection -->
+        <div class="panel" id="topdown-panel">
+            <div class="panel-title">🔽 TOP-DOWN VIEW</div>
+            <canvas id="topdown-canvas" class="panel-canvas"></canvas>
+        </div>
+
+        <!-- 3D Topographic Map -->
+        <div class="panel" id="topo-panel">
+            <div class="panel-title">🗺️ 3D TOPOGRAPHIC MAP</div>
+            <canvas id="topo-canvas" class="panel-canvas"></canvas>
+        </div>
+    </div>
+
+    <div id="controls">
+        <div class="control-group">
+            <button class="big-btn" id="calibrate-btn" onclick="startCalibration()">
+                🎯 CALIBRATE 3D
+            </button>
+        </div>
+
+        <div class="control-group">
+            <button class="big-btn" id="perspective-btn" onclick="togglePerspectiveMode()">
+                📐 PERSPECTIVE MODE
+            </button>
+        </div>
+
+        <div class="control-group">
+            <button class="big-btn" id="topdown-btn" onclick="toggleTopDownMode()">
+                🔽 TOP-DOWN MODE
+            </button>
+        </div>
+
+        <div class="slider-group">
+            <label class="slider-label">Depth Scale</label>
+            <input type="range" class="slider" id="depth-scale" min="1" max="20" value="10">
+            <div class="value-display" id="depth-scale-value">10</div>
+        </div>
+
+        <div class="slider-group">
+            <label class="slider-label">Perspective Angle</label>
+            <input type="range" class="slider" id="perspective-angle" min="0" max="90" value="45">
+            <div class="value-display" id="angle-value">45°</div>
+        </div>
+
+        <div class="slider-group">
+            <label class="slider-label">Height Sensitivity</label>
+            <input type="range" class="slider" id="height-sensitivity" min="1" max="20" value="8">
+            <div class="value-display" id="sensitivity-value">8</div>
+        </div>
+
+        <div class="control-group">
+            <button class="big-btn" id="reset-btn" onclick="resetCalibration()">
+                🔄 RESET
+            </button>
+        </div>
+    </div>
+
+    <div id="status" class="status-good">
+        📷 Camera ready - Click CALIBRATE 3D to set perspective points
+    </div>
+
+    <script>
+        class Perspective3DSandbox {
+            constructor() {
+                this.video = document.getElementById('video');
+                this.perspectiveCanvas = document.getElementById('perspective-canvas');
+                this.perspectiveCtx = this.perspectiveCanvas.getContext('2d');
+                this.topdownCanvas = document.getElementById('topdown-canvas');
+                this.topdownCtx = this.topdownCanvas.getContext('2d');
+                this.topoCanvas = document.getElementById('topo-canvas');
+                this.topoCtx = this.topoCanvas.getContext('2d');
+                this.cameraGrid = document.getElementById('camera-grid');
+
+                // Processing canvas
+                this.processCanvas = document.createElement('canvas');
+                this.processCtx = this.processCanvas.getContext('2d');
+
+                // 3D perspective system
+                this.calibrationPoints = [];
+                this.perspectiveMatrix = null;
+                this.isCalibrating = false;
+                this.calibrationStep = 0;
+
+                // Terrain data
+                this.heightMap = null;
+                this.baselineFrame = null;
+                this.depthScale = 10;
+                this.perspectiveAngle = 45;
+                this.heightSensitivity = 8;
+
+                // Modes
+                this.perspectiveMode = false;
+                this.topDownMode = false;
+
+                this.initialize();
+            }
+
+            async initialize() {
+                console.log('📐 Initializing 3D Perspective AR Sandbox...');
+
+                this.setupCanvases();
+                this.setupEvents();
+                await this.setupCamera();
+                this.startProcessingLoop();
+
+                this.updateStatus('📷 Camera ready - Click CALIBRATE 3D to set perspective points', 'good');
+                console.log('✅ 3D Perspective AR Sandbox ready');
+            }
+
+            setupCanvases() {
+                const panelWidth = window.innerWidth / 2 - 2;
+                const panelHeight = window.innerHeight / 2 - 2;
+
+                this.perspectiveCanvas.width = panelWidth;
+                this.perspectiveCanvas.height = panelHeight;
+                this.topdownCanvas.width = panelWidth;
+                this.topdownCanvas.height = panelHeight;
+                this.topoCanvas.width = panelWidth;
+                this.topoCanvas.height = panelHeight;
+
+                this.processCanvas.width = 640;
+                this.processCanvas.height = 480;
+
+                // Initialize with placeholder content
+                this.drawPlaceholder(this.perspectiveCtx, '📐 Perspective correction will appear here');
+                this.drawPlaceholder(this.topdownCtx, '🔽 Top-down view will appear here');
+                this.drawPlaceholder(this.topoCtx, '🗺️ 3D topographic map will appear here');
+
+                this.setupCameraGrid();
+            }
+
+            drawPlaceholder(ctx, text) {
+                ctx.fillStyle = '#111';
+                ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+
+                ctx.fillStyle = '#333';
+                ctx.font = '16px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(text, ctx.canvas.width / 2, ctx.canvas.height / 2);
+            }
+
+            setupCameraGrid() {
+                // Create perspective grid overlay on camera
+                const svg = this.cameraGrid;
+                svg.innerHTML = '';
+
+                const width = this.video.clientWidth || 640;
+                const height = this.video.clientHeight || 480;
+
+                svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+
+                // Draw perspective grid lines
+                for (let i = 0; i <= 10; i++) {
+                    // Vertical lines with perspective
+                    const x = (i / 10) * width;
+                    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                    line.setAttribute('x1', x);
+                    line.setAttribute('y1', 0);
+                    line.setAttribute('x2', x + (i - 5) * 10); // Perspective skew
+                    line.setAttribute('y2', height);
+                    line.setAttribute('class', 'grid-line');
+                    svg.appendChild(line);
+
+                    // Horizontal lines with perspective
+                    const y = (i / 10) * height;
+                    const hline = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                    hline.setAttribute('x1', 0);
+                    hline.setAttribute('y1', y);
+                    hline.setAttribute('x2', width);
+                    hline.setAttribute('y2', y + (10 - i) * 5); // Perspective depth
+                    hline.setAttribute('class', 'grid-line');
+                    svg.appendChild(hline);
+                }
+            }

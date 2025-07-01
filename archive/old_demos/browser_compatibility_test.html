@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AR Sandbox RC - Browser Compatibility Test</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: #ffffff;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .test-section {
+            background: rgba(30,30,30,0.85);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.6);
+            border: 2px solid rgba(255,255,255,0.1);
+        }
+        
+        .browser-info {
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .feature-card {
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+            padding: 15px;
+            border: 2px solid rgba(255,255,255,0.2);
+        }
+        
+        .feature-card.supported {
+            border-color: #4CAF50;
+            background: rgba(76,175,80,0.2);
+        }
+        
+        .feature-card.unsupported {
+            border-color: #f44336;
+            background: rgba(244,67,54,0.2);
+        }
+        
+        .feature-card.partial {
+            border-color: #ff9800;
+            background: rgba(255,152,0,0.2);
+        }
+        
+        .feature-name {
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #E0C32A;
+        }
+        
+        .feature-status {
+            font-size: 0.9rem;
+            margin-bottom: 5px;
+        }
+        
+        .feature-details {
+            font-size: 0.8rem;
+            opacity: 0.8;
+        }
+        
+        .test-result {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 4px;
+            margin: 4px;
+            font-weight: bold;
+        }
+        .success { background: #4CAF50; color: white; }
+        .error { background: #f44336; color: white; }
+        .warning { background: #ff9800; color: white; }
+        .info { background: #2196F3; color: white; }
+        
+        #test-log {
+            background: #000;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        
+        button {
+            background: #E0C32A;
+            border: none;
+            color: #000;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            margin: 5px;
+            transition: all 0.2s;
+        }
+        
+        button:hover {
+            background: #f0d040;
+            transform: scale(1.05);
+        }
+        
+        .performance-meter {
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        
+        .meter-bar {
+            background: rgba(255,255,255,0.2);
+            border-radius: 10px;
+            height: 20px;
+            position: relative;
+            margin: 10px 0;
+        }
+        
+        .meter-fill {
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.3s ease;
+        }
+        
+        .meter-fill.good { background: #4CAF50; }
+        .meter-fill.fair { background: #ff9800; }
+        .meter-fill.poor { background: #f44336; }
+        
+        .meter-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 12px;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🌐 AR Sandbox RC - Browser Compatibility Test</h1>
+        <p>Testing compatibility across different browsers and devices...</p>
+        
+        <div class="test-section">
+            <h2>📊 Test Results</h2>
+            <div id="test-summary"></div>
+            <div id="test-log"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>🌐 Browser Information</h2>
+            <div class="browser-info" id="browser-info">
+                <!-- Browser info will be populated here -->
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>⚡ Performance Metrics</h2>
+            <div class="performance-meter">
+                <div>JavaScript Performance: <span id="js-perf-text">Testing...</span></div>
+                <div class="meter-bar">
+                    <div class="meter-fill" id="js-perf-bar" style="width: 0%"></div>
+                    <div class="meter-text" id="js-perf-value">0%</div>
+                </div>
+            </div>
+            
+            <div class="performance-meter">
+                <div>WebGL Performance: <span id="webgl-perf-text">Testing...</span></div>
+                <div class="meter-bar">
+                    <div class="meter-fill" id="webgl-perf-bar" style="width: 0%"></div>
+                    <div class="meter-text" id="webgl-perf-value">0%</div>
+                </div>
+            </div>
+            
+            <div style="text-align: center; margin: 20px 0;">
+                <button onclick="runPerformanceTests()">Run Performance Tests</button>
+                <button onclick="testWebcamAccess()">Test Webcam Access</button>
+                <button onclick="testWebGLSupport()">Test WebGL Support</button>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>🔧 Feature Compatibility</h2>
+            <div class="feature-grid" id="feature-grid">
+                <!-- Features will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Browser Compatibility Test System
+        class BrowserCompatibilityTester {
+            constructor() {
+                this.testResults = [];
+                this.features = [];
+                this.browserInfo = {};
+                
+                this.detectBrowser();
+                this.initializeFeatureTests();
+                this.renderBrowserInfo();
+                this.renderFeatures();
+                this.startTesting();
+            }
+
+            detectBrowser() {
+                const ua = navigator.userAgent;
+                const isChrome = /Chrome/.test(ua) && /Google Inc/.test(navigator.vendor);
+                const isFirefox = /Firefox/.test(ua);
+                const isEdge = /Edg/.test(ua);
+                const isSafari = /Safari/.test(ua) && /Apple Computer/.test(navigator.vendor);
+                const isOpera = /OPR/.test(ua);
+
+                this.browserInfo = {
+                    name: isChrome ? 'Chrome' : isFirefox ? 'Firefox' : isEdge ? 'Edge' : isSafari ? 'Safari' : isOpera ? 'Opera' : 'Unknown',
+                    version: this.extractVersion(ua),
+                    userAgent: ua,
+                    platform: navigator.platform,
+                    language: navigator.language,
+                    cookieEnabled: navigator.cookieEnabled,
+                    onLine: navigator.onLine,
+                    hardwareConcurrency: navigator.hardwareConcurrency || 'Unknown',
+                    maxTouchPoints: navigator.maxTouchPoints || 0,
+                    deviceMemory: navigator.deviceMemory || 'Unknown'
+                };
+            }
+
+            extractVersion(ua) {
+                const match = ua.match(/(Chrome|Firefox|Edg|Safari|OPR)\/(\d+)/);
+                return match ? match[2] : 'Unknown';
+            }
+
+            initializeFeatureTests() {
+                this.features = [
+                    { name: 'WebGL Support', test: () => this.testWebGL(), critical: true },
+                    { name: 'WebRTC/Webcam', test: () => this.testWebRTC(), critical: true },
+                    { name: 'Canvas 2D', test: () => this.testCanvas2D(), critical: true },
+                    { name: 'WebSockets', test: () => this.testWebSockets(), critical: true },
+                    { name: 'Local Storage', test: () => this.testLocalStorage(), critical: false },
+                    { name: 'IndexedDB', test: () => this.testIndexedDB(), critical: false },
+                    { name: 'Web Workers', test: () => this.testWebWorkers(), critical: false },
+                    { name: 'Geolocation', test: () => this.testGeolocation(), critical: false },
+                    { name: 'Device Orientation', test: () => this.testDeviceOrientation(), critical: false },
+                    { name: 'Fullscreen API', test: () => this.testFullscreen(), critical: false },
+                    { name: 'CSS Grid', test: () => this.testCSSGrid(), critical: false },
+                    { name: 'CSS Flexbox', test: () => this.testCSSFlexbox(), critical: false },
+                    { name: 'ES6 Modules', test: () => this.testES6Modules(), critical: false },
+                    { name: 'Fetch API', test: () => this.testFetchAPI(), critical: false },
+                    { name: 'WebGL2', test: () => this.testWebGL2(), critical: false },
+                    { name: 'WebAssembly', test: () => this.testWebAssembly(), critical: false }
+                ];
+            }
+
+            renderBrowserInfo() {
+                const infoElement = document.getElementById('browser-info');
+                infoElement.innerHTML = `
+                    <div><strong>Browser:</strong> ${this.browserInfo.name} ${this.browserInfo.version}</div>
+                    <div><strong>Platform:</strong> ${this.browserInfo.platform}</div>
+                    <div><strong>Language:</strong> ${this.browserInfo.language}</div>
+                    <div><strong>CPU Cores:</strong> ${this.browserInfo.hardwareConcurrency}</div>
+                    <div><strong>Device Memory:</strong> ${this.browserInfo.deviceMemory} GB</div>
+                    <div><strong>Touch Points:</strong> ${this.browserInfo.maxTouchPoints}</div>
+                    <div><strong>Online:</strong> ${this.browserInfo.onLine ? 'Yes' : 'No'}</div>
+                    <div><strong>Cookies:</strong> ${this.browserInfo.cookieEnabled ? 'Enabled' : 'Disabled'}</div>
+                `;
+            }
+
+            renderFeatures() {
+                const grid = document.getElementById('feature-grid');
+                grid.innerHTML = '';
+
+                this.features.forEach(feature => {
+                    const result = feature.test();
+                    const card = document.createElement('div');
+                    card.className = `feature-card ${result.status}`;
+                    card.innerHTML = `
+                        <div class="feature-name">${feature.name} ${feature.critical ? '(Critical)' : ''}</div>
+                        <div class="feature-status">${result.status.toUpperCase()}: ${result.message}</div>
+                        <div class="feature-details">${result.details || ''}</div>
+                    `;
+                    grid.appendChild(card);
+                });
+            }
+
+            // Feature test methods
+            testWebGL() {
+                try {
+                    const canvas = document.createElement('canvas');
+                    const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+                    if (gl) {
+                        const renderer = gl.getParameter(gl.RENDERER);
+                        const vendor = gl.getParameter(gl.VENDOR);
+                        return { status: 'supported', message: 'WebGL available', details: `${vendor} - ${renderer}` };
+                    }
+                    return { status: 'unsupported', message: 'WebGL not available' };
+                } catch (e) {
+                    return { status: 'unsupported', message: 'WebGL error', details: e.message };
+                }
+            }
+
+            testWebRTC() {
+                if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                    return { status: 'supported', message: 'WebRTC available', details: 'getUserMedia supported' };
+                } else if (navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia) {
+                    return { status: 'partial', message: 'Legacy WebRTC', details: 'Older getUserMedia API' };
+                }
+                return { status: 'unsupported', message: 'WebRTC not available' };
+            }
+
+            testCanvas2D() {
+                try {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    return ctx ? { status: 'supported', message: 'Canvas 2D available' } : { status: 'unsupported', message: 'Canvas 2D not available' };
+                } catch (e) {
+                    return { status: 'unsupported', message: 'Canvas 2D error', details: e.message };
+                }
+            }
+
+            testWebSockets() {
+                return typeof WebSocket !== 'undefined' ? 
+                    { status: 'supported', message: 'WebSockets available' } : 
+                    { status: 'unsupported', message: 'WebSockets not available' };
+            }
+
+            testLocalStorage() {
+                try {
+                    localStorage.setItem('test', 'test');
+                    localStorage.removeItem('test');
+                    return { status: 'supported', message: 'Local Storage available' };
+                } catch (e) {
+                    return { status: 'unsupported', message: 'Local Storage not available', details: e.message };
+                }
+            }
+
+            testIndexedDB() {
+                return typeof indexedDB !== 'undefined' ? 
+                    { status: 'supported', message: 'IndexedDB available' } : 
+                    { status: 'unsupported', message: 'IndexedDB not available' };
+            }
+
+            testWebWorkers() {
+                return typeof Worker !== 'undefined' ? 
+                    { status: 'supported', message: 'Web Workers available' } : 
+                    { status: 'unsupported', message: 'Web Workers not available' };
+            }
+
+            testGeolocation() {
+                return navigator.geolocation ? 
+                    { status: 'supported', message: 'Geolocation available' } : 
+                    { status: 'unsupported', message: 'Geolocation not available' };
+            }
+
+            testDeviceOrientation() {
+                return typeof DeviceOrientationEvent !== 'undefined' ? 
+                    { status: 'supported', message: 'Device Orientation available' } : 
+                    { status: 'unsupported', message: 'Device Orientation not available' };
+            }
+
+            testFullscreen() {
+                const elem = document.documentElement;
+                return (elem.requestFullscreen || elem.webkitRequestFullscreen || elem.mozRequestFullScreen || elem.msRequestFullscreen) ? 
+                    { status: 'supported', message: 'Fullscreen API available' } : 
+                    { status: 'unsupported', message: 'Fullscreen API not available' };
+            }
+
+            testCSSGrid() {
+                return CSS.supports('display', 'grid') ? 
+                    { status: 'supported', message: 'CSS Grid available' } : 
+                    { status: 'unsupported', message: 'CSS Grid not available' };
+            }
+
+            testCSSFlexbox() {
+                return CSS.supports('display', 'flex') ? 
+                    { status: 'supported', message: 'CSS Flexbox available' } : 
+                    { status: 'unsupported', message: 'CSS Flexbox not available' };
+            }
+
+            testES6Modules() {
+                try {
+                    new Function('import("")');
+                    return { status: 'supported', message: 'ES6 Modules available' };
+                } catch (e) {
+                    return { status: 'unsupported', message: 'ES6 Modules not available' };
+                }
+            }
+
+            testFetchAPI() {
+                return typeof fetch !== 'undefined' ? 
+                    { status: 'supported', message: 'Fetch API available' } : 
+                    { status: 'unsupported', message: 'Fetch API not available' };
+            }
+
+            testWebGL2() {
+                try {
+                    const canvas = document.createElement('canvas');
+                    const gl = canvas.getContext('webgl2');
+                    return gl ? { status: 'supported', message: 'WebGL2 available' } : { status: 'unsupported', message: 'WebGL2 not available' };
+                } catch (e) {
+                    return { status: 'unsupported', message: 'WebGL2 error', details: e.message };
+                }
+            }
+
+            testWebAssembly() {
+                return typeof WebAssembly !== 'undefined' ? 
+                    { status: 'supported', message: 'WebAssembly available' } : 
+                    { status: 'unsupported', message: 'WebAssembly not available' };
+            }
+
+            log(message) {
+                const logElement = document.getElementById('test-log');
+                const timestamp = new Date().toLocaleTimeString();
+                logElement.textContent += `[${timestamp}] ${message}\n`;
+                logElement.scrollTop = logElement.scrollHeight;
+            }
+
+            test(name, testFunction) {
+                try {
+                    const result = testFunction();
+                    if (result) {
+                        this.testResults.push({ name, status: 'success' });
+                        this.log(`✅ ${name}: PASSED`);
+                    } else {
+                        this.testResults.push({ name, status: 'error' });
+                        this.log(`❌ ${name}: FAILED`);
+                    }
+                } catch (error) {
+                    this.testResults.push({ name, status: 'error' });
+                    this.log(`❌ ${name}: ERROR - ${error.message}`);
+                }
+            }
+
+            startTesting() {
+                this.log('🧪 Starting browser compatibility tests...');
+                
+                this.test('Browser Detection', () => this.browserInfo.name !== 'Unknown');
+                this.test('Critical Features', () => {
+                    const criticalFeatures = this.features.filter(f => f.critical);
+                    const supportedCritical = criticalFeatures.filter(f => f.test().status === 'supported');
+                    return supportedCritical.length === criticalFeatures.length;
+                });
+                this.test('Modern Browser', () => {
+                    const modernFeatures = ['WebGL Support', 'WebRTC/Webcam', 'Fetch API', 'ES6 Modules'];
+                    const supported = modernFeatures.filter(name => {
+                        const feature = this.features.find(f => f.name === name);
+                        return feature && feature.test().status === 'supported';
+                    });
+                    return supported.length >= 3;
+                });
+
+                this.updateTestSummary();
+                this.log('🎉 Browser compatibility tests complete!');
+            }
+
+            updateTestSummary() {
+                const passed = this.testResults.filter(r => r.status === 'success').length;
+                const failed = this.testResults.filter(r => r.status === 'error').length;
+                const total = this.testResults.length;
+
+                document.getElementById('test-summary').innerHTML = `
+                    <span class="test-result success">${passed} Passed</span>
+                    <span class="test-result error">${failed} Failed</span>
+                    <span class="test-result info">${total} Total</span>
+                `;
+            }
+        }
+
+        // Global test functions
+        function runPerformanceTests() {
+            tester.log('⚡ Running performance tests...');
+            
+            // JavaScript performance test
+            const jsStart = performance.now();
+            for (let i = 0; i < 1000000; i++) {
+                Math.sqrt(i);
+            }
+            const jsTime = performance.now() - jsStart;
+            const jsScore = Math.max(0, 100 - (jsTime / 10));
+            
+            document.getElementById('js-perf-text').textContent = `${jsTime.toFixed(2)}ms`;
+            document.getElementById('js-perf-bar').style.width = jsScore + '%';
+            document.getElementById('js-perf-bar').className = `meter-fill ${jsScore > 70 ? 'good' : jsScore > 40 ? 'fair' : 'poor'}`;
+            document.getElementById('js-perf-value').textContent = Math.round(jsScore) + '%';
+            
+            tester.log(`📊 JavaScript Performance: ${jsScore.toFixed(1)}% (${jsTime.toFixed(2)}ms)`);
+        }
+
+        function testWebcamAccess() {
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                navigator.mediaDevices.getUserMedia({ video: true })
+                    .then(stream => {
+                        tester.log('📹 Webcam access: GRANTED');
+                        stream.getTracks().forEach(track => track.stop());
+                    })
+                    .catch(error => {
+                        tester.log(`📹 Webcam access: DENIED - ${error.message}`);
+                    });
+            } else {
+                tester.log('📹 Webcam access: NOT SUPPORTED');
+            }
+        }
+
+        function testWebGLSupport() {
+            const canvas = document.createElement('canvas');
+            const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+            
+            if (gl) {
+                // WebGL performance test
+                const start = performance.now();
+                const buffer = gl.createBuffer();
+                gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+                gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(10000), gl.STATIC_DRAW);
+                const time = performance.now() - start;
+                const score = Math.max(0, 100 - (time * 10));
+                
+                document.getElementById('webgl-perf-text').textContent = `${time.toFixed(2)}ms`;
+                document.getElementById('webgl-perf-bar').style.width = score + '%';
+                document.getElementById('webgl-perf-bar').className = `meter-fill ${score > 70 ? 'good' : score > 40 ? 'fair' : 'poor'}`;
+                document.getElementById('webgl-perf-value').textContent = Math.round(score) + '%';
+                
+                tester.log(`🎮 WebGL Performance: ${score.toFixed(1)}% (${time.toFixed(2)}ms)`);
+            } else {
+                tester.log('🎮 WebGL: NOT SUPPORTED');
+            }
+        }
+
+        // Initialize the tester when page loads
+        let tester;
+        window.addEventListener('load', () => {
+            tester = new BrowserCompatibilityTester();
+        });
+    </script>
+</body>
+</html>

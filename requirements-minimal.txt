@@ -1,0 +1,19 @@
+# RC Sandbox - Minimal Dependencies for Beginners (Updated 2025-06-27)
+# Install with: pip install -r requirements-minimal.txt
+# This installs only the essential packages for basic functionality
+
+# Essential packages only (Updated to latest stable versions)
+psutil>=7.0.0
+PyYAML>=6.0.2
+
+# Basic web server for enhanced HTML demo
+flask>=3.1.0
+flask-cors>=5.0.0
+
+# Basic utilities
+requests>=2.32.0
+click>=8.1.0
+
+# Note: For full functionality, use requirements.txt instead
+# The HTML demo (rc_sandbox_clean/index.html) requires NO installation!
+# New: Basic web server support for enhanced features

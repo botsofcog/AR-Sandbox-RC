@@ -1,0 +1,21 @@
+# Core dependencies for AR Sandbox
+numpy>=1.21.0
+opencv-python>=4.5.0
+pygame>=2.1.0
+matplotlib>=3.5.0
+scipy>=1.7.0
+
+# Kinect support
+# Note: libfreenect needs to be installed separately
+# On Ubuntu/Debian: sudo apt-get install libfreenect-dev python3-freenect
+# On Windows: Install from https://github.com/OpenKinect/libfreenect
+freenect>=0.5.0
+
+# Additional utilities
+Pillow>=8.3.0
+scikit-image>=0.18.0
+PyYAML>=5.4.0
+
+# Optional: For advanced graphics
+PyOpenGL>=3.1.0
+PyOpenGL-accelerate>=3.1.0

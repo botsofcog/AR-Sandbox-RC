@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #1a1a1a;
+            color: white;
+            font-family: Arial, sans-serif;
+        }
+        
+        #status {
+            padding: 20px;
+            background: #333;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        #terrain-canvas {
+            border: 2px solid #555;
+            cursor: crosshair;
+        }
+    </style>
+</head>
+<body>
+    <div id="status">
+        <h1>AR Sandbox Test</h1>
+        <p id="status-text">Loading...</p>
+    </div>
+    
+    <canvas id="terrain-canvas" width="800" height="600"></canvas>
+    
+    <script>
+        console.log('Starting simple test...');
+        
+        // Simple terrain engine
+        class SimpleTerrainEngine {
+            constructor() {
+                this.canvas = document.getElementById('terrain-canvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.width = 200;
+                this.height = 150;
+                this.scale = 4;
+                this.heightMap = new Float32Array(this.width * this.height);
+                this.isDrawing = false;
+                
+                this.initializeTerrain();
+                this.setupEvents();
+                this.startRender();
+            }
+            
+            initializeTerrain() {
+                for (let y = 0; y < this.height; y++) {
+                    for (let x = 0; x < this.width; x++) {
+                        const index = y * this.width + x;
+                        const noise = Math.sin(x * 0.1) * Math.cos(y * 0.1) * 0.5 + 0.5;
+                        this.heightMap[index] = noise;
+                    }
+                }
+                console.log('Terrain initialized');
+            }
+            
+            setupEvents() {
+                this.canvas.addEventListener('mousedown', (e) => {
+                    this.isDrawing = true;
+                    this.modifyTerrain(e);
+                });
+                
+                this.canvas.addEventListener('mousemove', (e) => {
+                    if (this.isDrawing) {
+                        this.modifyTerrain(e);
+                    }
+                });
+                
+                this.canvas.addEventListener('mouseup', () => {
+                    this.isDrawing = false;
+                });
+                
+                console.log('Events setup');
+            }
+            
+            modifyTerrain(e) {
+                const rect = this.canvas.getBoundingClientRect();
+                const x = Math.floor((e.clientX - rect.left) / this.scale);
+                const y = Math.floor((e.clientY - rect.top) / this.scale);
+                
+                const brushSize = 10;
+                const strength = 0.02;
+                
+                for (let dy = -brushSize; dy <= brushSize; dy++) {
+                    for (let dx = -brushSize; dx <= brushSize; dx++) {
+                        const nx = x + dx;
+                        const ny = y + dy;
+                        
+                        if (nx >= 0 && nx < this.width && ny >= 0 && ny < this.height) {
+                            const distance = Math.sqrt(dx * dx + dy * dy);
+                            if (distance <= brushSize) {
+                                const falloff = 1 - (distance / brushSize);
+                                const effect = strength * falloff;
+                                const index = ny * this.width + nx;
+                                
+                                if (e.shiftKey) {
+                                    this.heightMap[index] = Math.max(0, this.heightMap[index] - effect);
+                                } else {
+                                    this.heightMap[index] = Math.min(1, this.heightMap[index] + effect);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            render() {
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                const imageData = this.ctx.createImageData(this.canvas.width, this.canvas.height);
+                const data = imageData.data;
+                
+                for (let y = 0; y < this.height; y++) {
+                    for (let x = 0; x < this.width; x++) {
+                        const index = y * this.width + x;
+                        const height = this.heightMap[index];
+                        
+                        // Color based on height
+                        let r, g, b;
+                        if (height < 0.3) {
+                            // Water - blue
+                            r = 0;
+                            g = 100;
+                            b = 200;
+                        } else if (height < 0.6) {
+                            // Sand - tan
+                            r = 194;
+                            g = 178;
+                            b = 128;
+                        } else if (height < 0.8) {
+                            // Grass - green
+                            r = 34;
+                            g = 139;
+                            b = 34;
+                        } else {
+                            // Rock - gray
+                            r = 105;
+                            g = 105;
+                            b = 105;
+                        }
+                        
+                        // Apply height-based shading
+                        const shade = 0.5 + height * 0.5;
+                        r = Math.floor(r * shade);
+                        g = Math.floor(g * shade);
+                        b = Math.floor(b * shade);
+                        
+                        // Draw scaled pixel
+                        for (let sy = 0; sy < this.scale; sy++) {
+                            for (let sx = 0; sx < this.scale; sx++) {
+                                const pixelIndex = ((y * this.scale + sy) * this.canvas.width + (x * this.scale + sx)) * 4;
+                                data[pixelIndex] = r;
+                                data[pixelIndex + 1] = g;
+                                data[pixelIndex + 2] = b;
+                                data[pixelIndex + 3] = 255;
+                            }
+                        }
+                    }
+                }
+                
+                this.ctx.putImageData(imageData, 0, 0);
+            }
+            
+            startRender() {
+                const loop = () => {
+                    this.render();
+                    requestAnimationFrame(loop);
+                };
+                requestAnimationFrame(loop);
+                console.log('Render loop started');
+            }
+        }
+        
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('DOM loaded, initializing terrain...');
+            document.getElementById('status-text').textContent = 'Initializing terrain...';
+            
+            try {
+                const terrain = new SimpleTerrainEngine();
+                document.getElementById('status-text').textContent = 'Ready! Click and drag to modify terrain. Hold Shift to lower.';
+                console.log('Terrain engine initialized successfully');
+            } catch (error) {
+                console.error('Failed to initialize terrain:', error);
+                document.getElementById('status-text').textContent = 'Error: ' + error.message;
+            }
+        });
+    </script>
+</body>
+</html>

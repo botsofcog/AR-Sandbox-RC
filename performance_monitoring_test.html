@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AR Sandbox RC - Performance Monitoring Test</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: #ffffff;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .test-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .test-section {
+            background: rgba(30,30,30,0.85);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.6);
+            border: 2px solid rgba(255,255,255,0.1);
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .metric-card {
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+            padding: 15px;
+            border: 2px solid rgba(255,255,255,0.2);
+            text-align: center;
+        }
+
+        .metric-card.excellent {
+            border-color: #4CAF50;
+            background: rgba(76,175,80,0.2);
+        }
+
+        .metric-card.good {
+            border-color: #8BC34A;
+            background: rgba(139,195,74,0.2);
+        }
+
+        .metric-card.fair {
+            border-color: #ff9800;
+            background: rgba(255,152,0,0.2);
+        }
+
+        .metric-card.poor {
+            border-color: #f44336;
+            background: rgba(244,67,54,0.2);
+        }
+
+        .metric-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #E0C32A;
+            margin-bottom: 5px;
+        }
+
+        .metric-label {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        .metric-target {
+            font-size: 0.8rem;
+            margin-top: 5px;
+            opacity: 0.6;
+        }
+
+        button {
+            background: #E0C32A;
+            border: none;
+            color: #000;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            margin: 5px;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            background: #f0d040;
+            transform: scale(1.05);
+        }
+
+        .test-result {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 4px;
+            margin: 4px;
+            font-weight: bold;
+        }
+        .success { background: #4CAF50; color: white; }
+        .error { background: #f44336; color: white; }
+        .warning { background: #ff9800; color: white; }
+        .info { background: #2196F3; color: white; }
+
+        #test-log {
+            background: #000;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        
+        .test-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .test-section {
+            background: rgba(30,30,30,0.85);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.6);
+            border: 2px solid rgba(255,255,255,0.1);
+        }
+        
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .metric-card {
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+            padding: 15px;
+            border: 2px solid rgba(255,255,255,0.2);
+            text-align: center;
+        }
+        
+        .metric-card.excellent {
+            border-color: #4CAF50;
+            background: rgba(76,175,80,0.2);
+        }
+        
+        .metric-card.good {
+            border-color: #8BC34A;
+            background: rgba(139,195,74,0.2);
+        }
+        
+        .metric-card.fair {
+            border-color: #ff9800;
+            background: rgba(255,152,0,0.2);
+        }
+        
+        .metric-card.poor {
+            border-color: #f44336;
+            background: rgba(244,67,54,0.2);
+        }
+        
+        .metric-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #E0C32A;
+            margin-bottom: 5px;
+        }
+        
+        .metric-label {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+        
+        .metric-target {
+            font-size: 0.8rem;
+            margin-top: 5px;
+            opacity: 0.6;
+        }
+        
+        .performance-chart {
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            height: 200px;
+            position: relative;
+        }
+        
+        .chart-canvas {
+            width: 100%;
+            height: 100%;
+            border-radius: 5px;
+        }
+        
+        .monitoring-panel {
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        .status-excellent { background: #4CAF50; }
+        .status-good { background: #8BC34A; }
+        .status-fair { background: #ff9800; }
+        .status-poor { background: #f44336; }
+        
+        button {
+            background: #E0C32A;
+            border: none;
+            color: #000;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            margin: 5px;
+            transition: all 0.2s;
+        }
+        
+        button:hover {
+            background: #f0d040;
+            transform: scale(1.05);
+        }
+        
+        .test-result {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 4px;
+            margin: 4px;
+            font-weight: bold;
+        }
+        .success { background: #4CAF50; color: white; }
+        .error { background: #f44336; color: white; }
+        .warning { background: #ff9800; color: white; }
+        .info { background: #2196F3; color: white; }
+        
+        #test-log {
+            background: #000;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        
+        .memory-usage {
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        
+        .memory-bar {
+            background: rgba(255,255,255,0.2);
+            border-radius: 10px;
+            height: 20px;
+            position: relative;
+            margin: 10px 0;
+        }
+        
+        .memory-fill {
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.3s ease;
+        }
+        
+        .memory-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 12px;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>⚡ AR Sandbox RC - Performance Monitoring Test</h1>
+        <p>Real-time performance monitoring and optimization testing...</p>
+        
+        <div class="test-section">
+            <h2>📊 Test Results</h2>
+            <div id="test-summary"></div>
+            <div id="test-log"></div>
+        </div>
+        
+        <div class="test-section">
+            <h2>🎯 Performance Targets</h2>
+            <div class="metrics-grid" id="metrics-grid">
+                <!-- Metrics will be populated here -->
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>📈 Real-Time Performance Chart</h2>
+            <div class="performance-chart">
+                <canvas id="performance-chart" class="chart-canvas"></canvas>
+            </div>
+            <div style="text-align: center; margin: 20px 0;">
+                <button onclick="startMonitoring()">Start Monitoring</button>
+                <button onclick="stopMonitoring()">Stop Monitoring</button>
+                <button onclick="runStressTest()">Run Stress Test</button>
+                <button onclick="optimizePerformance()">Optimize Performance</button>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>💾 Memory Usage</h2>
+            <div class="memory-usage">
+                <div>Heap Used: <span id="heap-used">0</span> MB</div>
+                <div class="memory-bar">
+                    <div class="memory-fill" id="heap-bar" style="width: 0%"></div>
+                    <div class="memory-text" id="heap-text">0%</div>
+                </div>
+                
+                <div>Heap Total: <span id="heap-total">0</span> MB</div>
+                <div class="memory-bar">
+                    <div class="memory-fill" id="total-bar" style="width: 0%"></div>
+                    <div class="memory-text" id="total-text">0%</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>🔍 System Monitoring</h2>
+            <div class="monitoring-panel" id="monitoring-panel">
+                <!-- Monitoring data will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Performance Monitoring Test System
+        class PerformanceMonitor {
+            constructor() {
+                this.testResults = [];
+                this.isMonitoring = false;
+                this.performanceData = [];
+                this.frameCount = 0;
+                this.lastTime = performance.now();
+                this.fpsHistory = [];
+                this.memoryHistory = [];
+                
+                this.targets = {
+                    fps: { min: 30, target: 60, current: 0 },
+                    latency: { max: 50, target: 20, current: 0 },
+                    memory: { max: 512, target: 256, current: 0 },
+                    loadTime: { max: 5000, target: 2000, current: 0 },
+                    renderTime: { max: 16.67, target: 8.33, current: 0 },
+                    jsHeap: { max: 100, target: 50, current: 0 }
+                };
+                
+                this.initializeChart();
+                this.renderMetrics();
+                this.startTesting();
+                this.updateMemoryUsage();
+            }
+
+            initializeChart() {
+                this.canvas = document.getElementById('performance-chart');
+                this.ctx = this.canvas.getContext('2d');
+                this.canvas.width = this.canvas.offsetWidth;
+                this.canvas.height = this.canvas.offsetHeight;
+            }
+
+            renderMetrics() {
+                const grid = document.getElementById('metrics-grid');
+                grid.innerHTML = '';
+
+                Object.entries(this.targets).forEach(([key, target]) => {
+                    const card = document.createElement('div');
+                    const status = this.getPerformanceStatus(key, target);
+                    card.className = `metric-card ${status}`;
+                    card.innerHTML = `
+                        <div class="metric-value" id="${key}-value">${target.current.toFixed(1)}</div>
+                        <div class="metric-label">${this.getMetricLabel(key)}</div>
+                        <div class="metric-target">Target: ${this.getTargetText(key, target)}</div>
+                    `;
+                    grid.appendChild(card);
+                });
+            }
+
+            getMetricLabel(key) {
+                const labels = {
+                    fps: 'FPS',
+                    latency: 'Latency (ms)',
+                    memory: 'Memory (MB)',
+                    loadTime: 'Load Time (ms)',
+                    renderTime: 'Render Time (ms)',
+                    jsHeap: 'JS Heap (MB)'
+                };
+                return labels[key] || key;
+            }
+
+            getTargetText(key, target) {
+                if (target.min !== undefined) return `${target.min}+ (${target.target})`;
+                if (target.max !== undefined) return `<${target.max} (${target.target})`;
+                return target.target;
+            }
+
+            getPerformanceStatus(key, target) {
+                const current = target.current;
+                
+                if (key === 'fps') {
+                    if (current >= target.target) return 'excellent';
+                    if (current >= target.min) return 'good';
+                    if (current >= target.min * 0.8) return 'fair';
+                    return 'poor';
+                } else {
+                    // For metrics where lower is better
+                    if (current <= target.target) return 'excellent';
+                    if (current <= target.target * 1.5) return 'good';
+                    if (current <= target.max) return 'fair';
+                    return 'poor';
+                }
+            }
+
+            updateMetrics() {
+                // Calculate FPS
+                const now = performance.now();
+                const deltaTime = now - this.lastTime;
+                this.frameCount++;
+                
+                if (deltaTime >= 1000) {
+                    this.targets.fps.current = (this.frameCount * 1000) / deltaTime;
+                    this.fpsHistory.push(this.targets.fps.current);
+                    if (this.fpsHistory.length > 60) this.fpsHistory.shift();
+                    
+                    this.frameCount = 0;
+                    this.lastTime = now;
+                }
+
+                // Calculate latency (simulated)
+                this.targets.latency.current = Math.random() * 30 + 10;
+
+                // Calculate render time
+                this.targets.renderTime.current = deltaTime / this.frameCount || 0;
+
+                // Update memory if available
+                if (performance.memory) {
+                    this.targets.memory.current = performance.memory.usedJSHeapSize / (1024 * 1024);
+                    this.targets.jsHeap.current = performance.memory.totalJSHeapSize / (1024 * 1024);
+                }
+
+                // Update UI
+                Object.entries(this.targets).forEach(([key, target]) => {
+                    const element = document.getElementById(`${key}-value`);
+                    if (element) {
+                        element.textContent = target.current.toFixed(1);
+                        const card = element.closest('.metric-card');
+                        if (card) {
+                            card.className = `metric-card ${this.getPerformanceStatus(key, target)}`;
+                        }
+                    }
+                });
+            }
+
+            updateMemoryUsage() {
+                if (performance.memory) {
+                    const used = performance.memory.usedJSHeapSize / (1024 * 1024);
+                    const total = performance.memory.totalJSHeapSize / (1024 * 1024);
+                    const limit = performance.memory.jsHeapSizeLimit / (1024 * 1024);
+                    
+                    document.getElementById('heap-used').textContent = used.toFixed(1);
+                    document.getElementById('heap-total').textContent = total.toFixed(1);
+                    
+                    const usedPercent = (used / limit) * 100;
+                    const totalPercent = (total / limit) * 100;
+                    
+                    document.getElementById('heap-bar').style.width = usedPercent + '%';
+                    document.getElementById('heap-text').textContent = usedPercent.toFixed(1) + '%';
+                    document.getElementById('total-bar').style.width = totalPercent + '%';
+                    document.getElementById('total-text').textContent = totalPercent.toFixed(1) + '%';
+                    
+                    // Color coding
+                    const heapBar = document.getElementById('heap-bar');
+                    heapBar.className = `memory-fill ${usedPercent > 80 ? 'poor' : usedPercent > 60 ? 'fair' : 'good'}`;
+                }
+                
+                setTimeout(() => this.updateMemoryUsage(), 1000);
+            }
+
+            drawChart() {
+                if (!this.isMonitoring || this.fpsHistory.length === 0) return;
+                
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                // Draw grid
+                this.ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+                this.ctx.lineWidth = 1;
+                
+                for (let i = 0; i <= 10; i++) {
+                    const y = (i / 10) * this.canvas.height;
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(0, y);
+                    this.ctx.lineTo(this.canvas.width, y);
+                    this.ctx.stroke();
+                }
+                
+                // Draw FPS line
+                this.ctx.strokeStyle = '#4CAF50';
+                this.ctx.lineWidth = 2;
+                this.ctx.beginPath();
+                
+                const maxFPS = 60;
+                this.fpsHistory.forEach((fps, index) => {
+                    const x = (index / (this.fpsHistory.length - 1)) * this.canvas.width;
+                    const y = this.canvas.height - (fps / maxFPS) * this.canvas.height;
+                    
+                    if (index === 0) {
+                        this.ctx.moveTo(x, y);
+                    } else {
+                        this.ctx.lineTo(x, y);
+                    }
+                });
+                
+                this.ctx.stroke();
+                
+                // Draw target line
+                this.ctx.strokeStyle = '#E0C32A';
+                this.ctx.lineWidth = 1;
+                this.ctx.setLineDash([5, 5]);
+                const targetY = this.canvas.height - (30 / maxFPS) * this.canvas.height;
+                this.ctx.beginPath();
+                this.ctx.moveTo(0, targetY);
+                this.ctx.lineTo(this.canvas.width, targetY);
+                this.ctx.stroke();
+                this.ctx.setLineDash([]);
+            }
+
+            updateMonitoringPanel() {
+                const panel = document.getElementById('monitoring-panel');
+                const now = new Date();
+                
+                panel.innerHTML = `
+                    <div><span class="status-indicator status-excellent"></span>System Status: Operational</div>
+                    <div><span class="status-indicator status-good"></span>Last Update: ${now.toLocaleTimeString()}</div>
+                    <div><span class="status-indicator status-fair"></span>Active Monitors: ${this.isMonitoring ? 'Running' : 'Stopped'}</div>
+                    <div><span class="status-indicator status-excellent"></span>Data Points: ${this.fpsHistory.length}</div>
+                `;
+            }
+
+            log(message) {
+                const logElement = document.getElementById('test-log');
+                const timestamp = new Date().toLocaleTimeString();
+                logElement.textContent += `[${timestamp}] ${message}\n`;
+                logElement.scrollTop = logElement.scrollHeight;
+            }
+
+            test(name, testFunction) {
+                try {
+                    const result = testFunction();
+                    if (result) {
+                        this.testResults.push({ name, status: 'success' });
+                        this.log(`✅ ${name}: PASSED`);
+                    } else {
+                        this.testResults.push({ name, status: 'error' });
+                        this.log(`❌ ${name}: FAILED`);
+                    }
+                } catch (error) {
+                    this.testResults.push({ name, status: 'error' });
+                    this.log(`❌ ${name}: ERROR - ${error.message}`);
+                }
+            }
+
+            startTesting() {
+                this.log('🧪 Starting performance monitoring tests...');
+                
+                this.test('Performance API', () => typeof performance !== 'undefined');
+                this.test('Memory API', () => performance.memory !== undefined);
+                this.test('High Resolution Time', () => typeof performance.now === 'function');
+                this.test('Frame Rate Monitoring', () => typeof requestAnimationFrame === 'function');
+                this.test('Canvas Rendering', () => {
+                    const canvas = document.createElement('canvas');
+                    return canvas.getContext('2d') !== null;
+                });
+
+                this.updateTestSummary();
+                this.log('🎉 Performance monitoring tests complete!');
+            }
+
+            updateTestSummary() {
+                const passed = this.testResults.filter(r => r.status === 'success').length;
+                const failed = this.testResults.filter(r => r.status === 'error').length;
+                const total = this.testResults.length;
+
+                document.getElementById('test-summary').innerHTML = `
+                    <span class="test-result success">${passed} Passed</span>
+                    <span class="test-result error">${failed} Failed</span>
+                    <span class="test-result info">${total} Total</span>
+                `;
+            }
+
+            startMonitoring() {
+                this.isMonitoring = true;
+                this.log('📊 Performance monitoring started');
+                this.monitorLoop();
+            }
+
+            stopMonitoring() {
+                this.isMonitoring = false;
+                this.log('⏹️ Performance monitoring stopped');
+            }
+
+            monitorLoop() {
+                if (!this.isMonitoring) return;
+                
+                this.updateMetrics();
+                this.drawChart();
+                this.updateMonitoringPanel();
+                
+                requestAnimationFrame(() => this.monitorLoop());
+            }
+
+            runStressTest() {
+                this.log('🔥 Running stress test...');
+                
+                // CPU stress test
+                const start = performance.now();
+                for (let i = 0; i < 1000000; i++) {
+                    Math.sqrt(Math.random() * 1000);
+                }
+                const cpuTime = performance.now() - start;
+                
+                // Memory stress test
+                const arrays = [];
+                for (let i = 0; i < 100; i++) {
+                    arrays.push(new Array(10000).fill(Math.random()));
+                }
+                
+                this.log(`🔥 Stress test complete: CPU ${cpuTime.toFixed(2)}ms`);
+                
+                // Clean up
+                setTimeout(() => {
+                    arrays.length = 0;
+                    if (window.gc) window.gc(); // Force garbage collection if available
+                }, 1000);
+            }
+
+            optimizePerformance() {
+                this.log('⚡ Running performance optimizations...');
+                
+                // Clear old data
+                if (this.fpsHistory.length > 60) {
+                    this.fpsHistory = this.fpsHistory.slice(-30);
+                }
+                
+                // Force garbage collection if available
+                if (window.gc) {
+                    window.gc();
+                    this.log('🗑️ Garbage collection triggered');
+                }
+                
+                // Optimize canvas
+                this.canvas.width = this.canvas.offsetWidth;
+                this.canvas.height = this.canvas.offsetHeight;
+                
+                this.log('⚡ Performance optimization complete');
+            }
+        }
+
+        // Global functions
+        function startMonitoring() {
+            monitor.startMonitoring();
+        }
+
+        function stopMonitoring() {
+            monitor.stopMonitoring();
+        }
+
+        function runStressTest() {
+            monitor.runStressTest();
+        }
+
+        function optimizePerformance() {
+            monitor.optimizePerformance();
+        }
+
+        // Initialize the monitor when page loads
+        let monitor;
+        window.addEventListener('load', () => {
+            monitor = new PerformanceMonitor();
+        });
+    </script>
+</body>
+</html>

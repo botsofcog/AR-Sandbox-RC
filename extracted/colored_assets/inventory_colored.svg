@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400">
+  <rect x="0" y="0" width="400" height="400" rx="20" fill="#F39C12"/>
+  <text x="200" y="60" fill="#FFFFFF" font-family="Arial" font-size="36" text-anchor="middle">INVENTORY</text>
+  <g fill="#D35400" stroke="#FFFFFF" stroke-width="4">
+    <rect x="50" y="100" width="60" height="60" rx="8"/>
+    <rect x="150" y="100" width="60" height="60" rx="8"/>
+    <rect x="250" y="100" width="60" height="60" rx="8"/>
+    <rect x="50" y="200" width="60" height="60" rx="8"/>
+    <rect x="150" y="200" width="60" height="60" rx="8"/>
+    <rect x="250" y="200" width="60" height="60" rx="8"/>
+  </g>
+</svg>

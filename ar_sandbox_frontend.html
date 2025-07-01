@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RC Sandbox - Professional AR System</title>
+    <style>
+        body { margin: 0; background: #000; font-family: Arial, sans-serif; }
+        #container { position: relative; width: 100vw; height: 100vh; }
+        #terrain-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+        .hud { position: absolute; background: rgba(30,30,30,0.8); color: white; padding: 10px; border-radius: 5px; }
+        #status { top: 20px; left: 20px; }
+        #vehicles { top: 20px; right: 20px; }
+        .vehicle { margin: 5px 0; padding: 5px; background: rgba(0,100,0,0.3); border-radius: 3px; }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <canvas id="terrain-canvas"></canvas>
+        <div id="status" class="hud">
+            <h3>🏗️ RC Sandbox Status</h3>
+            <div>Connection: <span id="connection-status">Connecting...</span></div>
+            <div>Terrain Updates: <span id="terrain-updates">0</span></div>
+            <div>FPS: <span id="fps">0</span></div>
+        </div>
+        <div id="vehicles" class="hud">
+            <h3>🚛 RC Vehicles</h3>
+            <div id="vehicle-list"></div>
+        </div>
+    </div>
+    
+    <script>
+        const canvas = document.getElementById('terrain-canvas');
+        const ctx = canvas.getContext('2d');
+        let terrainData = null;
+        let vehicleData = null;
+        let frameCount = 0;
+        let lastTime = Date.now();
+        
+        // Resize canvas
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+        
+        // WebSocket connection
+        const ws = new WebSocket('ws://localhost:8765');
+        
+        ws.onopen = () => {
+            document.getElementById('connection-status').textContent = 'Connected';
+            console.log('Connected to AR Sandbox server');
+        };
+        
+        ws.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+
+            if (data.type === 'frame_data' && data.mesh_data) {
+                terrainData = data.mesh_data;
+                document.getElementById('terrain-updates').textContent = parseInt(document.getElementById('terrain-updates').textContent) + 1;
+
+                // Handle topography data if available
+                if (data.topography && data.topography.ai_metadata) {
+                    updateAIStatus(data.topography.ai_metadata);
+                }
+            } else if (data.type === 'terrain_mesh') {
+                // Legacy support
+                terrainData = data;
+                document.getElementById('terrain-updates').textContent = parseInt(document.getElementById('terrain-updates').textContent) + 1;
+            } else if (data.type === 'vehicle_telemetry') {
+                vehicleData = data;
+                updateVehicleDisplay();
+            }
+        };
+        
+        ws.onclose = () => {
+            document.getElementById('connection-status').textContent = 'Disconnected';
+        };
+        
+        // Render terrain
+        function renderTerrain() {
+            if (!terrainData) return;
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            const cellW = canvas.width / terrainData.width;
+            const cellH = canvas.height / terrainData.height;
+            
+            for (let y = 0; y < terrainData.height; y++) {
+                for (let x = 0; x < terrainData.width; x++) {
+                    const idx = y * terrainData.width + x;
+                    const height = terrainData.data[idx];
+                    
+                    // Color based on height (topographic)
+                    let color;
+                    if (height < 20) {
+                        color = `rgb(0, ${100 + height * 3}, 255)`; // Water/low
+                    } else if (height < 40) {
+                        color = `rgb(${194}, ${178}, 128)`; // Sand
+                    } else if (height < 60) {
+                        color = `rgb(34, ${139}, 34)`; // Grass
+                    } else {
+                        color = `rgb(${139}, 69, 19)`; // Rock
+                    }
+                    
+                    ctx.fillStyle = color;
+                    ctx.fillRect(x * cellW, y * cellH, cellW, cellH);
+                }
+            }
+            
+            // Render vehicles
+            if (vehicleData) {
+                for (const [id, vehicle] of Object.entries(vehicleData.vehicles)) {
+                    const x = (vehicle.x / 100) * canvas.width;
+                    const y = (vehicle.y / 75) * canvas.height;
+                    
+                    ctx.fillStyle = '#FF0000';
+                    ctx.fillRect(x - 5, y - 5, 10, 10);
+                    
+                    ctx.fillStyle = '#FFFFFF';
+                    ctx.font = '12px Arial';
+                    ctx.fillText(id, x + 8, y + 4);
+                }
+            }
+        }
+        
+        // Update vehicle display
+        function updateVehicleDisplay() {
+            if (!vehicleData) return;
+            
+            const list = document.getElementById('vehicle-list');
+            list.innerHTML = '';
+            
+            for (const [id, vehicle] of Object.entries(vehicleData.vehicles)) {
+                const div = document.createElement('div');
+                div.className = 'vehicle';
+                div.innerHTML = `
+                    <strong>${id}</strong> (${vehicle.type})<br>
+                    Position: ${vehicle.x.toFixed(1)}, ${vehicle.y.toFixed(1)}<br>
+                    Speed: ${vehicle.speed} | Rotation: ${vehicle.rotation.toFixed(0)}°
+                `;
+                list.appendChild(div);
+            }
+        }
+        
+        // Animation loop
+        function animate() {
+            renderTerrain();
+            
+            frameCount++;
+            const now = Date.now();
+            if (now - lastTime >= 1000) {
+                document.getElementById('fps').textContent = frameCount;
+                frameCount = 0;
+                lastTime = now;
+
+                // Request new frame data
+                if (ws.readyState === WebSocket.OPEN) {
+                    ws.send(JSON.stringify({
+                        type: 'get_frame',
+                        include_topography: true
+                    }));
+                }
+            }
+        }
+
+        function updateAIStatus(aiMetadata) {
+            const statusEl = document.getElementById('status');
+            if (aiMetadata.terrain_stats) {
+                const stats = aiMetadata.terrain_stats;
+                statusEl.innerHTML += `<div>🏔️ Elevation: ${stats.min_elevation.toFixed(2)}-${stats.max_elevation.toFixed(2)}</div>`;
+            }
+            if (aiMetadata.features && aiMetadata.features.peaks) {
+                statusEl.innerHTML += `<div>⛰️ Peaks: ${aiMetadata.features.peaks.count}</div>`;
+            }
+            
+            requestAnimationFrame(animate);
+        }
+        
+        animate();
+        console.log('🏗️ RC Sandbox Professional AR System loaded');
+    </script>
+</body>
+</html>

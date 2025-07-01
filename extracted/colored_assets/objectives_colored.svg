@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400">
+  <rect x="0" y="0" width="400" height="400" rx="20" fill="#16A085"/>
+  <text x="200" y="60" fill="#FFFFFF" font-family="Arial" font-size="36" text-anchor="middle">OBJECTIVES</text>
+  <g transform="translate(50,120)" fill="#F1C40F" stroke="#FFFFFF" stroke-width="4">
+    <circle cx="0" cy="0" r="20"/>
+    <rect x="40" y="-15" width="280" height="30" rx="15"/>
+    <circle cx="0" cy="80" r="20"/>
+    <rect x="40" y="65" width="280" height="30" rx="15"/>
+    <circle cx="0" cy="160" r="20"/>
+    <rect x="40" y="145" width="280" height="30" rx="15"/>
+  </g>
+</svg>

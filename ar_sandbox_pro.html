@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AR Sandbox Pro - Commercial Edition</title>
+    <link rel="stylesheet" href="css/ar-sandbox-pro.css">
+    <link rel="stylesheet" href="css/professional-ui.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div id="loadingScreen" class="loading-screen">
+        <div class="loading-content">
+            <div class="logo">
+                <h1>AR Sandbox Pro</h1>
+                <p>Professional Interactive Learning Platform</p>
+            </div>
+            <div class="loading-bar">
+                <div class="loading-progress" id="loadingProgress"></div>
+            </div>
+            <div class="loading-text" id="loadingText">Initializing system...</div>
+        </div>
+    </div>
+
+    <!-- Main Application -->
+    <div id="app" class="app-container" style="display: none;">
+        <!-- Header Bar -->
+        <header class="header-bar">
+            <div class="header-left">
+                <div class="logo-small">AR Sandbox Pro</div>
+                <div class="session-info">
+                    <span id="sessionName">New Session</span>
+                    <span class="separator">•</span>
+                    <span id="userCount">1 user</span>
+                </div>
+            </div>
+            <div class="header-center">
+                <div class="mode-selector">
+                    <button class="mode-btn active" data-mode="construction">🏗️ Construction</button>
+                    <button class="mode-btn" data-mode="geology">🌋 Geology</button>
+                    <button class="mode-btn" data-mode="hydrology">💧 Hydrology</button>
+                    <button class="mode-btn" data-mode="education">📚 Education</button>
+                </div>
+            </div>
+            <div class="header-right">
+                <button class="header-btn" id="settingsBtn">⚙️</button>
+                <button class="header-btn" id="helpBtn">❓</button>
+                <button class="header-btn" id="fullscreenBtn">⛶</button>
+            </div>
+        </header>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Sidebar -->
+            <aside class="sidebar">
+                <div class="tool-panel">
+                    <h3>Tools</h3>
+                    <div class="tool-grid">
+                        <button class="tool-btn active" data-tool="terrain" title="Terrain Sculpting">
+                            <span class="tool-icon">🏔️</span>
+                            <span class="tool-label">Terrain</span>
+                        </button>
+                        <button class="tool-btn" data-tool="water" title="Water Systems">
+                            <span class="tool-icon">💧</span>
+                            <span class="tool-label">Water</span>
+                        </button>
+                        <button class="tool-btn" data-tool="structures" title="Build Structures">
+                            <span class="tool-icon">🏗️</span>
+                            <span class="tool-label">Build</span>
+                        </button>
+                        <button class="tool-btn" data-tool="measure" title="Measurement Tools">
+                            <span class="tool-icon">📏</span>
+                            <span class="tool-label">Measure</span>
+                        </button>
+                        <button class="tool-btn" data-tool="vehicles" title="Construction Vehicles">
+                            <span class="tool-icon">🚛</span>
+                            <span class="tool-label">Vehicles</span>
+                        </button>
+                        <button class="tool-btn" data-tool="analysis" title="Terrain Analysis">
+                            <span class="tool-icon">📊</span>
+                            <span class="tool-label">Analysis</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="properties-panel">
+                    <h3>Properties</h3>
+                    <div id="toolProperties" class="properties-content">
+                        <!-- Dynamic tool properties will be inserted here -->
+                    </div>
+                </div>
+
+                <div class="project-panel">
+                    <h3>Project</h3>
+                    <div class="project-actions">
+                        <button class="action-btn primary">💾 Save</button>
+                        <button class="action-btn">📁 Load</button>
+                        <button class="action-btn">📤 Export</button>
+                        <button class="action-btn danger">🗑️ Clear</button>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Canvas Area -->
+            <div class="canvas-container">
+                <canvas id="mainCanvas" class="main-canvas"></canvas>
+                <video id="webcamVideo" class="webcam-video" autoplay muted playsinline></video>
+                
+                <!-- Overlay UI -->
+                <div class="canvas-overlay">
+                    <!-- Status Bar -->
+                    <div class="status-bar">
+                        <div class="status-item">
+                            <span class="status-label">FPS:</span>
+                            <span class="status-value" id="fpsCounter">60</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="status-label">Users:</span>
+                            <span class="status-value" id="activeUsers">1</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="status-label">Depth:</span>
+                            <span class="status-value" id="depthStatus">Connected</span>
+                        </div>
+                    </div>
+
+                    <!-- Measurement Display -->
+                    <div class="measurement-display" id="measurementDisplay" style="display: none;">
+                        <div class="measurement-item">
+                            <span class="measurement-label">Height:</span>
+                            <span class="measurement-value" id="heightValue">--</span>
+                        </div>
+                        <div class="measurement-item">
+                            <span class="measurement-label">Slope:</span>
+                            <span class="measurement-value" id="slopeValue">--</span>
+                        </div>
+                        <div class="measurement-item">
+                            <span class="measurement-label">Area:</span>
+                            <span class="measurement-value" id="areaValue">--</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel -->
+            <aside class="right-panel">
+                <div class="lesson-panel">
+                    <h3>Learning Module</h3>
+                    <div class="lesson-content">
+                        <div class="lesson-title" id="lessonTitle">Construction Basics</div>
+                        <div class="lesson-description" id="lessonDescription">
+                            Learn the fundamentals of construction and terrain management.
+                        </div>
+                        <div class="lesson-progress">
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="lessonProgress" style="width: 0%"></div>
+                            </div>
+                            <span class="progress-text">0% Complete</span>
+                        </div>
+                        <div class="lesson-objectives">
+                            <h4>Objectives:</h4>
+                            <ul id="objectivesList">
+                                <li>Create a level foundation</li>
+                                <li>Build proper drainage</li>
+                                <li>Place structures correctly</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="analytics-panel">
+                    <h3>Analytics</h3>
+                    <div class="analytics-content">
+                        <div class="metric">
+                            <span class="metric-label">Session Time:</span>
+                            <span class="metric-value" id="sessionTime">00:00</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Actions:</span>
+                            <span class="metric-value" id="actionCount">0</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Score:</span>
+                            <span class="metric-value" id="currentScore">0</span>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+        </main>
+    </div>
+
+    <!-- Modal Dialogs -->
+    <div id="settingsModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Settings</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <!-- Settings content will be dynamically loaded -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Core JavaScript Modules -->
+    <script src="js/core/ARSandboxCore.js"></script>
+    <script src="js/core/EventSystem.js"></script>
+    <script src="js/core/ModuleManager.js"></script>
+    
+    <!-- Engine Modules -->
+    <script src="js/engine/RenderEngine.js"></script>
+    <script src="js/engine/PhysicsEngine.js"></script>
+    <script src="js/engine/InputManager.js"></script>
+    <script src="js/engine/AudioEngine.js"></script>
+
+    <!-- Advanced Engines -->
+    <script src="js/engines/AdvancedTerrainEngine.js"></script>
+    <script src="js/engines/PhysicsEngine.js"></script>
+    
+    <!-- Feature Modules -->
+    <script src="js/modules/TerrainModule.js"></script>
+    <script src="js/modules/VehicleModule.js"></script>
+    <script src="js/modules/EducationModule.js"></script>
+    <script src="js/modules/AnalyticsModule.js"></script>
+    <script src="js/modules/CollaborationModule.js"></script>
+    
+    <!-- Hardware Integration -->
+    <script src="js/hardware/DepthCamera.js"></script>
+    <script src="js/hardware/ProjectorCalibration.js"></script>
+    <script src="js/hardware/TouchInterface.js"></script>
+    
+    <!-- UI Components -->
+    <script src="js/ui/UIManager.js"></script>
+    <script src="js/ui/ToolPanels.js"></script>
+    <script src="js/ui/ModalSystem.js"></script>
+
+    <!-- Professional Systems -->
+    <script src="js/systems/ProfessionalUISystem.js"></script>
+    <script src="js/systems/AdvancedCameraSystem.js"></script>
+    <script src="js/systems/InteractiveToolSystem.js"></script>
+
+    <!-- Construction Systems -->
+    <script src="js/construction/ConstructionWorkflows.js"></script>
+    <script src="js/construction/MultiLayerConstruction.js"></script>
+
+    <!-- Materials System -->
+    <script src="js/materials/AdvancedTerrainMaterials.js"></script>
+
+    <!-- Projects System -->
+    <script src="js/projects/RealConstructionProjects.js"></script>
+
+    <!-- Professional Tools -->
+    <script src="js/tools/ProfessionalTools.js"></script>
+
+    <!-- Commercial Integration -->
+    <script src="js/integration/CommercialARSandbox.js"></script>
+
+    <!-- Application Entry Point -->
+    <script src="js/app.js"></script>
+
+    <!-- Initialize Commercial System -->
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                await commercialSandbox.initialize();
+                console.log('🎉 Commercial AR Sandbox ready for deployment!');
+            } catch (error) {
+                console.error('Failed to initialize commercial system:', error);
+            }
+        });
+    </script>
+
+    <!-- Kinect WebSocket Integration -->
+    <script src="js/kinect_websocket_integration.js"></script>
+    <script>
+        // Initialize Kinect WebSocket connection for AR Sandbox Pro
+        let kinectIntegration;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            kinectIntegration = new KinectWebSocketIntegration({
+                onConnect: () => {
+                    console.log('✅ AR Sandbox Pro connected to Kinect');
+                    updateConnectionStatus('Connected');
+                },
+                onDisconnect: () => {
+                    console.log('❌ AR Sandbox Pro disconnected from Kinect');
+                    updateConnectionStatus('Disconnected');
+                },
+                onFrameData: (frameData) => {
+                    if (window.commercialSandbox && commercialSandbox.updateTerrain) {
+                        commercialSandbox.updateTerrain(frameData);
+                    }
+                },
+                onTopographyData: (topographyData) => {
+                    if (window.commercialSandbox && commercialSandbox.updateAnalytics) {
+                        commercialSandbox.updateAnalytics(topographyData);
+                    }
+                }
+            });
+
+            kinectIntegration.connect();
+        });
+
+        function updateConnectionStatus(status) {
+            const statusEl = document.querySelector('.connection-status');
+            if (statusEl) {
+                statusEl.textContent = status;
+                statusEl.className = `connection-status ${status.toLowerCase()}`;
+            }
+        }
+    </script>
+</body>
+</html>

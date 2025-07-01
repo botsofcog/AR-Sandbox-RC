@@ -1,0 +1,1384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Working AR Sandbox Game - Museum-Quality Creative Experience</title>
+    <!-- External Libraries Integration -->
+    <script src="external_libs/lil-gui/dist/lil-gui.umd.min.js"></script>
+    <script src="external_libs/tone.js/build/Tone.js"></script>
+    <!-- AI and Computer Vision Libraries -->
+    <script src="https://unpkg.com/ml5@latest/dist/ml5.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+    <script src="frontend/js/ai_vision_system.js"></script>
+
+    <!-- Museum-Quality Creative Experience Libraries -->
+    <script src="external_libs/shader-web-background/dist/shader-web-background.min.js"></script>
+    <script src="external_libs/p5.js/lib/p5.min.js"></script>
+    <script src="external_libs/d3/bundle.js"></script>
+
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+        }
+        
+        #gameContainer {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        #webcamVideo {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 1;
+        }
+        
+        #gameCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+            cursor: crosshair;
+        }
+        
+        #ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 10;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 10px;
+            color: #00ff00;
+            border: 2px solid #00ff00;
+            min-width: 250px;
+        }
+        
+        #controls {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            z-index: 10;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 10px;
+            color: #ffff00;
+            border: 2px solid #ffff00;
+        }
+        
+        #vehicles {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 10;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 10px;
+            color: #ff6600;
+            border: 2px solid #ff6600;
+            width: 200px;
+        }
+        
+        .button {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid #fff;
+            color: #fff;
+            padding: 8px 12px;
+            margin: 3px;
+            border-radius: 5px;
+            cursor: pointer;
+            display: inline-block;
+            font-size: 12px;
+        }
+        
+        .button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        .button.active {
+            background: #00ff00;
+            color: #000;
+        }
+        
+        .vehicle {
+            background: rgba(255, 100, 0, 0.3);
+            border: 1px solid #ff6600;
+            padding: 8px;
+            margin: 5px 0;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 11px;
+        }
+        
+        .vehicle:hover {
+            background: rgba(255, 100, 0, 0.6);
+        }
+        
+        .vehicle.active {
+            background: #ff6600;
+            color: #000;
+        }
+        
+        #missionPanel {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            z-index: 10;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 10px;
+            color: #00ffff;
+            border: 2px solid #00ffff;
+            width: 250px;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 10px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 5px;
+            overflow: hidden;
+            margin: 5px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00ff00, #ffff00);
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <!-- Webcam video background -->
+        <video id="webcamVideo" autoplay muted playsinline></video>
+        
+        <!-- Game canvas overlay -->
+        <canvas id="gameCanvas"></canvas>
+        
+        <!-- UI Panels -->
+        <div id="ui">
+            <h3>🏗️ AR SANDBOX GAME</h3>
+            <div>Mode: <span id="currentMode">BUILD</span></div>
+            <div>Score: <span id="score">0</span></div>
+            <div>FPS: <span id="fps">--</span></div>
+            <div>Vehicles: <span id="vehicleCount">5</span></div>
+            <div>Status: <span id="gameStatus">READY</span></div>
+        </div>
+        
+        <div id="controls">
+            <h4>🎮 CONTROLS</h4>
+            <div class="button active" onclick="setMode('build')">🏗️ BUILD</div>
+            <div class="button" onclick="setMode('dig')">⛏️ DIG</div>
+            <div class="button" onclick="setMode('water')">💧 WATER</div>
+            <div class="button" onclick="setMode('road')">🛣️ ROAD</div>
+            <br>
+            <div class="button" onclick="startMission('flood')">🌊 FLOOD DEFENSE</div>
+            <div class="button" onclick="startMission('construction')">🏗️ BUILD HIGHWAY</div>
+            <div class="button" onclick="startMission('racing')">🏁 VEHICLE RACE</div>
+            <div class="button" onclick="startMission('cleanup')">♻️ CLEANUP</div>
+            <div class="button" onclick="resetGame()">🔄 RESET</div>
+        </div>
+        
+        <div id="vehicles">
+            <h4>🚛 VEHICLES</h4>
+            <div class="vehicle" onclick="selectVehicle('excavator')">
+                🚜 EXCAVATOR<br>
+                <small>Status: IDLE</small>
+            </div>
+            <div class="vehicle" onclick="selectVehicle('bulldozer')">
+                🚛 BULLDOZER<br>
+                <small>Status: IDLE</small>
+            </div>
+            <div class="vehicle" onclick="selectVehicle('dumptruck')">
+                🚚 DUMP TRUCK<br>
+                <small>Status: IDLE</small>
+            </div>
+            <div class="vehicle" onclick="selectVehicle('crane')">
+                🏗️ CRANE<br>
+                <small>Status: IDLE</small>
+            </div>
+            <div class="vehicle" onclick="selectVehicle('compactor')">
+                🚧 COMPACTOR<br>
+                <small>Status: IDLE</small>
+            </div>
+        </div>
+        
+        <div id="missionPanel">
+            <h4>🎯 MISSION</h4>
+            <div id="missionTitle">Free Play Mode</div>
+            <div id="missionDescription">Build whatever you want!</div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="missionProgress" style="width: 0%"></div>
+            </div>
+            <div>Time: <span id="missionTime">--:--</span></div>
+            <div>Objective: <span id="missionObjective">Explore and Build</span></div>
+            <div style="margin-top: 10px;">
+                <div class="button" onclick="toggleSound()">🔊 SOUND</div>
+                <div class="button" onclick="toggleMiniMap()">🗺️ MAP</div>
+            </div>
+        </div>
+
+        <!-- Mini-map -->
+        <div id="miniMap" style="
+            position: absolute;
+            top: 300px;
+            right: 20px;
+            width: 150px;
+            height: 100px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid #00ffff;
+            border-radius: 8px;
+            z-index: 10;
+            display: none;
+        ">
+            <canvas id="miniMapCanvas" width="146" height="96" style="border-radius: 6px;"></canvas>
+        </div>
+    </div>
+
+    <script>
+        // Game state
+        let gameState = {
+            mode: 'build',
+            score: 0,
+            selectedVehicle: null,
+            currentMission: null,
+            missionStartTime: null,
+            soundEnabled: true,
+            particles: [],
+            achievements: [],
+            vehicles: {
+                excavator: { x: 100, y: 100, status: 'idle', emoji: '🚜', fuel: 100, efficiency: 1.2 },
+                bulldozer: { x: 150, y: 100, status: 'idle', emoji: '🚛', fuel: 100, efficiency: 1.0 },
+                dumptruck: { x: 200, y: 100, status: 'idle', emoji: '🚚', fuel: 100, efficiency: 0.8 },
+                crane: { x: 250, y: 100, status: 'idle', emoji: '🏗️', fuel: 100, efficiency: 1.5 },
+                compactor: { x: 300, y: 100, status: 'idle', emoji: '🚧', fuel: 100, efficiency: 1.1 }
+            },
+            terrain: [],
+            water: [],
+            roads: [],
+            buildings: [],
+            weather: 'sunny',
+            timeOfDay: 'day'
+        };
+        
+        // Canvas and context
+        let canvas, ctx, video;
+        let isDrawing = false;
+        let brushSize = 20;
+        
+        // Performance tracking
+        let frameCount = 0;
+        let lastTime = Date.now();
+        let fps = 0;
+
+        // Audio system using Tone.js
+        let audioSystem = null;
+
+        async function initAudioSystem() {
+            try {
+                console.log('🎵 Initializing Tone.js audio system...');
+
+                // Create audio context
+                await Tone.start();
+
+                // Create terrain sonification synths
+                audioSystem = {
+                    terrainSynth: new Tone.PolySynth().toDestination(),
+                    waterSynth: new Tone.FMSynth().toDestination(),
+                    vehicleSynth: new Tone.MonoSynth().toDestination(),
+                    ambientSynth: new Tone.AMSynth().toDestination()
+                };
+
+                console.log('✅ Audio system initialized!');
+                return true;
+            } catch (error) {
+                console.warn('⚠️ Audio initialization failed:', error);
+                return false;
+            }
+        }
+
+        // Play terrain sonification based on height/position
+        function playTerrainSound(x, y, intensity = 0.5) {
+            if (!audioSystem || !gameState.soundEnabled) return;
+
+            try {
+                // Convert screen position to musical notes
+                const normalizedX = x / canvas.width;
+                const normalizedY = y / canvas.height;
+
+                // Map X position to frequency (C4 to C6)
+                const baseFreq = 261.63; // C4
+                const frequency = baseFreq * Math.pow(2, normalizedX * 2); // 2 octaves
+
+                // Map Y position to note duration
+                const duration = 0.1 + (1 - normalizedY) * 0.3; // 0.1 to 0.4 seconds
+
+                audioSystem.terrainSynth.triggerAttackRelease(frequency, duration);
+
+            } catch (error) {
+                console.warn('Audio error:', error);
+            }
+        }
+
+        // Play water sound effects
+        function playWaterSound(x, y) {
+            if (!audioSystem || !gameState.soundEnabled) return;
+
+            try {
+                const normalizedX = x / canvas.width;
+                const frequency = 200 + (normalizedX * 300); // 200-500 Hz for water
+
+                audioSystem.waterSynth.triggerAttackRelease(frequency, "8n");
+            } catch (error) {
+                console.warn('Water audio error:', error);
+            }
+        }
+
+        // AI Vision System integration
+        let aiVisionSystem = null;
+
+        async function initAIVisionSystem() {
+            try {
+                console.log('🤖 Initializing AI Vision System...');
+
+                // Create AI Vision System
+                aiVisionSystem = new AIVisionSystem(video, canvas);
+
+                // Initialize AI models
+                const success = await aiVisionSystem.initializeModels();
+
+                if (success) {
+                    // Start gesture detection
+                    aiVisionSystem.startDetection('hands');
+
+                    // Listen for gesture events
+                    document.addEventListener('gestureDetected', handleGestureEvent);
+
+                    console.log('✅ AI Vision System initialized successfully');
+                } else {
+                    console.warn('⚠️ AI Vision System initialization failed, using fallback controls');
+                }
+
+                return success;
+            } catch (error) {
+                console.error('❌ AI Vision System initialization error:', error);
+                return false;
+            }
+        }
+
+        // Handle gesture events for terrain manipulation
+        function handleGestureEvent(event) {
+            const { gesture, position, handIndex } = event.detail;
+
+            try {
+                // Convert gesture to terrain action
+                switch (gesture) {
+                    case 'point':
+                        // Point gesture - add sand
+                        gameState.mode = 'sand';
+                        drawTerrain(position.x, position.y, '#c2b280', 0.8);
+                        break;
+
+                    case 'open_hand':
+                        // Open hand - add water
+                        gameState.mode = 'water';
+                        drawWater(position.x, position.y);
+                        break;
+
+                    case 'fist':
+                        // Fist - remove terrain
+                        gameState.mode = 'erase';
+                        ctx.globalCompositeOperation = 'destination-out';
+                        ctx.beginPath();
+                        ctx.arc(position.x, position.y, brushSize * 2, 0, 2 * Math.PI);
+                        ctx.fill();
+                        ctx.globalCompositeOperation = 'source-over';
+                        break;
+
+                    case 'peace':
+                        // Peace sign - spawn vehicle
+                        spawnVehicleAtPosition(position.x, position.y);
+                        break;
+                }
+
+                // Visual feedback for gesture
+                showGestureFeedback(gesture, position);
+
+            } catch (error) {
+                console.error('Gesture handling error:', error);
+            }
+        }
+
+        // Show visual feedback for gestures
+        function showGestureFeedback(gesture, position) {
+            // Create temporary visual indicator
+            const indicator = document.createElement('div');
+            indicator.style.position = 'absolute';
+            indicator.style.left = position.x + 'px';
+            indicator.style.top = position.y + 'px';
+            indicator.style.color = '#00ff00';
+            indicator.style.fontSize = '16px';
+            indicator.style.fontWeight = 'bold';
+            indicator.style.pointerEvents = 'none';
+            indicator.style.zIndex = '1000';
+            indicator.textContent = gesture.toUpperCase();
+
+            document.body.appendChild(indicator);
+
+            // Remove after 1 second
+            setTimeout(() => {
+                if (indicator.parentNode) {
+                    indicator.parentNode.removeChild(indicator);
+                }
+            }, 1000);
+        }
+
+        // Spawn vehicle at gesture position
+        function spawnVehicleAtPosition(x, y) {
+            const vehicleTypes = ['excavator', 'bulldozer', 'dump_truck', 'crane', 'compactor'];
+            const randomType = vehicleTypes[Math.floor(Math.random() * vehicleTypes.length)];
+
+            // Add vehicle to game state
+            gameState.vehicles.push({
+                id: 'gesture_' + Date.now(),
+                type: randomType,
+                x: x,
+                y: y,
+                rotation: Math.random() * Math.PI * 2,
+                speed: 0,
+                task: 'idle',
+                spawnTime: Date.now()
+            });
+
+            console.log(`🚛 Spawned ${randomType} at gesture position (${x}, ${y})`);
+        }
+
+        // Initialize the game
+        async function initGame() {
+            console.log('🚀 Initializing AR Sandbox Game...');
+            
+            canvas = document.getElementById('gameCanvas');
+            ctx = canvas.getContext('2d');
+            video = document.getElementById('webcamVideo');
+            
+            // Set canvas size
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+
+            // Initialize audio system
+            await initAudioSystem();
+
+            // Start webcam
+            await startWebcam();
+
+            // Initialize AI Vision System
+            await initAIVisionSystem();
+            
+            // Set up mouse events
+            setupMouseEvents();
+            
+            // Start game loop
+            gameLoop();
+            
+            // Initialize terrain grid
+            initializeTerrain();
+            
+            console.log('✅ Game initialized successfully!');
+            updateGameStatus('ACTIVE');
+        }
+        
+        async function startWebcam() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { 
+                        width: 1280, 
+                        height: 720,
+                        facingMode: 'environment'
+                    }
+                });
+                video.srcObject = stream;
+                console.log('📹 Webcam started');
+            } catch (error) {
+                console.error('❌ Webcam error:', error);
+                // Continue without webcam
+            }
+        }
+        
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        
+        function setupMouseEvents() {
+            canvas.addEventListener('mousedown', startDrawing);
+            canvas.addEventListener('mousemove', draw);
+            canvas.addEventListener('mouseup', stopDrawing);
+            canvas.addEventListener('mouseout', stopDrawing);
+            
+            // Touch events for mobile
+            canvas.addEventListener('touchstart', handleTouch);
+            canvas.addEventListener('touchmove', handleTouch);
+            canvas.addEventListener('touchend', stopDrawing);
+        }
+        
+        function handleTouch(e) {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const rect = canvas.getBoundingClientRect();
+            const x = touch.clientX - rect.left;
+            const y = touch.clientY - rect.top;
+            
+            if (e.type === 'touchstart') {
+                startDrawing({ clientX: touch.clientX, clientY: touch.clientY });
+            } else if (e.type === 'touchmove') {
+                draw({ clientX: touch.clientX, clientY: touch.clientY });
+            }
+        }
+        
+        function startDrawing(e) {
+            isDrawing = true;
+            draw(e);
+        }
+        
+        function draw(e) {
+            if (!isDrawing) return;
+            
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            // Apply current mode
+            switch (gameState.mode) {
+                case 'build':
+                    drawTerrain(x, y, '#8B4513', 0.6);
+                    addScore(1);
+                    break;
+                case 'dig':
+                    drawTerrain(x, y, 'rgba(0,0,0,0.3)', 0.8);
+                    addScore(1);
+                    break;
+                case 'water':
+                    drawWater(x, y);
+                    addScore(2);
+                    break;
+                case 'road':
+                    drawRoad(x, y);
+                    addScore(3);
+                    break;
+            }
+        }
+        
+        function stopDrawing() {
+            isDrawing = false;
+        }
+        
+        function drawTerrain(x, y, color, alpha) {
+            ctx.globalAlpha = alpha;
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.arc(x, y, brushSize, 0, 2 * Math.PI);
+            ctx.fill();
+            ctx.globalAlpha = 1;
+
+            // Store terrain data
+            gameState.terrain.push({ x, y, type: gameState.mode, time: Date.now() });
+
+            // Play terrain sonification
+            playTerrainSound(x, y, alpha);
+        }
+        
+        function drawWater(x, y) {
+            ctx.globalAlpha = 0.7;
+            ctx.fillStyle = '#0066ff';
+            ctx.beginPath();
+            ctx.arc(x, y, brushSize * 0.8, 0, 2 * Math.PI);
+            ctx.fill();
+            ctx.globalAlpha = 1;
+
+            // Add water ripple effect
+            animateWaterRipple(x, y);
+
+            // Water physics - flow simulation
+            simulateWaterFlow(x, y);
+
+            gameState.water.push({ x, y, time: Date.now(), flow: Math.random() * 2 });
+
+            // Play water sound
+            playWaterSound(x, y);
+        }
+
+        function simulateWaterFlow(x, y) {
+            // Create flowing water effect
+            setTimeout(() => {
+                for (let i = 0; i < 3; i++) {
+                    const flowX = x + (Math.random() - 0.5) * 40;
+                    const flowY = y + Math.random() * 20 + 10; // Water flows down
+
+                    ctx.globalAlpha = 0.3;
+                    ctx.fillStyle = '#4488ff';
+                    ctx.beginPath();
+                    ctx.arc(flowX, flowY, 3, 0, 2 * Math.PI);
+                    ctx.fill();
+                    ctx.globalAlpha = 1;
+                }
+            }, 100);
+        }
+        
+        function drawRoad(x, y) {
+            ctx.globalAlpha = 0.8;
+            ctx.fillStyle = '#333333';
+            ctx.fillRect(x - brushSize/2, y - 5, brushSize, 10);
+            ctx.globalAlpha = 1;
+            
+            gameState.roads.push({ x, y, time: Date.now() });
+        }
+        
+        function animateWaterRipple(x, y) {
+            let radius = 0;
+            const maxRadius = 50;
+            
+            function ripple() {
+                ctx.globalAlpha = 0.3;
+                ctx.strokeStyle = '#00aaff';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(x, y, radius, 0, 2 * Math.PI);
+                ctx.stroke();
+                ctx.globalAlpha = 1;
+                
+                radius += 2;
+                if (radius < maxRadius) {
+                    requestAnimationFrame(ripple);
+                }
+            }
+            ripple();
+        }
+        
+        function initializeTerrain() {
+            // Create initial terrain grid
+            const gridSize = 50;
+            for (let x = 0; x < canvas.width; x += gridSize) {
+                for (let y = 0; y < canvas.height; y += gridSize) {
+                    if (Math.random() > 0.95) {
+                        drawTerrain(x + Math.random() * gridSize, y + Math.random() * gridSize, '#654321', 0.3);
+                    }
+                }
+            }
+        }
+        
+        function gameLoop() {
+            // Apply day/night cycle and weather effects
+            applyEnvironmentalEffects();
+
+            // Clear canvas (partially for trail effect)
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.02)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Update and draw particles
+            updateParticles();
+
+            // Update vehicles
+            updateVehicles();
+
+            // Draw vehicles
+            drawVehicles();
+
+            // Update mission
+            updateMission();
+
+            // Update weather
+            updateWeather();
+
+            // Update FPS
+            updateFPS();
+
+            // Update mini-map if visible
+            if (document.getElementById('miniMap').style.display !== 'none') {
+                updateMiniMap();
+            }
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        function applyEnvironmentalEffects() {
+            // Day/night cycle
+            const time = Date.now() / 10000; // Slow cycle
+            const dayNightCycle = (Math.sin(time) + 1) / 2; // 0 to 1
+
+            if (dayNightCycle > 0.7) {
+                gameState.timeOfDay = 'day';
+                ctx.globalAlpha = 1;
+            } else if (dayNightCycle > 0.3) {
+                gameState.timeOfDay = 'evening';
+                ctx.globalAlpha = 0.8;
+                ctx.fillStyle = 'rgba(255, 100, 0, 0.1)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            } else {
+                gameState.timeOfDay = 'night';
+                ctx.globalAlpha = 0.6;
+                ctx.fillStyle = 'rgba(0, 0, 50, 0.3)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+
+            ctx.globalAlpha = 1;
+        }
+
+        function updateWeather() {
+            // Random weather changes
+            if (Math.random() < 0.001) { // Very rare
+                const weathers = ['sunny', 'rainy', 'cloudy', 'stormy'];
+                gameState.weather = weathers[Math.floor(Math.random() * weathers.length)];
+                console.log(`🌤️ Weather changed to: ${gameState.weather}`);
+            }
+
+            // Weather effects
+            switch(gameState.weather) {
+                case 'rainy':
+                    createRainDrops();
+                    break;
+                case 'stormy':
+                    createRainDrops();
+                    if (Math.random() < 0.01) createLightning();
+                    break;
+                case 'cloudy':
+                    ctx.fillStyle = 'rgba(128, 128, 128, 0.1)';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    break;
+            }
+        }
+
+        function createRainDrops() {
+            for (let i = 0; i < 5; i++) {
+                gameState.particles.push({
+                    x: Math.random() * canvas.width,
+                    y: -10,
+                    vx: Math.random() * 2 - 1,
+                    vy: Math.random() * 5 + 5,
+                    life: 100,
+                    type: 'rain',
+                    color: '#4488ff'
+                });
+            }
+        }
+
+        function createLightning() {
+            // Flash effect
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Lightning bolt
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(Math.random() * canvas.width, 0);
+
+            let x = Math.random() * canvas.width;
+            let y = 0;
+            for (let i = 0; i < 10; i++) {
+                x += (Math.random() - 0.5) * 100;
+                y += canvas.height / 10;
+                ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+
+            playSound('achievement'); // Thunder sound
+        }
+
+        function updateParticles() {
+            gameState.particles = gameState.particles.filter(particle => {
+                particle.x += particle.vx;
+                particle.y += particle.vy;
+                particle.life--;
+
+                // Draw particle
+                ctx.globalAlpha = particle.life / 100;
+                ctx.fillStyle = particle.color;
+                ctx.beginPath();
+                ctx.arc(particle.x, particle.y, 2, 0, 2 * Math.PI);
+                ctx.fill();
+                ctx.globalAlpha = 1;
+
+                return particle.life > 0 && particle.y < canvas.height;
+            });
+        }
+        
+        function updateVehicles() {
+            Object.keys(gameState.vehicles).forEach(vehicleId => {
+                const vehicle = gameState.vehicles[vehicleId];
+
+                // Enhanced AI movement with purpose
+                if (vehicle.status === 'working') {
+                    // Different behavior per vehicle type
+                    switch(vehicleId) {
+                        case 'excavator':
+                            // Move towards terrain areas
+                            moveTowardsTarget(vehicle, gameState.terrain);
+                            break;
+                        case 'bulldozer':
+                            // Move in straight lines
+                            vehicle.x += Math.cos(vehicle.direction || 0) * 1.5;
+                            vehicle.y += Math.sin(vehicle.direction || 0) * 1.5;
+                            if (Math.random() < 0.02) vehicle.direction = Math.random() * Math.PI * 2;
+                            break;
+                        case 'dumptruck':
+                            // Move between work areas
+                            if (!vehicle.target) vehicle.target = getRandomWorkArea();
+                            moveTowardsPoint(vehicle, vehicle.target);
+                            if (getDistance(vehicle, vehicle.target) < 30) {
+                                vehicle.target = getRandomWorkArea();
+                            }
+                            break;
+                        case 'crane':
+                            // Stay mostly stationary, small movements
+                            vehicle.x += (Math.random() - 0.5) * 0.5;
+                            vehicle.y += (Math.random() - 0.5) * 0.5;
+                            break;
+                        case 'compactor':
+                            // Follow roads
+                            moveTowardsTarget(vehicle, gameState.roads);
+                            break;
+                    }
+
+                    // Keep vehicles on screen
+                    vehicle.x = Math.max(50, Math.min(canvas.width - 50, vehicle.x));
+                    vehicle.y = Math.max(50, Math.min(canvas.height - 50, vehicle.y));
+
+                    // Add work particles
+                    if (Math.random() < 0.1) {
+                        addWorkParticles(vehicle.x, vehicle.y, vehicleId);
+                    }
+                }
+            });
+        }
+
+        function moveTowardsTarget(vehicle, targetArray) {
+            if (targetArray.length > 0) {
+                const target = targetArray[Math.floor(Math.random() * targetArray.length)];
+                moveTowardsPoint(vehicle, target);
+            } else {
+                // Random movement if no targets
+                vehicle.x += (Math.random() - 0.5) * 2;
+                vehicle.y += (Math.random() - 0.5) * 2;
+            }
+        }
+
+        function moveTowardsPoint(vehicle, target) {
+            const dx = target.x - vehicle.x;
+            const dy = target.y - vehicle.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+
+            if (distance > 5) {
+                vehicle.x += (dx / distance) * 1.2;
+                vehicle.y += (dy / distance) * 1.2;
+            }
+        }
+
+        function getDistance(a, b) {
+            const dx = a.x - b.x;
+            const dy = a.y - b.y;
+            return Math.sqrt(dx * dx + dy * dy);
+        }
+
+        function getRandomWorkArea() {
+            return {
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height
+            };
+        }
+
+        function addWorkParticles(x, y, vehicleType) {
+            const colors = {
+                excavator: '#8B4513',
+                bulldozer: '#654321',
+                dumptruck: '#888888',
+                crane: '#FFD700',
+                compactor: '#333333'
+            };
+
+            for (let i = 0; i < 3; i++) {
+                setTimeout(() => {
+                    ctx.globalAlpha = 0.6;
+                    ctx.fillStyle = colors[vehicleType] || '#888888';
+                    ctx.beginPath();
+                    ctx.arc(
+                        x + (Math.random() - 0.5) * 20,
+                        y + (Math.random() - 0.5) * 20,
+                        Math.random() * 3 + 1,
+                        0, 2 * Math.PI
+                    );
+                    ctx.fill();
+                    ctx.globalAlpha = 1;
+                }, i * 50);
+            }
+        }
+        
+        function drawVehicles() {
+            Object.keys(gameState.vehicles).forEach(vehicleId => {
+                const vehicle = gameState.vehicles[vehicleId];
+                
+                // Draw vehicle
+                ctx.font = '24px Arial';
+                ctx.fillText(vehicle.emoji, vehicle.x, vehicle.y);
+                
+                // Draw status indicator
+                if (vehicle.status === 'working') {
+                    ctx.fillStyle = '#00ff00';
+                    ctx.beginPath();
+                    ctx.arc(vehicle.x + 15, vehicle.y - 15, 3, 0, 2 * Math.PI);
+                    ctx.fill();
+                }
+            });
+        }
+        
+        function updateMission() {
+            if (!gameState.currentMission) return;
+            
+            const elapsed = Date.now() - gameState.missionStartTime;
+            const minutes = Math.floor(elapsed / 60000);
+            const seconds = Math.floor((elapsed % 60000) / 1000);
+            
+            document.getElementById('missionTime').textContent = 
+                `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            
+            // Update mission progress based on actions
+            let progress = 0;
+            switch (gameState.currentMission) {
+                case 'flood':
+                    progress = Math.min(100, (gameState.terrain.length / 50) * 100);
+                    break;
+                case 'construction':
+                    progress = Math.min(100, (gameState.roads.length / 30) * 100);
+                    break;
+                case 'racing':
+                    const activeVehicles = Object.values(gameState.vehicles).filter(v => v.status === 'working').length;
+                    progress = Math.min(100, (activeVehicles / 5) * 100);
+                    break;
+                case 'cleanup':
+                    progress = Math.min(100, (gameState.water.length / 20) * 100);
+                    break;
+            }
+
+            // Check time limit
+            const mission = {
+                flood: { timeLimit: 120000 },
+                construction: { timeLimit: 180000 },
+                racing: { timeLimit: 60000 },
+                cleanup: { timeLimit: 150000 }
+            }[gameState.currentMission];
+
+            if (mission && elapsed > mission.timeLimit) {
+                // Mission failed due to time limit
+                failMission();
+                return;
+            }
+            
+            document.getElementById('missionProgress').style.width = progress + '%';
+            
+            // Check mission completion
+            if (progress >= 100) {
+                completeMission();
+            }
+        }
+        
+        function updateFPS() {
+            frameCount++;
+            const now = Date.now();
+            
+            if (now - lastTime >= 1000) {
+                fps = Math.round(frameCount * 1000 / (now - lastTime));
+                document.getElementById('fps').textContent = fps;
+                frameCount = 0;
+                lastTime = now;
+            }
+        }
+        
+        // UI Functions
+        function setMode(mode) {
+            gameState.mode = mode;
+            document.getElementById('currentMode').textContent = mode.toUpperCase();
+            
+            // Update button states
+            document.querySelectorAll('#controls .button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            console.log(`🎮 Mode changed to: ${mode}`);
+        }
+        
+        function selectVehicle(vehicleId) {
+            gameState.selectedVehicle = vehicleId;
+            const vehicle = gameState.vehicles[vehicleId];
+            
+            // Toggle vehicle status
+            vehicle.status = vehicle.status === 'idle' ? 'working' : 'idle';
+            
+            // Update UI
+            document.querySelectorAll('.vehicle').forEach(v => v.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            console.log(`🚛 Selected vehicle: ${vehicleId} (${vehicle.status})`);
+        }
+        
+        function startMission(missionType) {
+            gameState.currentMission = missionType;
+            gameState.missionStartTime = Date.now();
+            
+            const missions = {
+                flood: {
+                    title: '🌊 FLOOD DEFENSE',
+                    description: 'Build barriers to protect the city!',
+                    objective: 'Create 50 terrain points',
+                    timeLimit: 120000 // 2 minutes
+                },
+                construction: {
+                    title: '🏗️ HIGHWAY CONSTRUCTION',
+                    description: 'Build a road network!',
+                    objective: 'Create 30 road segments',
+                    timeLimit: 180000 // 3 minutes
+                },
+                racing: {
+                    title: '🏁 VEHICLE RACING',
+                    description: 'Get all vehicles moving fast!',
+                    objective: 'Activate all 5 vehicles',
+                    timeLimit: 60000 // 1 minute
+                },
+                cleanup: {
+                    title: '♻️ ENVIRONMENTAL CLEANUP',
+                    description: 'Remove debris and build green spaces!',
+                    objective: 'Create 20 water features',
+                    timeLimit: 150000 // 2.5 minutes
+                }
+            };
+            
+            const mission = missions[missionType];
+            document.getElementById('missionTitle').textContent = mission.title;
+            document.getElementById('missionDescription').textContent = mission.description;
+            document.getElementById('missionObjective').textContent = mission.objective;
+            document.getElementById('missionProgress').style.width = '0%';
+            
+            // Activate all vehicles for mission
+            Object.keys(gameState.vehicles).forEach(vehicleId => {
+                gameState.vehicles[vehicleId].status = 'working';
+            });
+            
+            console.log(`🎯 Mission started: ${missionType}`);
+            updateGameStatus('MISSION ACTIVE');
+        }
+        
+        function completeMission() {
+            const elapsed = Date.now() - gameState.missionStartTime;
+            const timeBonus = Math.max(0, 1000 - Math.floor(elapsed / 1000));
+            const totalBonus = 1000 + timeBonus;
+
+            addScore(totalBonus);
+
+            // Stop all vehicles
+            Object.keys(gameState.vehicles).forEach(vehicleId => {
+                gameState.vehicles[vehicleId].status = 'idle';
+            });
+
+            // Create success effect
+            createSuccessEffect();
+
+            showAchievement('🎉 MISSION COMPLETE!',
+                `Bonus: ${totalBonus} points (${timeBonus} time bonus)\nTotal Score: ${gameState.score}`);
+
+            gameState.currentMission = null;
+            updateGameStatus('MISSION COMPLETE');
+
+            playSound('mission');
+
+            setTimeout(() => {
+                updateGameStatus('ACTIVE');
+            }, 3000);
+        }
+
+        function failMission() {
+            // Stop all vehicles
+            Object.keys(gameState.vehicles).forEach(vehicleId => {
+                gameState.vehicles[vehicleId].status = 'idle';
+            });
+
+            showAchievement('⏰ TIME\'S UP!', 'Mission failed - Try again!');
+
+            gameState.currentMission = null;
+            updateGameStatus('MISSION FAILED');
+
+            setTimeout(() => {
+                updateGameStatus('ACTIVE');
+            }, 3000);
+        }
+
+        function createSuccessEffect() {
+            // Create celebration particles
+            for (let i = 0; i < 50; i++) {
+                gameState.particles.push({
+                    x: canvas.width / 2,
+                    y: canvas.height / 2,
+                    vx: (Math.random() - 0.5) * 10,
+                    vy: (Math.random() - 0.5) * 10,
+                    life: 100,
+                    type: 'celebration',
+                    color: ['#FFD700', '#FF6600', '#00FF00', '#FF0066'][Math.floor(Math.random() * 4)]
+                });
+            }
+        }
+        
+        function resetGame() {
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Reset game state
+            gameState.score = 0;
+            gameState.terrain = [];
+            gameState.water = [];
+            gameState.roads = [];
+            gameState.currentMission = null;
+            
+            // Reset vehicles
+            Object.keys(gameState.vehicles).forEach(vehicleId => {
+                gameState.vehicles[vehicleId].status = 'idle';
+            });
+            
+            // Update UI
+            document.getElementById('score').textContent = '0';
+            document.getElementById('missionTitle').textContent = 'Free Play Mode';
+            document.getElementById('missionDescription').textContent = 'Build whatever you want!';
+            document.getElementById('missionObjective').textContent = 'Explore and Build';
+            document.getElementById('missionProgress').style.width = '0%';
+            document.getElementById('missionTime').textContent = '--:--';
+            
+            // Reinitialize terrain
+            setTimeout(initializeTerrain, 100);
+            
+            console.log('🔄 Game reset');
+            updateGameStatus('RESET');
+        }
+        
+        function addScore(points) {
+            gameState.score += points;
+            document.getElementById('score').textContent = gameState.score;
+
+            // Check for achievements
+            checkAchievements();
+
+            // Play sound effect
+            playSound('score');
+        }
+
+        function checkAchievements() {
+            const score = gameState.score;
+            const achievements = [
+                { score: 100, title: '🏗️ Builder', message: 'First 100 points!' },
+                { score: 500, title: '🚛 Constructor', message: 'Reached 500 points!' },
+                { score: 1000, title: '🏆 Master Builder', message: '1000 points achieved!' },
+                { score: 2500, title: '🌟 Sandbox Legend', message: 'Incredible! 2500 points!' }
+            ];
+
+            achievements.forEach(achievement => {
+                if (score >= achievement.score && !gameState.achievements.includes(achievement.score)) {
+                    gameState.achievements.push(achievement.score);
+                    showAchievement(achievement.title, achievement.message);
+                }
+            });
+        }
+
+        function showAchievement(title, message) {
+            // Create achievement popup
+            const popup = document.createElement('div');
+            popup.style.cssText = `
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: linear-gradient(45deg, #FFD700, #FFA500);
+                color: #000;
+                padding: 20px;
+                border-radius: 15px;
+                border: 3px solid #FF6600;
+                z-index: 1000;
+                text-align: center;
+                font-weight: bold;
+                box-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+                animation: achievementPop 3s ease-out forwards;
+            `;
+
+            popup.innerHTML = `
+                <h3 style="margin: 0 0 10px 0; font-size: 18px;">${title}</h3>
+                <p style="margin: 0; font-size: 14px;">${message}</p>
+            `;
+
+            document.body.appendChild(popup);
+
+            // Add CSS animation
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes achievementPop {
+                    0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+                    20% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+                    80% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+                    100% { transform: translate(-50%, -50%) scale(0.8); opacity: 0; }
+                }
+            `;
+            document.head.appendChild(style);
+
+            // Remove popup after animation
+            setTimeout(() => {
+                document.body.removeChild(popup);
+                document.head.removeChild(style);
+            }, 3000);
+
+            playSound('achievement');
+        }
+
+        function playSound(type) {
+            if (!gameState.soundEnabled) return;
+
+            // Create audio context for sound effects
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+
+                // Different sounds for different actions
+                switch(type) {
+                    case 'score':
+                        oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+                        oscillator.frequency.exponentialRampToValueAtTime(1200, audioContext.currentTime + 0.1);
+                        gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+                        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+                        oscillator.start(audioContext.currentTime);
+                        oscillator.stop(audioContext.currentTime + 0.1);
+                        break;
+                    case 'achievement':
+                        // Play a triumphant chord
+                        [523, 659, 784].forEach((freq, i) => {
+                            const osc = audioContext.createOscillator();
+                            const gain = audioContext.createGain();
+                            osc.connect(gain);
+                            gain.connect(audioContext.destination);
+                            osc.frequency.setValueAtTime(freq, audioContext.currentTime);
+                            gain.gain.setValueAtTime(0.05, audioContext.currentTime);
+                            gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+                            osc.start(audioContext.currentTime + i * 0.1);
+                            osc.stop(audioContext.currentTime + 0.5 + i * 0.1);
+                        });
+                        break;
+                    case 'mission':
+                        oscillator.frequency.setValueAtTime(400, audioContext.currentTime);
+                        oscillator.frequency.exponentialRampToValueAtTime(800, audioContext.currentTime + 0.3);
+                        gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+                        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+                        oscillator.start(audioContext.currentTime);
+                        oscillator.stop(audioContext.currentTime + 0.3);
+                        break;
+                }
+            } catch (e) {
+                // Sound not supported, continue silently
+            }
+        }
+        
+        function updateGameStatus(status) {
+            document.getElementById('gameStatus').textContent = status;
+        }
+
+        function toggleSound() {
+            gameState.soundEnabled = !gameState.soundEnabled;
+            const btn = event.target;
+            btn.textContent = gameState.soundEnabled ? '🔊 SOUND' : '🔇 MUTED';
+            btn.style.background = gameState.soundEnabled ? 'rgba(255,255,255,0.1)' : '#ff5722';
+            console.log(`🔊 Sound: ${gameState.soundEnabled ? 'ON' : 'OFF'}`);
+        }
+
+        function toggleMiniMap() {
+            const miniMap = document.getElementById('miniMap');
+            const isVisible = miniMap.style.display !== 'none';
+            miniMap.style.display = isVisible ? 'none' : 'block';
+
+            const btn = event.target;
+            btn.style.background = isVisible ? 'rgba(255,255,255,0.1)' : '#4CAF50';
+
+            if (!isVisible) {
+                updateMiniMap();
+            }
+        }
+
+        function updateMiniMap() {
+            const miniCanvas = document.getElementById('miniMapCanvas');
+            if (!miniCanvas || miniCanvas.style.display === 'none') return;
+
+            const miniCtx = miniCanvas.getContext('2d');
+            const scale = 0.1; // Scale down factor
+
+            // Clear mini-map
+            miniCtx.fillStyle = '#001122';
+            miniCtx.fillRect(0, 0, miniCanvas.width, miniCanvas.height);
+
+            // Draw terrain on mini-map
+            miniCtx.fillStyle = '#8B4513';
+            gameState.terrain.forEach(point => {
+                miniCtx.fillRect(point.x * scale, point.y * scale, 2, 2);
+            });
+
+            // Draw water on mini-map
+            miniCtx.fillStyle = '#0066ff';
+            gameState.water.forEach(point => {
+                miniCtx.fillRect(point.x * scale, point.y * scale, 2, 2);
+            });
+
+            // Draw roads on mini-map
+            miniCtx.fillStyle = '#333333';
+            gameState.roads.forEach(point => {
+                miniCtx.fillRect(point.x * scale, point.y * scale, 2, 2);
+            });
+
+            // Draw vehicles on mini-map
+            Object.keys(gameState.vehicles).forEach(vehicleId => {
+                const vehicle = gameState.vehicles[vehicleId];
+                miniCtx.fillStyle = vehicle.status === 'working' ? '#00ff00' : '#ffff00';
+                miniCtx.fillRect(vehicle.x * scale - 1, vehicle.y * scale - 1, 3, 3);
+            });
+
+            // Draw border
+            miniCtx.strokeStyle = '#00ffff';
+            miniCtx.lineWidth = 1;
+            miniCtx.strokeRect(0, 0, miniCanvas.width, miniCanvas.height);
+        }
+        
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            switch(e.key.toLowerCase()) {
+                case '1': setMode('build'); break;
+                case '2': setMode('dig'); break;
+                case '3': setMode('water'); break;
+                case '4': setMode('road'); break;
+                case 'r': resetGame(); break;
+                case 'f': startMission('flood'); break;
+                case 'h': startMission('construction'); break;
+                case ' ': e.preventDefault(); resetGame(); break;
+            }
+        });
+        
+        // Initialize game when page loads
+        window.addEventListener('load', initGame);
+        
+        console.log('🎮 AR Sandbox Game loaded - Ready to initialize!');
+    </script>
+</body>
+</html>

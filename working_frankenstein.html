@@ -1,0 +1,2133 @@
+<!DOCTYPE html>
+<html><head><title>FRANKENSTEIN SANDBOX - WORKING SPAGHETTI</title>
+<style>body{margin:0;background:#000;font-family:Arial;overflow:hidden;color:#0f0;}
+#container{width:100vw;height:100vh;position:relative;}
+#webcamVideo{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;z-index:1;opacity:0.6;}
+#gameCanvas{position:absolute;top:0;left:0;width:100%;height:100%;z-index:2;cursor:crosshair;}
+.hud{position:absolute;background:rgba(0,0,0,0.8);color:#0f0;padding:8px;border:1px solid #0f0;z-index:10;font-size:11px;}
+#topHUD{top:10px;left:10px;} #vehicleHUD{top:10px;right:10px;width:180px;} #toolHUD{bottom:10px;left:10px;} #statusHUD{bottom:10px;right:10px;}
+.btn{background:#333;color:#0f0;border:1px solid #0f0;padding:4px 8px;margin:2px;cursor:pointer;display:inline-block;}
+.btn:hover{background:#0f0;color:#000;} .btn.active{background:#f00;color:#fff;}
+.vehicle{background:#222;border:1px solid #ff0;padding:4px;margin:2px;cursor:pointer;font-size:10px;}
+.vehicle.working{background:#0a0;color:#000;}
+</style></head><body>
+<div id="container">
+<video id="webcamVideo" autoplay muted playsinline></video>
+<canvas id="gameCanvas"></canvas>
+<div id="topHUD" class="hud"><h3>🧟 FRANKENSTEIN SANDBOX</h3>
+Tool: <span id="currentTool">SAND</span> | Brush: <span id="brushSize">20</span>px | FPS: <span id="fps">--</span><br>
+📡 Depth: <span id="depthStatus" style="color:#f00;">CONNECTING...</span> |
+<span onclick="requestDepthCalibration()" style="cursor:pointer;color:#ff0;">🎯 CALIBRATE</span> |
+<span onclick="toggleDepthOverlay()" style="cursor:pointer;color:#0ff;">👁️ OVERLAY</span></div>
+<div id="vehicleHUD" class="hud"><h4>🚛 VEHICLES</h4>
+<div class="vehicle" onclick="toggleVehicle('excavator')">🚜 EXCAVATOR <span id="exc">IDLE</span></div>
+<div class="vehicle" onclick="toggleVehicle('bulldozer')">🚛 BULLDOZER <span id="bull">IDLE</span></div>
+<div class="vehicle" onclick="toggleVehicle('dumptruck')">🚚 DUMPTRUCK <span id="dump">IDLE</span></div>
+<div class="vehicle" onclick="toggleVehicle('crane')">🏗️ CRANE <span id="crane">IDLE</span></div>
+<div class="vehicle" onclick="toggleVehicle('compactor')">🚧 COMPACTOR <span id="comp">IDLE</span></div></div>
+<div id="toolHUD" class="hud"><h4>🛠️ TOOLS</h4>
+<div class="btn active" onclick="setTool('sand')">🏔️ SAND</div>
+<div class="btn" onclick="setTool('dig')">⛏️ DIG</div>
+<div class="btn" onclick="setTool('water')">💧 WATER</div>
+<div class="btn" onclick="setTool('fire')">🔥 FIRE</div>
+<div class="btn" onclick="setTool('smooth')">🌊 SMOOTH</div>
+<div class="btn" onclick="setTool('measure')">📏 MEASURE</div>
+<div class="btn" onclick="setTool('mix')">🎨 MIX</div><br>
+<input type="range" min="5" max="50" value="20" onchange="setBrushSize(this.value)" style="width:100px;">
+<div class="btn" onclick="clearAll()">🗑️ CLEAR</div>
+<div class="btn" onclick="toggleSound()" id="soundBtn">🔊 SOUND</div><br>
+<div class="btn" onclick="saveGame()">💾 SAVE</div>
+<div class="btn" onclick="loadGame()">📁 LOAD</div></div>
+<div id="statusHUD" class="hud"><h4>📊 STATUS</h4>
+Sand: <span id="sandCount">0</span> | Water: <span id="waterCount">0</span> | Fire: <span id="fireCount">0</span></div>
+
+<div id="missionHUD" class="hud" style="top:120px; right:10px; width:250px;">
+<h4>🎯 MISSION CONTROL</h4>
+<div id="missionTitle">No Active Mission</div>
+<div id="missionObjective">Click START MISSION to begin</div>
+<div>Time: <span id="missionTime">--:--</span> | Score: <span id="missionScore">0</span></div>
+<div class="btn" onclick="startRandomMission()" id="missionBtn">🚀 START MISSION</div>
+<div class="btn" onclick="completeMission()" id="completeBtn" style="display:none;">✅ COMPLETE</div>
+</div>
+</div>
+
+<script>
+// FRANKENSTEIN GLOBAL STATE
+const G = {
+    canvas: null, ctx: null, video: null, tool: 'sand', brushSize: 20, isDrawing: false,
+    gridW: 120, gridH: 80, terrain: [], water: [], fire: [], particles: [],
+    // WEBCAM DEPTH DETECTION
+    websocket: null, depthEnabled: false, lastDepthData: null, depthOverlay: true,
+    // SOUND SYSTEM
+    audioContext: null, soundEnabled: true, masterVolume: 0.3,
+    // MISSION SYSTEM
+    currentMission: null, missionTimer: 0, score: 0, missionComplete: false,
+    // CONSTRUCTION PROJECT MANAGEMENT
+    activeProjects: [], materialStockpiles: {}, constructionPhase: 'planning',
+    // WEBCAM DEPTH DETECTION
+    websocket: null, webcamDepthEnabled: false, lastDepthData: null,
+    vehicles: {
+        excavator: {x:100,y:100,vx:0,vy:0,active:false,targetX:200,targetY:200,speed:2},
+        bulldozer: {x:150,y:100,vx:0,vy:0,active:false,targetX:250,targetY:150,speed:2.5},
+        dumptruck: {x:200,y:100,vx:0,vy:0,active:false,targetX:300,targetY:200,speed:3},
+        crane: {x:250,y:100,vx:0,vy:0,active:false,targetX:150,targetY:250,speed:1.5},
+        compactor: {x:300,y:100,vx:0,vy:0,active:false,targetX:100,targetY:300,speed:2}
+    },
+    frameCount: 0, lastTime: Date.now()
+};
+
+// INIT
+async function init() {
+    console.log('🧟 FRANKENSTEIN AWAKENING...');
+    G.canvas = document.getElementById('gameCanvas');
+    G.ctx = G.canvas.getContext('2d');
+    G.video = document.getElementById('webcamVideo');
+    
+    resize(); window.addEventListener('resize', resize);
+    initGrids(); await startCam(); setupInput();
+
+    // Initialize audio system
+    initAudio();
+
+    // Load auto-save if available
+    loadAutoSave();
+
+    // Connect to webcam depth server
+    await connectDepthServer();
+
+    loop();
+    console.log('✅ FRANKENSTEIN IS ALIVE!');
+}
+
+function resize() { G.canvas.width = window.innerWidth; G.canvas.height = window.innerHeight; }
+
+function initGrids() {
+    G.terrain = []; G.water = []; G.fire = [];
+    for (let y = 0; y < G.gridH; y++) {
+        G.terrain[y] = []; G.water[y] = []; G.fire[y] = [];
+        for (let x = 0; x < G.gridW; x++) { G.terrain[y][x] = 0; G.water[y][x] = 0; G.fire[y][x] = 0; }
+    }
+}
+
+async function startCam() {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({video:true});
+        G.video.srcObject = stream;
+        console.log('📹 Webcam started for depth detection');
+    } catch(e) {
+        G.video.style.display = 'none';
+        document.body.style.background = 'linear-gradient(45deg,#001122,#003344)';
+        console.log('📹 No webcam - using fallback background');
+    }
+}
+
+// WEBCAM DEPTH DETECTION INTEGRATION
+async function connectDepthServer() {
+    try {
+        console.log('🔌 Connecting to smart webcam depth server...');
+        G.websocket = new WebSocket('ws://localhost:8765');
+
+        G.websocket.onopen = () => {
+            console.log('✅ Connected to depth server');
+            G.depthEnabled = true;
+            updateDepthStatus('CONNECTED');
+
+            // Request calibration
+            G.websocket.send(JSON.stringify({command: 'calibrate'}));
+        };
+
+        G.websocket.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                handleDepthData(data);
+            } catch(e) {
+                console.log('⚠️ Invalid depth data:', e);
+            }
+        };
+
+        G.websocket.onclose = () => {
+            console.log('❌ Depth server disconnected');
+            G.depthEnabled = false;
+            updateDepthStatus('DISCONNECTED');
+
+            // Try to reconnect after 5 seconds
+            setTimeout(connectDepthServer, 5000);
+        };
+
+        G.websocket.onerror = (error) => {
+            console.log('❌ Depth server error:', error);
+            G.depthEnabled = false;
+            updateDepthStatus('ERROR');
+        };
+
+    } catch(e) {
+        console.log('⚠️ Could not connect to depth server - running without depth detection');
+        G.depthEnabled = false;
+        updateDepthStatus('NO_SERVER');
+    }
+}
+
+function handleDepthData(data) {
+    switch(data.type) {
+        case 'terrain_data':
+            // Apply real depth data to terrain
+            if (data.data && data.width && data.height) {
+                applyDepthToTerrain(data);
+                G.lastDepthData = data;
+            }
+            break;
+
+        case 'calibration_result':
+            if (data.success) {
+                console.log('✅ Depth calibration successful');
+                updateDepthStatus('CALIBRATED');
+            } else {
+                console.log('❌ Depth calibration failed');
+                updateDepthStatus('CALIBRATION_FAILED');
+            }
+            break;
+
+        case 'server_status':
+            console.log('📡 Server status:', data.message);
+            break;
+    }
+}
+
+function applyDepthToTerrain(depthData) {
+    // Map depth data to our terrain grid
+    const scaleX = G.gridW / depthData.width;
+    const scaleY = G.gridH / depthData.height;
+
+    for (let y = 0; y < depthData.height; y++) {
+        for (let x = 0; x < depthData.width; x++) {
+            const depthIndex = y * depthData.width + x;
+            const depthValue = depthData.data[depthIndex];
+
+            // Map to our grid coordinates
+            const gridX = Math.floor(x * scaleX);
+            const gridY = Math.floor(y * scaleY);
+
+            if (gridX >= 0 && gridX < G.gridW && gridY >= 0 && gridY < G.gridH) {
+                // Convert depth to terrain height (invert so higher objects = higher terrain)
+                const terrainHeight = Math.max(0, Math.min(100, depthValue));
+
+                // Blend with existing terrain (smooth integration)
+                const blendFactor = 0.1; // Adjust for responsiveness
+                G.terrain[gridY][gridX] = G.terrain[gridY][gridX] * (1 - blendFactor) + terrainHeight * blendFactor;
+            }
+        }
+    }
+
+    // Add depth detection particles for visual feedback
+    if (Math.random() < 0.1) {
+        const randomX = Math.random() * G.canvas.width;
+        const randomY = Math.random() * G.canvas.height;
+        G.particles.push({
+            x: randomX, y: randomY,
+            vx: (Math.random()-0.5)*2, vy: (Math.random()-0.5)*2,
+            life: 20, color: '#00FFFF', size: 1
+        });
+    }
+}
+
+function updateDepthStatus(status) {
+    // Update UI to show depth detection status
+    const statusElement = document.getElementById('depthStatus');
+    if (statusElement) {
+        statusElement.textContent = status;
+        statusElement.style.color = status.includes('CONNECTED') || status.includes('CALIBRATED') ? '#0f0' : '#f00';
+    }
+}
+
+function toggleDepthOverlay() {
+    G.depthOverlay = !G.depthOverlay;
+    console.log('🔍 Depth overlay:', G.depthOverlay ? 'ON' : 'OFF');
+}
+
+function requestDepthCalibration() {
+    if (G.websocket && G.websocket.readyState === WebSocket.OPEN) {
+        G.websocket.send(JSON.stringify({command: 'calibrate'}));
+        console.log('🎯 Requesting depth calibration...');
+    } else {
+        console.log('❌ No connection to depth server');
+    }
+}
+
+function setupInput() {
+    G.canvas.addEventListener('mousedown', e => { G.isDrawing = true; draw(e); });
+    G.canvas.addEventListener('mousemove', draw);
+    G.canvas.addEventListener('mouseup', () => G.isDrawing = false);
+    G.canvas.addEventListener('touchstart', handleTouch);
+    G.canvas.addEventListener('touchmove', handleTouch);
+    G.canvas.addEventListener('touchend', () => G.isDrawing = false);
+    document.addEventListener('keydown', e => {
+        switch(e.key) {
+            case '1': setTool('sand'); break; case '2': setTool('dig'); break;
+            case '3': setTool('water'); break; case '4': setTool('fire'); break;
+            case '5': setTool('smooth'); break; case '6': setTool('measure'); break;
+            case 'c': case ' ': e.preventDefault(); clearAll(); break;
+            case 'd': case 'D': toggleDepthOverlay(); break;
+            case 'k': case 'K': requestDepthCalibration(); break;
+            case 's': case 'S': if(e.ctrlKey) { e.preventDefault(); saveGame(); } break;
+            case 'l': case 'L': if(e.ctrlKey) { e.preventDefault(); loadGame(); } break;
+        }
+    });
+}
+
+function draw(e) {
+    if (!G.isDrawing) return;
+    const rect = G.canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left, y = e.clientY - rect.top;
+    applyTool(x, y);
+}
+
+function handleTouch(e) {
+    e.preventDefault();
+    const touch = e.touches[0];
+    if (touch) {
+        const rect = G.canvas.getBoundingClientRect();
+        const x = touch.clientX - rect.left, y = touch.clientY - rect.top;
+        if (e.type === 'touchstart') G.isDrawing = true;
+        if (G.isDrawing) applyTool(x, y);
+    }
+}
+
+function applyTool(x, y) {
+    const gridX = Math.floor((x / G.canvas.width) * G.gridW);
+    const gridY = Math.floor((y / G.canvas.height) * G.gridH);
+    const radius = Math.floor(G.brushSize / 8);
+    
+    for (let dy = -radius; dy <= radius; dy++) {
+        for (let dx = -radius; dx <= radius; dx++) {
+            const gx = gridX + dx, gy = gridY + dy;
+            if (gx >= 0 && gx < G.gridW && gy >= 0 && gy < G.gridH) {
+                const dist = Math.sqrt(dx*dx + dy*dy);
+                if (dist <= radius) applyToolToCell(gx, gy, 1 - dist/radius);
+            }
+        }
+    }
+    addParticles(x, y);
+}
+
+function applyToolToCell(x, y, strength) {
+    switch(G.tool) {
+        case 'sand':
+            G.terrain[y][x] = Math.min(100, G.terrain[y][x] + 10 * strength);
+            if (Math.random() < 0.1) playSound('sand', strength);
+            break;
+        case 'dig':
+            G.terrain[y][x] = Math.max(0, G.terrain[y][x] - 15 * strength);
+            if (Math.random() < 0.1) playSound('dig', strength);
+            break;
+        case 'water':
+            G.water[y][x] = Math.min(100, G.water[y][x] + 20 * strength);
+            if (Math.random() < 0.05) playSound('water', strength);
+            break;
+        case 'fire':
+            G.fire[y][x] = Math.min(100, G.fire[y][x] + 30 * strength);
+            if (Math.random() < 0.08) playSound('fire', strength);
+            break;
+        case 'smooth':
+            // ADVANCED SMOOTHING TOOL
+            smoothTerrain(x, y, strength);
+            if (Math.random() < 0.05) playSound('sand', strength * 0.5);
+            break;
+        case 'measure':
+            // MEASURING TOOL
+            measureTerrain(x, y);
+            break;
+        case 'mix':
+            // MATERIAL MIXING TOOL
+            mixMaterials(x, y, strength);
+            if (Math.random() < 0.08) playSound('water', strength * 0.7);
+            break;
+    }
+}
+
+// ADVANCED TOOL FUNCTIONS
+function smoothTerrain(centerX, centerY, strength) {
+    const radius = Math.floor(G.brushSize / 8);
+    let totalHeight = 0;
+    let cellCount = 0;
+
+    // Calculate average height in area
+    for (let dy = -radius; dy <= radius; dy++) {
+        for (let dx = -radius; dx <= radius; dx++) {
+            const x = centerX + dx;
+            const y = centerY + dy;
+            if (x >= 0 && x < G.gridW && y >= 0 && y < G.gridH) {
+                const dist = Math.sqrt(dx*dx + dy*dy);
+                if (dist <= radius) {
+                    totalHeight += G.terrain[y][x];
+                    cellCount++;
+                }
+            }
+        }
+    }
+
+    const averageHeight = totalHeight / cellCount;
+
+    // Smooth towards average
+    for (let dy = -radius; dy <= radius; dy++) {
+        for (let dx = -radius; dx <= radius; dx++) {
+            const x = centerX + dx;
+            const y = centerY + dy;
+            if (x >= 0 && x < G.gridW && y >= 0 && y < G.gridH) {
+                const dist = Math.sqrt(dx*dx + dy*dy);
+                if (dist <= radius) {
+                    const smoothStrength = (1 - dist/radius) * strength * 0.3;
+                    const currentHeight = G.terrain[y][x];
+                    const diff = averageHeight - currentHeight;
+                    G.terrain[y][x] += diff * smoothStrength;
+                }
+            }
+        }
+    }
+}
+
+function measureTerrain(x, y) {
+    if (x < 0 || x >= G.gridW || y < 0 || y >= G.gridH) return;
+
+    const height = G.terrain[y][x];
+    const water = G.water[y][x];
+    const fire = G.fire[y][x];
+
+    // Calculate slope (gradient)
+    let slope = 0;
+    const neighbors = [
+        {x: x-1, y: y}, {x: x+1, y: y},
+        {x: x, y: y-1}, {x: x, y: y+1}
+    ];
+
+    neighbors.forEach(n => {
+        if (n.x >= 0 && n.x < G.gridW && n.y >= 0 && n.y < G.gridH) {
+            slope += Math.abs(G.terrain[n.y][n.x] - height);
+        }
+    });
+    slope /= neighbors.length;
+
+    // Display measurement
+    console.log(`📏 MEASUREMENT at (${x}, ${y}):`);
+    console.log(`   Height: ${height.toFixed(1)} units`);
+    console.log(`   Water: ${water.toFixed(1)} units`);
+    console.log(`   Fire: ${fire.toFixed(1)} units`);
+    console.log(`   Slope: ${slope.toFixed(1)} (${slope > 10 ? 'STEEP' : slope > 5 ? 'MODERATE' : 'GENTLE'})`);
+
+    // Visual measurement indicator
+    G.particles.push({
+        x: (x / G.gridW) * G.canvas.width,
+        y: (y / G.gridH) * G.canvas.height,
+        vx: 0, vy: -1,
+        life: 120, color: '#FFFF00', size: 3
+    });
+
+    // Add measurement text particle
+    G.particles.push({
+        x: (x / G.gridW) * G.canvas.width + 10,
+        y: (y / G.gridH) * G.canvas.height - 10,
+        vx: 0, vy: -0.5,
+        life: 180,
+        color: '#FFFFFF',
+        size: 1,
+        text: `H:${height.toFixed(0)} S:${slope.toFixed(0)}`
+    });
+}
+
+function mixMaterials(centerX, centerY, strength) {
+    // ADVANCED MATERIAL MIXING - Creates mud, steam, etc.
+    const radius = Math.floor(G.brushSize / 8);
+
+    for (let dy = -radius; dy <= radius; dy++) {
+        for (let dx = -radius; dx <= radius; dx++) {
+            const x = centerX + dx;
+            const y = centerY + dy;
+            if (x >= 0 && x < G.gridW && y >= 0 && y < G.gridH) {
+                const dist = Math.sqrt(dx*dx + dy*dy);
+                if (dist <= radius) {
+                    const mixStrength = (1 - dist/radius) * strength;
+
+                    // Water + Sand = Mud (more stable, darker terrain)
+                    if (G.water[y][x] > 10 && G.terrain[y][x] > 10) {
+                        const mudAmount = Math.min(G.water[y][x], G.terrain[y][x]) * mixStrength * 0.1;
+                        G.water[y][x] -= mudAmount;
+                        G.terrain[y][x] += mudAmount * 0.5; // Mud is denser
+
+                        // Create mud particles
+                        if (Math.random() < 0.2) {
+                            G.particles.push({
+                                x: (x / G.gridW) * G.canvas.width + (Math.random()-0.5)*10,
+                                y: (y / G.gridH) * G.canvas.height + (Math.random()-0.5)*10,
+                                vx: (Math.random()-0.5)*2,
+                                vy: (Math.random()-0.5)*2,
+                                life: 40, color: '#8B4513', size: 2
+                            });
+                        }
+                    }
+
+                    // Fire + Water = Steam
+                    if (G.fire[y][x] > 5 && G.water[y][x] > 5) {
+                        const steamAmount = Math.min(G.fire[y][x], G.water[y][x]) * mixStrength * 0.2;
+                        G.fire[y][x] -= steamAmount;
+                        G.water[y][x] -= steamAmount * 0.5;
+
+                        // Create steam particles
+                        for (let i = 0; i < 3; i++) {
+                            G.particles.push({
+                                x: (x / G.gridW) * G.canvas.width + (Math.random()-0.5)*15,
+                                y: (y / G.gridH) * G.canvas.height + (Math.random()-0.5)*15,
+                                vx: (Math.random()-0.5)*2,
+                                vy: -Math.random()*3 - 1, // Steam rises
+                                life: 60, color: '#E8E8E8', size: Math.random()*3+2
+                            });
+                        }
+                    }
+
+                    // Fire + Sand = Glass (very high heat creates glass)
+                    if (G.fire[y][x] > 50 && G.terrain[y][x] > 20) {
+                        const glassAmount = Math.min(G.fire[y][x] - 50, G.terrain[y][x]) * mixStrength * 0.05;
+                        if (glassAmount > 0) {
+                            G.fire[y][x] -= glassAmount * 2;
+                            G.terrain[y][x] = Math.min(100, G.terrain[y][x] + glassAmount); // Glass is terrain
+
+                            // Create glass sparkle particles
+                            if (Math.random() < 0.3) {
+                                G.particles.push({
+                                    x: (x / G.gridW) * G.canvas.width + (Math.random()-0.5)*8,
+                                    y: (y / G.gridH) * G.canvas.height + (Math.random()-0.5)*8,
+                                    vx: (Math.random()-0.5)*1,
+                                    vy: (Math.random()-0.5)*1,
+                                    life: 30, color: '#87CEEB', size: 1
+                                });
+                            }
+                        }
+                    }
+
+                    // Advanced mixing: Create gradients and smooth transitions
+                    const neighbors = [
+                        {x: x-1, y: y}, {x: x+1, y: y},
+                        {x: x, y: y-1}, {x: x, y: y+1}
+                    ];
+
+                    neighbors.forEach(n => {
+                        if (n.x >= 0 && n.x < G.gridW && n.y >= 0 && n.y < G.gridH) {
+                            // Smooth material transitions
+                            const terrainDiff = G.terrain[n.y][n.x] - G.terrain[y][x];
+                            const waterDiff = G.water[n.y][n.x] - G.water[y][x];
+
+                            if (Math.abs(terrainDiff) > 5) {
+                                const flow = terrainDiff * mixStrength * 0.02;
+                                G.terrain[y][x] += flow;
+                                G.terrain[n.y][n.x] -= flow;
+                            }
+
+                            if (Math.abs(waterDiff) > 5) {
+                                const flow = waterDiff * mixStrength * 0.05;
+                                G.water[y][x] += flow;
+                                G.water[n.y][n.x] -= flow;
+                            }
+                        }
+                    });
+                }
+            }
+        }
+    }
+}
+
+function addParticles(x, y) {
+    const colors = {sand:'#C4926C', dig:'#654321', water:'#3498DB', fire:'#E74C3C'};
+    for (let i = 0; i < 3; i++) {
+        G.particles.push({
+            x: x + (Math.random()-0.5)*20, y: y + (Math.random()-0.5)*20,
+            vx: (Math.random()-0.5)*4, vy: (Math.random()-0.5)*4,
+            life: 40, color: colors[G.tool] || '#FFF', size: Math.random()*3+1
+        });
+    }
+}
+
+// PHYSICS
+function updatePhysics() {
+    // ENHANCED WATER PHYSICS - Multiple passes for realistic flow
+    for (let pass = 0; pass < 3; pass++) {
+        for (let y = 1; y < G.gridH-1; y++) {
+            for (let x = 1; x < G.gridW-1; x++) {
+                if (G.water[y][x] > 3) {
+                    // Calculate total height (terrain + water)
+                    const currentHeight = G.terrain[y][x] + G.water[y][x];
+
+                    // Check all 8 neighbors (including diagonals)
+                    const neighbors = [
+                        {x:x-1,y:y, weight:1.0}, {x:x+1,y:y, weight:1.0},
+                        {x:x,y:y-1, weight:1.0}, {x:x,y:y+1, weight:1.0},
+                        {x:x-1,y:y-1, weight:0.7}, {x:x+1,y:y-1, weight:0.7},
+                        {x:x-1,y:y+1, weight:0.7}, {x:x+1,y:y+1, weight:0.7}
+                    ];
+
+                    let totalFlow = 0;
+                    neighbors.forEach(n => {
+                        if (n.x >= 0 && n.x < G.gridW && n.y >= 0 && n.y < G.gridH) {
+                            const neighborHeight = G.terrain[n.y][n.x] + G.water[n.y][n.x];
+                            const heightDiff = currentHeight - neighborHeight;
+
+                            if (heightDiff > 1) {
+                                // Flow rate based on height difference and distance
+                                const maxFlow = Math.min(G.water[y][x] * 0.15, heightDiff * 0.3);
+                                const flow = maxFlow * n.weight;
+
+                                if (flow > 0.1 && totalFlow < G.water[y][x] * 0.8) {
+                                    G.water[y][x] -= flow;
+                                    G.water[n.y][n.x] += flow;
+                                    totalFlow += flow;
+
+                                    // Add flow particles for visual effect
+                                    if (Math.random() < 0.1) {
+                                        G.particles.push({
+                                            x: (x / G.gridW) * G.canvas.width + (Math.random()-0.5)*10,
+                                            y: (y / G.gridH) * G.canvas.height + (Math.random()-0.5)*10,
+                                            vx: (n.x - x) * 2 + (Math.random()-0.5),
+                                            vy: (n.y - y) * 2 + (Math.random()-0.5),
+                                            life: 20, color: '#4A90E2', size: 1
+                                        });
+                                    }
+                                }
+                            }
+                        }
+                    });
+
+                    // Water evaporation in small amounts
+                    if (G.water[y][x] > 0 && Math.random() < 0.001) {
+                        G.water[y][x] = Math.max(0, G.water[y][x] - 0.1);
+                    }
+                }
+            }
+        }
+    }
+
+    // Water pooling - collect small amounts into larger pools
+    for (let y = 1; y < G.gridH-1; y++) {
+        for (let x = 1; x < G.gridW-1; x++) {
+            if (G.water[y][x] > 0 && G.water[y][x] < 5) {
+                // Check if this is the lowest point in immediate area
+                let isLowest = true;
+                const checkNeighbors = [{x:x-1,y:y},{x:x+1,y:y},{x:x,y:y-1},{x:x,y:y+1}];
+                const currentTotal = G.terrain[y][x] + G.water[y][x];
+
+                checkNeighbors.forEach(n => {
+                    if (n.x >= 0 && n.x < G.gridW && n.y >= 0 && n.y < G.gridH) {
+                        const neighborTotal = G.terrain[n.y][n.x] + G.water[n.y][n.x];
+                        if (neighborTotal < currentTotal - 0.5) isLowest = false;
+                    }
+                });
+
+                if (isLowest) {
+                    // Collect water from higher neighbors
+                    checkNeighbors.forEach(n => {
+                        if (n.x >= 0 && n.x < G.gridW && n.y >= 0 && n.y < G.gridH) {
+                            if (G.water[n.y][n.x] > 0 && G.water[n.y][n.x] < 3) {
+                                const collectAmount = Math.min(G.water[n.y][n.x] * 0.2, 1);
+                                G.water[n.y][n.x] -= collectAmount;
+                                G.water[y][x] += collectAmount;
+                            }
+                        }
+                    });
+                }
+            }
+        }
+    }
+    
+    // ENHANCED FIRE/HEAT SYSTEM
+    for (let y = 1; y < G.gridH-1; y++) {
+        for (let x = 1; x < G.gridW-1; x++) {
+            if (G.fire[y][x] > 5) {
+                const fireIntensity = G.fire[y][x];
+
+                // Fire spreads to flammable neighbors
+                const neighbors = [
+                    {x:x-1,y:y}, {x:x+1,y:y}, {x:x,y:y-1}, {x:x,y:y+1},
+                    {x:x-1,y:y-1}, {x:x+1,y:y-1}, {x:x-1,y:y+1}, {x:x+1,y:y+1}
+                ];
+
+                neighbors.forEach(n => {
+                    if (n.x >= 0 && n.x < G.gridW && n.y >= 0 && n.y < G.gridH) {
+                        // Fire spreads to terrain with little water
+                        if (G.terrain[n.y][n.x] > 0 && G.water[n.y][n.x] < 3) {
+                            const spreadRate = Math.max(0, fireIntensity * 0.05 - G.water[n.y][n.x] * 0.1);
+                            G.fire[n.y][n.x] = Math.min(80, G.fire[n.y][n.x] + spreadRate);
+
+                            // Fire consumes terrain slowly
+                            if (G.fire[n.y][n.x] > 30 && Math.random() < 0.02) {
+                                G.terrain[n.y][n.x] = Math.max(0, G.terrain[n.y][n.x] - 1);
+                            }
+                        }
+                    }
+                });
+
+                // Water extinguishes fire and creates steam
+                if (G.water[y][x] > 5) {
+                    const extinguishAmount = Math.min(G.fire[y][x], G.water[y][x] * 2);
+                    G.fire[y][x] = Math.max(0, G.fire[y][x] - extinguishAmount);
+                    G.water[y][x] = Math.max(0, G.water[y][x] - extinguishAmount * 0.3);
+
+                    // Create steam particles
+                    for (let i = 0; i < 3; i++) {
+                        G.particles.push({
+                            x: (x / G.gridW) * G.canvas.width + (Math.random()-0.5)*15,
+                            y: (y / G.gridH) * G.canvas.height + (Math.random()-0.5)*15,
+                            vx: (Math.random()-0.5)*2,
+                            vy: -Math.random()*3 - 1, // Steam rises
+                            life: 40, color: '#E8E8E8', size: Math.random()*3+2
+                        });
+                    }
+                }
+
+                // Fire naturally dies down over time
+                G.fire[y][x] = Math.max(0, G.fire[y][x] - 0.3);
+
+                // Create fire particles
+                if (Math.random() < 0.15) {
+                    G.particles.push({
+                        x: (x / G.gridW) * G.canvas.width + (Math.random()-0.5)*10,
+                        y: (y / G.gridH) * G.canvas.height + (Math.random()-0.5)*10,
+                        vx: (Math.random()-0.5)*2,
+                        vy: -Math.random()*2 - 0.5, // Fire rises
+                        life: 25,
+                        color: ['#FF4500', '#FF6347', '#FFD700', '#FF8C00'][Math.floor(Math.random()*4)],
+                        size: Math.random()*2+1
+                    });
+                }
+
+                // Heat affects nearby water (evaporation)
+                if (fireIntensity > 40) {
+                    neighbors.forEach(n => {
+                        if (n.x >= 0 && n.x < G.gridW && n.y >= 0 && n.y < G.gridH) {
+                            if (G.water[n.y][n.x] > 0 && Math.random() < 0.05) {
+                                G.water[n.y][n.x] = Math.max(0, G.water[n.y][n.x] - 0.5);
+                                // Create evaporation particle
+                                G.particles.push({
+                                    x: (n.x / G.gridW) * G.canvas.width,
+                                    y: (n.y / G.gridH) * G.canvas.height,
+                                    vx: (Math.random()-0.5),
+                                    vy: -Math.random()*2,
+                                    life: 30, color: '#B0E0E6', size: 1
+                                });
+                            }
+                        }
+                    });
+                }
+            }
+        }
+    }
+    
+    // ENHANCED TERRAIN PHYSICS
+
+    // 1. Sand gravity and avalanche physics
+    for (let y = G.gridH-2; y >= 0; y--) {
+        for (let x = 0; x < G.gridW; x++) {
+            if (G.terrain[y][x] > 15) {
+                // Check stability - sand falls if too steep
+                const neighbors = [];
+                if (x > 0) neighbors.push(G.terrain[y+1][x-1]);
+                neighbors.push(G.terrain[y+1][x]);
+                if (x < G.gridW-1) neighbors.push(G.terrain[y+1][x+1]);
+
+                const avgBelow = neighbors.reduce((a,b) => a+b, 0) / neighbors.length;
+                const heightDiff = G.terrain[y][x] - avgBelow;
+
+                // Avalanche if too steep (angle of repose)
+                if (heightDiff > 12) {
+                    const fallAmount = Math.min(4, (heightDiff - 10) * 0.5);
+                    G.terrain[y][x] -= fallAmount;
+
+                    // Distribute fallen sand to lower neighbors
+                    const validNeighbors = [];
+                    if (x > 0) validNeighbors.push({x: x-1, y: y+1});
+                    validNeighbors.push({x: x, y: y+1});
+                    if (x < G.gridW-1) validNeighbors.push({x: x+1, y: y+1});
+
+                    const perNeighbor = fallAmount / validNeighbors.length;
+                    validNeighbors.forEach(n => {
+                        G.terrain[n.y][n.x] += perNeighbor;
+                    });
+
+                    // Create avalanche particles
+                    if (Math.random() < 0.3) {
+                        G.particles.push({
+                            x: (x / G.gridW) * G.canvas.width + (Math.random()-0.5)*20,
+                            y: (y / G.gridH) * G.canvas.height + (Math.random()-0.5)*10,
+                            vx: (Math.random()-0.5)*4,
+                            vy: Math.random()*3 + 1,
+                            life: 30, color: '#D2B48C', size: Math.random()*2+1
+                        });
+                    }
+                }
+            }
+        }
+    }
+
+    // 2. Water erosion
+    for (let y = 1; y < G.gridH-1; y++) {
+        for (let x = 1; x < G.gridW-1; x++) {
+            if (G.water[y][x] > 10 && G.terrain[y][x] > 5) {
+                // Fast-flowing water erodes terrain
+                const flowSpeed = Math.min(G.water[y][x] / 20, 1);
+                if (Math.random() < flowSpeed * 0.02) {
+                    const erosionAmount = Math.min(2, G.terrain[y][x] * 0.1);
+                    G.terrain[y][x] -= erosionAmount;
+
+                    // Eroded material flows downstream
+                    const neighbors = [{x:x-1,y:y},{x:x+1,y:y},{x:x,y:y-1},{x:x,y:y+1}];
+                    const downstreamNeighbor = neighbors.find(n => {
+                        if (n.x >= 0 && n.x < G.gridW && n.y >= 0 && n.y < G.gridH) {
+                            return (G.terrain[n.y][n.x] + G.water[n.y][n.x]) < (G.terrain[y][x] + G.water[y][x]);
+                        }
+                        return false;
+                    });
+
+                    if (downstreamNeighbor) {
+                        G.terrain[downstreamNeighbor.y][downstreamNeighbor.x] += erosionAmount * 0.7;
+                    }
+
+                    // Create sediment particles
+                    G.particles.push({
+                        x: (x / G.gridW) * G.canvas.width,
+                        y: (y / G.gridH) * G.canvas.height,
+                        vx: (Math.random()-0.5)*3,
+                        vy: (Math.random()-0.5)*3,
+                        life: 40, color: '#8B7355', size: 1
+                    });
+                }
+            }
+        }
+    }
+
+    // 3. Soil settling and compaction
+    for (let y = 1; y < G.gridH-1; y++) {
+        for (let x = 1; x < G.gridW-1; x++) {
+            if (G.terrain[y][x] > 0) {
+                // Loose soil settles over time
+                if (Math.random() < 0.001) {
+                    const neighbors = [{x:x-1,y:y},{x:x+1,y:y},{x:x,y:y-1},{x:x,y:y+1}];
+                    const avgNeighborHeight = neighbors.reduce((sum, n) => {
+                        if (n.x >= 0 && n.x < G.gridW && n.y >= 0 && n.y < G.gridH) {
+                            return sum + G.terrain[n.y][n.x];
+                        }
+                        return sum;
+                    }, 0) / 4;
+
+                    // Gradual settling toward average
+                    const diff = avgNeighborHeight - G.terrain[y][x];
+                    if (Math.abs(diff) > 1) {
+                        G.terrain[y][x] += diff * 0.05;
+                    }
+                }
+
+                // Water-saturated soil becomes unstable
+                if (G.water[y][x] > G.terrain[y][x] * 0.5 && G.terrain[y][x] > 10) {
+                    if (Math.random() < 0.01) {
+                        // Mudslide effect
+                        const slideAmount = Math.min(3, G.terrain[y][x] * 0.2);
+                        G.terrain[y][x] -= slideAmount;
+
+                        // Find lowest neighbor for mudslide
+                        const neighbors = [{x:x-1,y:y},{x:x+1,y:y},{x:x,y:y-1},{x:x,y:y+1}];
+                        let lowestNeighbor = null;
+                        let lowestHeight = G.terrain[y][x] + G.water[y][x];
+
+                        neighbors.forEach(n => {
+                            if (n.x >= 0 && n.x < G.gridW && n.y >= 0 && n.y < G.gridH) {
+                                const totalHeight = G.terrain[n.y][n.x] + G.water[n.y][n.x];
+                                if (totalHeight < lowestHeight) {
+                                    lowestHeight = totalHeight;
+                                    lowestNeighbor = n;
+                                }
+                            }
+                        });
+
+                        if (lowestNeighbor) {
+                            G.terrain[lowestNeighbor.y][lowestNeighbor.x] += slideAmount;
+                            G.water[lowestNeighbor.y][lowestNeighbor.x] += slideAmount * 0.3;
+
+                            // Mudslide particles
+                            G.particles.push({
+                                x: (x / G.gridW) * G.canvas.width,
+                                y: (y / G.gridH) * G.canvas.height,
+                                vx: (lowestNeighbor.x - x) * 3,
+                                vy: (lowestNeighbor.y - y) * 3,
+                                life: 35, color: '#8B4513', size: 2
+                            });
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// CONSTRUCTION-FOCUSED VEHICLE AI
+function updateVehicles() {
+    Object.keys(G.vehicles).forEach(id => {
+        const v = G.vehicles[id];
+        if (!v.active) return;
+
+        // CONSTRUCTION AI - Find actual work to do
+        if (!v.currentJob || v.jobComplete) {
+            v.currentJob = findConstructionWork(id, v);
+            v.jobComplete = false;
+        }
+
+        // Move to work site
+        const dx = v.targetX - v.x, dy = v.targetY - v.y, dist = Math.sqrt(dx*dx + dy*dy);
+
+        if (dist > 5) {
+            // Move toward work site
+            v.vx += (dx/dist) * v.speed * 0.15;
+            v.vy += (dy/dist) * v.speed * 0.15;
+        } else {
+            // At work site - do the job
+            doConstructionWork(id, v);
+        }
+
+        // Apply movement with realistic physics
+        v.vx *= 0.85; v.vy *= 0.85;
+        v.x += v.vx; v.y += v.vy;
+        v.x = Math.max(30, Math.min(G.canvas.width-30, v.x));
+        v.y = Math.max(30, Math.min(G.canvas.height-30, v.y));
+    });
+}
+
+function findConstructionWork(vehicleId, vehicle) {
+    const gx = Math.floor((vehicle.x / G.canvas.width) * G.gridW);
+    const gy = Math.floor((vehicle.y / G.canvas.height) * G.gridH);
+
+    switch(vehicleId) {
+        case 'excavator':
+            // Find high areas that need excavating for foundations
+            return findHighAreas(gx, gy, 'excavate_foundation');
+
+        case 'bulldozer':
+            // Find areas that need leveling for roads/building sites
+            return findUnevenAreas(gx, gy, 'level_for_construction');
+
+        case 'dumptruck':
+            // Find low areas that need filling for building pads
+            return findLowAreas(gx, gy, 'fill_building_pad');
+
+        case 'crane':
+            // Find areas where structures need to be built
+            return findBuildingSites(gx, gy, 'construct_building');
+
+        case 'compactor':
+            // Find loose areas that need compacting for roads
+            return findLooseAreas(gx, gy, 'compact_roadway');
+    }
+
+    return { type: 'patrol', x: vehicle.x + (Math.random()-0.5)*100, y: vehicle.y + (Math.random()-0.5)*100 };
+}
+
+function findHighAreas(startX, startY, jobType) {
+    // Excavator: Find highest terrain within range for foundation work
+    let bestSite = null, maxHeight = 0;
+
+    for (let dy = -20; dy <= 20; dy++) {
+        for (let dx = -20; dx <= 20; dx++) {
+            const x = startX + dx, y = startY + dy;
+            if (x >= 0 && x < G.gridW && y >= 0 && y < G.gridH) {
+                if (G.terrain[y][x] > maxHeight && G.terrain[y][x] > 30) {
+                    maxHeight = G.terrain[y][x];
+                    bestSite = {
+                        type: jobType,
+                        x: (x / G.gridW) * G.canvas.width,
+                        y: (y / G.gridH) * G.canvas.height,
+                        gridX: x, gridY: y
+                    };
+                }
+            }
+        }
+    }
+
+    return bestSite || { type: 'patrol', x: startX * (G.canvas.width/G.gridW), y: startY * (G.canvas.height/G.gridH) };
+}
+
+function findUnevenAreas(startX, startY, jobType) {
+    // Bulldozer: Find areas with height variations for leveling
+    let bestSite = null, maxVariation = 0;
+
+    for (let dy = -15; dy <= 15; dy++) {
+        for (let dx = -15; dx <= 15; dx++) {
+            const x = startX + dx, y = startY + dy;
+            if (x >= 1 && x < G.gridW-1 && y >= 1 && y < G.gridH-1) {
+                // Check height variation in 3x3 area
+                let minH = 100, maxH = 0;
+                for (let sy = -1; sy <= 1; sy++) {
+                    for (let sx = -1; sx <= 1; sx++) {
+                        const h = G.terrain[y+sy][x+sx];
+                        minH = Math.min(minH, h);
+                        maxH = Math.max(maxH, h);
+                    }
+                }
+                const variation = maxH - minH;
+                if (variation > maxVariation && variation > 15) {
+                    maxVariation = variation;
+                    bestSite = {
+                        type: jobType,
+                        x: (x / G.gridW) * G.canvas.width,
+                        y: (y / G.gridH) * G.canvas.height,
+                        gridX: x, gridY: y
+                    };
+                }
+            }
+        }
+    }
+
+    return bestSite || { type: 'patrol', x: startX * (G.canvas.width/G.gridW), y: startY * (G.canvas.height/G.gridH) };
+}
+
+function findLowAreas(startX, startY, jobType) {
+    // Dump truck: Find low areas that need filling for building pads
+    let bestSite = null, minHeight = 100;
+
+    for (let dy = -25; dy <= 25; dy++) {
+        for (let dx = -25; dx <= 25; dx++) {
+            const x = startX + dx, y = startY + dy;
+            if (x >= 0 && x < G.gridW && y >= 0 && y < G.gridH) {
+                if (G.terrain[y][x] < minHeight && G.terrain[y][x] < 20) {
+                    minHeight = G.terrain[y][x];
+                    bestSite = {
+                        type: jobType,
+                        x: (x / G.gridW) * G.canvas.width,
+                        y: (y / G.gridH) * G.canvas.height,
+                        gridX: x, gridY: y
+                    };
+                }
+            }
+        }
+    }
+
+    return bestSite || { type: 'patrol', x: startX * (G.canvas.width/G.gridW), y: startY * (G.canvas.height/G.gridH) };
+}
+
+function findBuildingSites(startX, startY, jobType) {
+    // Crane: Find flat areas suitable for building construction
+    let bestSite = null;
+
+    for (let dy = -10; dy <= 10; dy++) {
+        for (let dx = -10; dx <= 10; dx++) {
+            const x = startX + dx, y = startY + dy;
+            if (x >= 2 && x < G.gridW-2 && y >= 2 && y < G.gridH-2) {
+                // Check if area is relatively flat and at good height for building
+                let avgHeight = 0, count = 0;
+                for (let sy = -2; sy <= 2; sy++) {
+                    for (let sx = -2; sx <= 2; sx++) {
+                        avgHeight += G.terrain[y+sy][x+sx];
+                        count++;
+                    }
+                }
+                avgHeight /= count;
+
+                if (avgHeight > 20 && avgHeight < 60) { // Good building height
+                    bestSite = {
+                        type: jobType,
+                        x: (x / G.gridW) * G.canvas.width,
+                        y: (y / G.gridH) * G.canvas.height,
+                        gridX: x, gridY: y
+                    };
+                    break;
+                }
+            }
+        }
+        if (bestSite) break;
+    }
+
+    return bestSite || { type: 'patrol', x: startX * (G.canvas.width/G.gridW), y: startY * (G.canvas.height/G.gridH) };
+}
+
+function findLooseAreas(startX, startY, jobType) {
+    // Compactor: Find areas that need road compaction
+    let bestSite = null;
+
+    for (let dy = -12; dy <= 12; dy++) {
+        for (let dx = -12; dx <= 12; dx++) {
+            const x = startX + dx, y = startY + dy;
+            if (x >= 0 && x < G.gridW && y >= 0 && y < G.gridH) {
+                // Look for areas with moderate height (potential roads)
+                if (G.terrain[y][x] > 5 && G.terrain[y][x] < 25) {
+                    bestSite = {
+                        type: jobType,
+                        x: (x / G.gridW) * G.canvas.width,
+                        y: (y / G.gridH) * G.canvas.height,
+                        gridX: x, gridY: y
+                    };
+                    break;
+                }
+            }
+        }
+        if (bestSite) break;
+    }
+
+    return bestSite || { type: 'patrol', x: startX * (G.canvas.width/G.gridW), y: startY * (G.canvas.height/G.gridH) };
+}
+
+function doConstructionWork(vehicleId, vehicle) {
+    if (!vehicle.currentJob) return;
+
+    const job = vehicle.currentJob;
+    const gx = job.gridX || Math.floor((vehicle.x/G.canvas.width)*G.gridW);
+    const gy = job.gridY || Math.floor((vehicle.y/G.canvas.height)*G.gridH);
+
+    if (gx < 0 || gx >= G.gridW || gy < 0 || gy >= G.gridH) return;
+
+    switch(job.type) {
+        case 'excavate_foundation':
+            // Excavator: Dig foundation holes
+            for (let dy = -2; dy <= 2; dy++) {
+                for (let dx = -2; dx <= 2; dx++) {
+                    const x = gx + dx, y = gy + dy;
+                    if (x >= 0 && x < G.gridW && y >= 0 && y < G.gridH) {
+                        if (G.terrain[y][x] > 10) {
+                            G.terrain[y][x] = Math.max(5, G.terrain[y][x] - 4);
+                            addWork(vehicle.x + dx*5, vehicle.y + dy*5, '#8B4513');
+                        }
+                    }
+                }
+            }
+            // Job complete when area is excavated
+            if (G.terrain[gy][gx] <= 15) vehicle.jobComplete = true;
+            break;
+
+        case 'level_for_construction':
+            // Bulldozer: Level terrain for construction sites
+            const targetHeight = 25; // Standard building pad height
+            for (let dy = -1; dy <= 1; dy++) {
+                for (let dx = -1; dx <= 1; dx++) {
+                    const x = gx + dx, y = gy + dy;
+                    if (x >= 0 && x < G.gridW && y >= 0 && y < G.gridH) {
+                        const current = G.terrain[y][x];
+                        if (current > targetHeight + 5) {
+                            // Push excess material to nearby low areas
+                            G.terrain[y][x] -= 3;
+                            // Find nearby low spot to push to
+                            const pushDirs = [{x:2,y:0},{x:-2,y:0},{x:0,y:2},{x:0,y:-2}];
+                            const pushDir = pushDirs[Math.floor(Math.random() * pushDirs.length)];
+                            const pushX = x + pushDir.x, pushY = y + pushDir.y;
+                            if (pushX >= 0 && pushX < G.gridW && pushY >= 0 && pushY < G.gridH) {
+                                G.terrain[pushY][pushX] = Math.min(100, G.terrain[pushY][pushX] + 2);
+                            }
+                            addWork(vehicle.x, vehicle.y, '#654321');
+                        } else if (current < targetHeight - 5) {
+                            G.terrain[y][x] = Math.min(100, G.terrain[y][x] + 2);
+                            addWork(vehicle.x, vehicle.y, '#654321');
+                        }
+                    }
+                }
+            }
+            // Check if area is level
+            let isLevel = true;
+            for (let dy = -2; dy <= 2; dy++) {
+                for (let dx = -2; dx <= 2; dx++) {
+                    const x = gx + dx, y = gy + dy;
+                    if (x >= 0 && x < G.gridW && y >= 0 && y < G.gridH) {
+                        if (Math.abs(G.terrain[y][x] - targetHeight) > 8) isLevel = false;
+                    }
+                }
+            }
+            if (isLevel) vehicle.jobComplete = true;
+            break;
+
+        case 'fill_building_pad':
+            // Dump truck: Fill low areas to create building pads
+            const fillHeight = 30;
+            for (let dy = -1; dy <= 1; dy++) {
+                for (let dx = -1; dx <= 1; dx++) {
+                    const x = gx + dx, y = gy + dy;
+                    if (x >= 0 && x < G.gridW && y >= 0 && y < G.gridH) {
+                        if (G.terrain[y][x] < fillHeight) {
+                            G.terrain[y][x] = Math.min(fillHeight, G.terrain[y][x] + 5);
+                            addWork(vehicle.x + dx*3, vehicle.y + dy*3, '#C4926C');
+                        }
+                    }
+                }
+            }
+            if (G.terrain[gy][gx] >= fillHeight - 3) vehicle.jobComplete = true;
+            break;
+
+        case 'construct_building':
+            // Crane: Build structures on prepared sites
+            const buildingHeight = 60;
+            if (G.terrain[gy][gx] > 20 && G.terrain[gy][gx] < buildingHeight) {
+                // Build up structure
+                G.terrain[gy][gx] = Math.min(buildingHeight, G.terrain[gy][gx] + 3);
+                // Add adjacent support
+                const supports = [{x:gx-1,y:gy},{x:gx+1,y:gy},{x:gx,y:gy-1},{x:gx,y:gy+1}];
+                supports.forEach(s => {
+                    if (s.x >= 0 && s.x < G.gridW && s.y >= 0 && s.y < G.gridH) {
+                        G.terrain[s.y][s.x] = Math.min(buildingHeight-10, G.terrain[s.y][s.x] + 1);
+                    }
+                });
+                addWork(vehicle.x, vehicle.y, '#FFD700');
+            }
+            if (G.terrain[gy][gx] >= buildingHeight - 5) vehicle.jobComplete = true;
+            break;
+
+        case 'compact_roadway':
+            // Compactor: Create smooth roads
+            const roadHeight = 15;
+            for (let dy = -1; dy <= 1; dy++) {
+                for (let dx = -3; dx <= 3; dx++) { // Road is wider than tall
+                    const x = gx + dx, y = gy + dy;
+                    if (x >= 0 && x < G.gridW && y >= 0 && y < G.gridH) {
+                        // Smooth to road height
+                        const target = roadHeight;
+                        const current = G.terrain[y][x];
+                        if (Math.abs(current - target) > 2) {
+                            if (current > target) G.terrain[y][x] -= 1;
+                            else G.terrain[y][x] += 1;
+                            addWork(vehicle.x + dx*2, vehicle.y + dy*2, '#888');
+                        }
+                    }
+                }
+            }
+            // Check if road section is smooth
+            let isSmooth = true;
+            for (let dy = -1; dy <= 1; dy++) {
+                for (let dx = -3; dx <= 3; dx++) {
+                    const x = gx + dx, y = gy + dy;
+                    if (x >= 0 && x < G.gridW && y >= 0 && y < G.gridH) {
+                        if (Math.abs(G.terrain[y][x] - roadHeight) > 3) isSmooth = false;
+                    }
+                }
+            }
+            if (isSmooth) vehicle.jobComplete = true;
+            break;
+
+        default:
+            // Patrol - just move around
+            vehicle.jobComplete = true;
+            break;
+    }
+
+    // Update job target for movement
+    if (job.x && job.y) {
+        vehicle.targetX = job.x;
+        vehicle.targetY = job.y;
+    }
+}
+
+function addWork(x,y,color) {
+    for(let i=0;i<2;i++) G.particles.push({x:x+(Math.random()-0.5)*15,y:y+(Math.random()-0.5)*15,vx:(Math.random()-0.5)*3,vy:(Math.random()-0.5)*3,life:20,color:color,size:Math.random()*2+1});
+    // Add vehicle work sound
+    if (Math.random() < 0.3) playSound('vehicle_work', 0.5);
+}
+
+// RENDER
+function render() {
+    G.ctx.clearRect(0, 0, G.canvas.width, G.canvas.height);
+    
+    const cellW = G.canvas.width / G.gridW, cellH = G.canvas.height / G.gridH;
+    
+    for (let y = 0; y < G.gridH; y++) {
+        for (let x = 0; x < G.gridW; x++) {
+            const sx = x * cellW, sy = y * cellH;
+            
+            if (G.terrain[y][x] > 0) {
+                const height = G.terrain[y][x];
+                const i = Math.min(1, height / 100);
+
+                // ENHANCED TERRAIN COLORS based on height
+                let terrainColor;
+                if (height < 20) {
+                    terrainColor = `rgba(139,115,85,${i*0.9})`; // Dark soil
+                } else if (height < 40) {
+                    terrainColor = `rgba(196,146,108,${i*0.8})`; // Sand
+                } else if (height < 70) {
+                    terrainColor = `rgba(218,165,132,${i*0.85})`; // Light sand
+                } else {
+                    terrainColor = `rgba(169,169,169,${i*0.9})`; // Rock
+                }
+
+                G.ctx.fillStyle = terrainColor;
+                G.ctx.fillRect(sx, sy, cellW, cellH);
+
+                // 3D shading effect
+                if (height > 15) {
+                    G.ctx.fillStyle = `rgba(255,255,255,${(height-15)/200})`;
+                    G.ctx.fillRect(sx, sy, cellW, cellH/3);
+                    G.ctx.fillStyle = `rgba(0,0,0,${(height-15)/300})`;
+                    G.ctx.fillRect(sx, sy+cellH*2/3, cellW, cellH/3);
+                }
+            }
+            
+            if (G.water[y][x] > 0) {
+                const waterLevel = G.water[y][x];
+                const i = Math.min(1, waterLevel / 100);
+
+                // ENHANCED WATER RENDERING with depth and flow
+                let waterColor;
+                if (waterLevel < 20) {
+                    waterColor = `rgba(135,206,235,${i*0.6})`; // Light blue - shallow
+                } else if (waterLevel < 50) {
+                    waterColor = `rgba(52,152,219,${i*0.7})`; // Medium blue
+                } else {
+                    waterColor = `rgba(25,25,112,${i*0.8})`; // Dark blue - deep
+                }
+
+                G.ctx.fillStyle = waterColor;
+                G.ctx.fillRect(sx, sy, cellW, cellH);
+
+                // Water surface shimmer effect
+                if (Math.random() < 0.05) {
+                    G.ctx.fillStyle = `rgba(255,255,255,${i*0.4})`;
+                    G.ctx.fillRect(sx + Math.random()*cellW, sy + Math.random()*cellH, 2, 1);
+                }
+
+                // Water edge foam
+                const neighbors = [{x:x-1,y:y},{x:x+1,y:y},{x:x,y:y-1},{x:x,y:y+1}];
+                let hasLandNeighbor = false;
+                neighbors.forEach(n => {
+                    if (n.x >= 0 && n.x < G.gridW && n.y >= 0 && n.y < G.gridH) {
+                        if (G.terrain[n.y][n.x] > G.terrain[y][x] + 10) hasLandNeighbor = true;
+                    }
+                });
+                if (hasLandNeighbor) {
+                    G.ctx.fillStyle = `rgba(255,255,255,${i*0.3})`;
+                    G.ctx.fillRect(sx, sy, cellW, cellH);
+                }
+            }
+            
+            if (G.fire[y][x] > 0) {
+                const fireIntensity = G.fire[y][x];
+                const i = Math.min(1, fireIntensity / 100);
+
+                // ENHANCED FIRE RENDERING with multiple layers
+                // Core fire
+                if (fireIntensity > 30) {
+                    G.ctx.fillStyle = `rgba(255,255,255,${i*0.8})`; // White hot core
+                    G.ctx.fillRect(sx+cellW*0.3, sy+cellH*0.3, cellW*0.4, cellH*0.4);
+                }
+
+                // Inner fire
+                G.ctx.fillStyle = `rgba(255,140,0,${i*0.9})`; // Orange
+                G.ctx.fillRect(sx+cellW*0.1, sy+cellH*0.1, cellW*0.8, cellH*0.8);
+
+                // Outer fire
+                G.ctx.fillStyle = `rgba(231,76,60,${i*0.7})`; // Red
+                G.ctx.fillRect(sx, sy, cellW, cellH);
+
+                // Fire glow effect
+                G.ctx.fillStyle = `rgba(255,165,0,${i*0.3})`;
+                G.ctx.fillRect(sx-2, sy-2, cellW+4, cellH+4);
+
+                // Flickering effect
+                if (Math.random() < 0.3) {
+                    const flickerColors = ['#FF4500', '#FF6347', '#FFD700', '#FF8C00'];
+                    G.ctx.fillStyle = flickerColors[Math.floor(Math.random()*flickerColors.length)] + '80';
+                    G.ctx.fillRect(sx + Math.random()*cellW, sy + Math.random()*cellH,
+                                 Math.random()*cellW*0.5, Math.random()*cellH*0.5);
+                }
+
+                // Smoke effect for large fires
+                if (fireIntensity > 50 && Math.random() < 0.1) {
+                    G.ctx.fillStyle = `rgba(64,64,64,${i*0.4})`;
+                    G.ctx.fillRect(sx + Math.random()*cellW, sy - cellH, cellW*0.5, cellH*0.5);
+                }
+            }
+        }
+    }
+    
+    // Vehicles
+    const emojis = {excavator:'🚜',bulldozer:'🚛',dumptruck:'🚚',crane:'🏗️',compactor:'🚧'};
+    Object.keys(G.vehicles).forEach(id => {
+        const v = G.vehicles[id];
+        G.ctx.font = '20px Arial';
+        G.ctx.fillText(emojis[id], v.x, v.y);
+        
+        if (v.active) {
+            G.ctx.fillStyle = '#0F0';
+            G.ctx.beginPath();
+            G.ctx.arc(v.x+15, v.y-8, 3, 0, Math.PI*2);
+            G.ctx.fill();
+            
+            G.ctx.strokeStyle = 'rgba(255,255,0,0.5)';
+            G.ctx.lineWidth = 1;
+            G.ctx.beginPath();
+            G.ctx.moveTo(v.x, v.y);
+            G.ctx.lineTo(v.targetX, v.targetY);
+            G.ctx.stroke();
+        }
+    });
+    
+    // ENHANCED PARTICLE SYSTEM
+    G.particles = G.particles.filter(p => {
+        p.x += p.vx; p.y += p.vy;
+
+        // Different physics for different particle types
+        if (p.color === '#E8E8E8') { // Steam particles
+            p.vy -= 0.05; // Steam rises
+            p.vx *= 0.98; // Air resistance
+        } else if (p.color.includes('FF')) { // Fire particles
+            p.vy -= 0.03; // Fire rises
+            p.vx += (Math.random()-0.5)*0.1; // Flicker
+        } else { // Regular particles
+            p.vy += 0.1; // Gravity
+        }
+
+        p.life--;
+
+        // Enhanced particle rendering
+        const alpha = p.life / 40;
+        G.ctx.globalAlpha = alpha;
+
+        // Different rendering for different particles
+        if (p.color === '#4A90E2') { // Water flow particles
+            G.ctx.fillStyle = p.color;
+            G.ctx.fillRect(p.x-1, p.y-0.5, p.size*2, 1); // Streaky water
+        } else if (p.color.includes('FF')) { // Fire particles
+            // Fire particles with glow
+            G.ctx.shadowBlur = 5;
+            G.ctx.shadowColor = p.color;
+            G.ctx.fillStyle = p.color;
+            G.ctx.beginPath();
+            G.ctx.arc(p.x, p.y, p.size, 0, Math.PI*2);
+            G.ctx.fill();
+            G.ctx.shadowBlur = 0;
+        } else if (p.text) { // Text particles for measurements
+            G.ctx.fillStyle = p.color;
+            G.ctx.font = '10px Arial';
+            G.ctx.fillText(p.text, p.x, p.y);
+        } else { // Regular particles
+            G.ctx.fillStyle = p.color;
+            G.ctx.beginPath();
+            G.ctx.arc(p.x, p.y, p.size, 0, Math.PI*2);
+            G.ctx.fill();
+        }
+
+        G.ctx.globalAlpha = 1;
+        return p.life > 0;
+    });
+
+    // Depth detection overlay
+    if (G.depthOverlay && G.depthEnabled && G.lastDepthData) {
+        G.ctx.globalAlpha = 0.3;
+        G.ctx.strokeStyle = '#00FFFF';
+        G.ctx.lineWidth = 1;
+
+        // Draw depth detection grid
+        const cellW = G.canvas.width / G.lastDepthData.width;
+        const cellH = G.canvas.height / G.lastDepthData.height;
+
+        for (let y = 0; y < G.lastDepthData.height; y += 5) {
+            for (let x = 0; x < G.lastDepthData.width; x += 5) {
+                const screenX = x * cellW;
+                const screenY = y * cellH;
+                G.ctx.strokeRect(screenX, screenY, cellW * 5, cellH * 5);
+            }
+        }
+
+        // Draw depth status indicator
+        G.ctx.fillStyle = '#00FFFF';
+        G.ctx.font = '12px Arial';
+        G.ctx.fillText('DEPTH ACTIVE', G.canvas.width - 100, 30);
+
+        G.ctx.globalAlpha = 1;
+    }
+
+    // Connection status indicator
+    if (G.depthEnabled) {
+        G.ctx.fillStyle = '#00FF00';
+        G.ctx.beginPath();
+        G.ctx.arc(G.canvas.width - 20, 20, 5, 0, Math.PI*2);
+        G.ctx.fill();
+    } else {
+        G.ctx.fillStyle = '#FF0000';
+        G.ctx.beginPath();
+        G.ctx.arc(G.canvas.width - 20, 20, 5, 0, Math.PI*2);
+        G.ctx.fill();
+    }
+}
+
+// MAIN LOOP
+function loop() {
+    updatePhysics(); updateVehicles(); updateMission(); render(); updateUI(); autoSave();
+    G.frameCount++; requestAnimationFrame(loop);
+}
+
+function updateUI() {
+    const now = Date.now();
+    if (now - G.lastTime >= 1000) {
+        document.getElementById('fps').textContent = G.frameCount;
+        G.frameCount = 0; G.lastTime = now;
+
+        let sand=0,water=0,fire=0;
+        for(let y=0;y<G.gridH;y++)for(let x=0;x<G.gridW;x++){if(G.terrain[y][x]>0)sand++;if(G.water[y][x]>0)water++;if(G.fire[y][x]>0)fire++;}
+        document.getElementById('sandCount').textContent=sand;
+        document.getElementById('waterCount').textContent=water;
+        document.getElementById('fireCount').textContent=fire;
+
+        // Ambient environmental sounds
+        if (water > 50 && Math.random() < 0.3) playSound('ambient_water', 0.3);
+        if (fire > 30 && Math.random() < 0.4) playSound('ambient_fire', 0.4);
+    }
+}
+
+// UI FUNCTIONS
+function setTool(tool) {
+    G.tool = tool;
+    document.getElementById('currentTool').textContent = tool.toUpperCase();
+    document.querySelectorAll('#toolHUD .btn').forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+}
+
+function setBrushSize(size) {
+    G.brushSize = parseInt(size);
+    document.getElementById('brushSize').textContent = size;
+}
+
+function toggleVehicle(id) {
+    const v = G.vehicles[id];
+    v.active = !v.active;
+    const statusEl = document.getElementById(id.substring(0,4));
+    statusEl.textContent = v.active ? 'WORK' : 'IDLE';
+    event.target.classList.toggle('working', v.active);
+}
+
+function clearAll() { initGrids(); G.particles = []; playSound('clear'); console.log('🗑️ CLEARED'); }
+
+// COMPREHENSIVE SOUND SYSTEM
+function initAudio() {
+    try {
+        G.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        console.log('🔊 Audio system initialized');
+    } catch(e) {
+        console.log('🔇 Audio not supported');
+        G.soundEnabled = false;
+    }
+}
+
+function playSound(type, intensity = 1) {
+    if (!G.soundEnabled || !G.audioContext) return;
+
+    try {
+        const osc = G.audioContext.createOscillator();
+        const gain = G.audioContext.createGain();
+        const filter = G.audioContext.createBiquadFilter();
+
+        osc.connect(filter);
+        filter.connect(gain);
+        gain.connect(G.audioContext.destination);
+
+        const now = G.audioContext.currentTime;
+        const volume = G.masterVolume * intensity;
+
+        switch(type) {
+            case 'sand':
+                // Granular sand sound
+                osc.frequency.setValueAtTime(200 + Math.random()*100, now);
+                osc.type = 'sawtooth';
+                filter.frequency.setValueAtTime(800, now);
+                gain.gain.setValueAtTime(volume * 0.1, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+                osc.start(now);
+                osc.stop(now + 0.1);
+                break;
+
+            case 'dig':
+                // Digging/scraping sound
+                osc.frequency.setValueAtTime(150 + Math.random()*50, now);
+                osc.type = 'square';
+                filter.frequency.setValueAtTime(600, now);
+                gain.gain.setValueAtTime(volume * 0.15, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+                osc.start(now);
+                osc.stop(now + 0.2);
+                break;
+
+            case 'water':
+                // Water splash/flow sound
+                osc.frequency.setValueAtTime(400 + Math.random()*200, now);
+                osc.type = 'sine';
+                filter.frequency.setValueAtTime(1200, now);
+                gain.gain.setValueAtTime(volume * 0.08, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+                osc.start(now);
+                osc.stop(now + 0.3);
+                break;
+
+            case 'fire':
+                // Fire crackling sound
+                osc.frequency.setValueAtTime(100 + Math.random()*300, now);
+                osc.type = 'sawtooth';
+                filter.frequency.setValueAtTime(2000, now);
+                gain.gain.setValueAtTime(volume * 0.12, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+                osc.start(now);
+                osc.stop(now + 0.15);
+                break;
+
+            case 'vehicle_work':
+                // Vehicle engine/work sound
+                osc.frequency.setValueAtTime(80 + Math.random()*40, now);
+                osc.type = 'square';
+                filter.frequency.setValueAtTime(400, now);
+                gain.gain.setValueAtTime(volume * 0.06, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+                osc.start(now);
+                osc.stop(now + 0.4);
+                break;
+
+            case 'clear':
+                // Clear/reset sound
+                osc.frequency.setValueAtTime(800, now);
+                osc.frequency.exponentialRampToValueAtTime(200, now + 0.5);
+                osc.type = 'sine';
+                gain.gain.setValueAtTime(volume * 0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+                osc.start(now);
+                osc.stop(now + 0.5);
+                break;
+
+            case 'ambient_water':
+                // Ambient water flowing
+                osc.frequency.setValueAtTime(300 + Math.random()*100, now);
+                osc.type = 'sine';
+                filter.frequency.setValueAtTime(800, now);
+                gain.gain.setValueAtTime(volume * 0.03, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 1.0);
+                osc.start(now);
+                osc.stop(now + 1.0);
+                break;
+
+            case 'ambient_fire':
+                // Ambient fire burning
+                osc.frequency.setValueAtTime(150 + Math.random()*200, now);
+                osc.type = 'sawtooth';
+                filter.frequency.setValueAtTime(1500, now);
+                gain.gain.setValueAtTime(volume * 0.04, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+                osc.start(now);
+                osc.stop(now + 0.8);
+                break;
+        }
+    } catch(e) {
+        // Sound failed, continue silently
+    }
+}
+
+function toggleSound() {
+    G.soundEnabled = !G.soundEnabled;
+    console.log('🔊 Sound:', G.soundEnabled ? 'ON' : 'OFF');
+    if (G.soundEnabled && !G.audioContext) initAudio();
+
+    // Update UI button
+    const btn = document.getElementById('soundBtn');
+    if (btn) {
+        btn.textContent = G.soundEnabled ? '🔊 SOUND' : '🔇 MUTED';
+        btn.style.background = G.soundEnabled ? '#333' : '#f00';
+    }
+}
+
+// COMPREHENSIVE MISSION SYSTEM
+const MISSIONS = [
+    {
+        id: 'flood_control',
+        title: '🌊 FLOOD CONTROL',
+        objective: 'Build barriers to contain water flooding',
+        description: 'Water is flooding the area! Build sand barriers to contain it.',
+        timeLimit: 120, // 2 minutes
+        setupFunction: setupFloodMission,
+        checkFunction: checkFloodMission,
+        scoreMultiplier: 1.5
+    },
+    {
+        id: 'construction_site',
+        title: '🏗️ CONSTRUCTION PROJECT',
+        objective: 'Level terrain and build foundations',
+        description: 'Prepare a construction site with level foundations.',
+        timeLimit: 180, // 3 minutes
+        setupFunction: setupConstructionMission,
+        checkFunction: checkConstructionMission,
+        scoreMultiplier: 2.0
+    },
+    {
+        id: 'fire_suppression',
+        title: '🔥 FIRE SUPPRESSION',
+        objective: 'Extinguish all fires with water',
+        description: 'Multiple fires have broken out! Use water to extinguish them.',
+        timeLimit: 90, // 1.5 minutes
+        setupFunction: setupFireMission,
+        checkFunction: checkFireMission,
+        scoreMultiplier: 1.8
+    },
+    {
+        id: 'terrain_sculpting',
+        title: '🏔️ TERRAIN SCULPTING',
+        objective: 'Create specific terrain formations',
+        description: 'Sculpt the terrain to match the target pattern.',
+        timeLimit: 240, // 4 minutes
+        setupFunction: setupSculptingMission,
+        checkFunction: checkSculptingMission,
+        scoreMultiplier: 2.5
+    },
+    {
+        id: 'vehicle_coordination',
+        title: '🚛 VEHICLE COORDINATION',
+        objective: 'Complete construction with all vehicles',
+        description: 'Coordinate all vehicles to complete a complex project.',
+        timeLimit: 300, // 5 minutes
+        setupFunction: setupVehicleMission,
+        checkFunction: checkVehicleMission,
+        scoreMultiplier: 3.0
+    }
+];
+
+function startRandomMission() {
+    if (G.currentMission) return;
+
+    const mission = MISSIONS[Math.floor(Math.random() * MISSIONS.length)];
+    G.currentMission = mission;
+    G.missionTimer = mission.timeLimit;
+    G.missionComplete = false;
+
+    // Clear existing terrain for fresh start
+    initGrids();
+    G.particles = [];
+
+    // Setup mission-specific conditions
+    mission.setupFunction();
+
+    // Update UI
+    document.getElementById('missionTitle').textContent = mission.title;
+    document.getElementById('missionObjective').textContent = mission.objective;
+    document.getElementById('missionBtn').style.display = 'none';
+    document.getElementById('completeBtn').style.display = 'inline-block';
+
+    console.log(`🎯 Mission started: ${mission.title}`);
+    playSound('clear', 0.8);
+}
+
+function updateMission() {
+    if (!G.currentMission || G.missionComplete) return;
+
+    G.missionTimer -= 1/60; // Decrease by 1/60 second per frame
+
+    // Update timer display
+    const minutes = Math.floor(G.missionTimer / 60);
+    const seconds = Math.floor(G.missionTimer % 60);
+    document.getElementById('missionTime').textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+    // Check mission completion
+    const progress = G.currentMission.checkFunction();
+    if (progress >= 100) {
+        completeMission();
+    }
+
+    // Check time limit
+    if (G.missionTimer <= 0) {
+        failMission();
+    }
+}
+
+function completeMission() {
+    if (!G.currentMission || G.missionComplete) return;
+
+    G.missionComplete = true;
+    const timeBonus = Math.max(0, G.missionTimer * 10);
+    const missionScore = Math.floor((1000 + timeBonus) * G.currentMission.scoreMultiplier);
+    G.score += missionScore;
+
+    // Update UI
+    document.getElementById('missionTitle').textContent = '✅ MISSION COMPLETE!';
+    document.getElementById('missionObjective').textContent = `Score: +${missionScore} points`;
+    document.getElementById('missionScore').textContent = G.score;
+    document.getElementById('missionBtn').style.display = 'inline-block';
+    document.getElementById('missionBtn').textContent = '🎯 NEXT MISSION';
+    document.getElementById('completeBtn').style.display = 'none';
+
+    G.currentMission = null;
+    console.log(`🏆 Mission completed! Score: +${missionScore}`);
+    playSound('clear', 1.0);
+}
+
+function failMission() {
+    if (!G.currentMission) return;
+
+    G.missionComplete = true;
+
+    // Update UI
+    document.getElementById('missionTitle').textContent = '❌ MISSION FAILED';
+    document.getElementById('missionObjective').textContent = 'Time ran out! Try again.';
+    document.getElementById('missionBtn').style.display = 'inline-block';
+    document.getElementById('missionBtn').textContent = '🔄 RETRY MISSION';
+    document.getElementById('completeBtn').style.display = 'none';
+
+    G.currentMission = null;
+    console.log('💥 Mission failed - time ran out');
+}
+
+// MISSION SETUP FUNCTIONS
+function setupFloodMission() {
+    // Create water sources that will flood
+    for (let i = 0; i < 3; i++) {
+        const x = Math.floor(Math.random() * G.gridW);
+        const y = Math.floor(Math.random() * G.gridH);
+        G.water[y][x] = 80;
+    }
+}
+
+function setupConstructionMission() {
+    // Create uneven terrain that needs leveling
+    for (let y = 0; y < G.gridH; y++) {
+        for (let x = 0; x < G.gridW; x++) {
+            G.terrain[y][x] = Math.random() * 60;
+        }
+    }
+}
+
+function setupFireMission() {
+    // Create multiple fire sources
+    for (let i = 0; i < 5; i++) {
+        const x = Math.floor(Math.random() * G.gridW);
+        const y = Math.floor(Math.random() * G.gridH);
+        G.fire[y][x] = 70;
+        G.terrain[y][x] = 20; // Some fuel for the fire
+    }
+}
+
+function setupSculptingMission() {
+    // Create random terrain to be sculpted
+    for (let y = 0; y < G.gridH; y++) {
+        for (let x = 0; x < G.gridW; x++) {
+            G.terrain[y][x] = Math.random() * 40;
+        }
+    }
+}
+
+function setupVehicleMission() {
+    // Activate all vehicles for coordination challenge
+    Object.keys(G.vehicles).forEach(id => {
+        G.vehicles[id].active = true;
+    });
+
+    // Create complex terrain requiring all vehicle types
+    for (let y = 0; y < G.gridH; y++) {
+        for (let x = 0; x < G.gridW; x++) {
+            G.terrain[y][x] = Math.random() * 80;
+        }
+    }
+}
+
+// MISSION CHECK FUNCTIONS
+function checkFloodMission() {
+    // Check if water is contained (not spreading)
+    let totalWater = 0;
+    let containedWater = 0;
+
+    for (let y = 0; y < G.gridH; y++) {
+        for (let x = 0; x < G.gridW; x++) {
+            if (G.water[y][x] > 0) {
+                totalWater++;
+                // Check if water is surrounded by terrain
+                const neighbors = [{x:x-1,y:y},{x:x+1,y:y},{x:x,y:y-1},{x:x,y:y+1}];
+                let surrounded = true;
+                neighbors.forEach(n => {
+                    if (n.x >= 0 && n.x < G.gridW && n.y >= 0 && n.y < G.gridH) {
+                        if (G.terrain[n.y][n.x] < G.terrain[y][x] + 10) surrounded = false;
+                    }
+                });
+                if (surrounded) containedWater++;
+            }
+        }
+    }
+
+    return totalWater > 0 ? (containedWater / totalWater) * 100 : 100;
+}
+
+function checkConstructionMission() {
+    // Check if terrain is level (within acceptable range)
+    let totalCells = 0;
+    let levelCells = 0;
+    const targetHeight = 30;
+
+    for (let y = 0; y < G.gridH; y++) {
+        for (let x = 0; x < G.gridW; x++) {
+            totalCells++;
+            if (Math.abs(G.terrain[y][x] - targetHeight) < 10) {
+                levelCells++;
+            }
+        }
+    }
+
+    return (levelCells / totalCells) * 100;
+}
+
+function checkFireMission() {
+    // Check if all fires are extinguished
+    let totalFire = 0;
+    for (let y = 0; y < G.gridH; y++) {
+        for (let x = 0; x < G.gridW; x++) {
+            totalFire += G.fire[y][x];
+        }
+    }
+
+    return totalFire < 50 ? 100 : Math.max(0, 100 - totalFire / 10);
+}
+
+function checkSculptingMission() {
+    // Check if terrain matches a target pattern (simplified)
+    let score = 0;
+    for (let y = 0; y < G.gridH; y++) {
+        for (let x = 0; x < G.gridW; x++) {
+            // Target: higher in center, lower at edges
+            const centerX = G.gridW / 2;
+            const centerY = G.gridH / 2;
+            const distance = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
+            const targetHeight = Math.max(0, 60 - distance * 2);
+
+            if (Math.abs(G.terrain[y][x] - targetHeight) < 15) {
+                score++;
+            }
+        }
+    }
+
+    return (score / (G.gridW * G.gridH)) * 100;
+}
+
+function checkVehicleMission() {
+    // Check if all vehicles are working and terrain is being modified
+    const activeVehicles = Object.values(G.vehicles).filter(v => v.active).length;
+    const totalVehicles = Object.keys(G.vehicles).length;
+
+    // Check terrain modification progress
+    let modifiedCells = 0;
+    for (let y = 0; y < G.gridH; y++) {
+        for (let x = 0; x < G.gridW; x++) {
+            if (G.terrain[y][x] > 20 && G.terrain[y][x] < 60) {
+                modifiedCells++;
+            }
+        }
+    }
+
+    const vehicleScore = (activeVehicles / totalVehicles) * 50;
+    const terrainScore = (modifiedCells / (G.gridW * G.gridH)) * 50;
+
+    return vehicleScore + terrainScore;
+}
+
+// COMPREHENSIVE SAVE/LOAD SYSTEM
+function saveGame() {
+    try {
+        const gameState = {
+            version: '1.0',
+            timestamp: Date.now(),
+            terrain: G.terrain,
+            water: G.water,
+            fire: G.fire,
+            vehicles: G.vehicles,
+            score: G.score,
+            currentTool: G.tool,
+            brushSize: G.brushSize,
+            soundEnabled: G.soundEnabled,
+            depthEnabled: G.depthEnabled,
+            mission: G.currentMission ? {
+                id: G.currentMission.id,
+                timer: G.missionTimer,
+                complete: G.missionComplete
+            } : null,
+            settings: {
+                gridW: G.gridW,
+                gridH: G.gridH,
+                masterVolume: G.masterVolume
+            }
+        };
+
+        // Save to localStorage
+        const saveData = JSON.stringify(gameState);
+        localStorage.setItem('frankenstein_sandbox_save', saveData);
+
+        // Also create downloadable save file
+        const blob = new Blob([saveData], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `frankenstein_save_${new Date().toISOString().slice(0,19).replace(/:/g,'-')}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        console.log('💾 Game saved successfully');
+        playSound('clear', 0.5);
+
+        // Show save confirmation
+        const originalText = document.querySelector('[onclick="saveGame()"]').textContent;
+        document.querySelector('[onclick="saveGame()"]').textContent = '✅ SAVED';
+        setTimeout(() => {
+            document.querySelector('[onclick="saveGame()"]').textContent = originalText;
+        }, 2000);
+
+    } catch(e) {
+        console.error('❌ Save failed:', e);
+        alert('Save failed! Check console for details.');
+    }
+}
+
+function loadGame() {
+    try {
+        // Try to load from localStorage first
+        let saveData = localStorage.getItem('frankenstein_sandbox_save');
+
+        if (!saveData) {
+            // If no localStorage save, prompt for file upload
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        try {
+                            loadGameState(JSON.parse(e.target.result));
+                        } catch(err) {
+                            console.error('❌ Invalid save file:', err);
+                            alert('Invalid save file!');
+                        }
+                    };
+                    reader.readAsText(file);
+                }
+            };
+            input.click();
+            return;
+        }
+
+        loadGameState(JSON.parse(saveData));
+
+    } catch(e) {
+        console.error('❌ Load failed:', e);
+        alert('Load failed! Check console for details.');
+    }
+}
+
+function loadGameState(gameState) {
+    try {
+        // Validate save file
+        if (!gameState.version || !gameState.terrain) {
+            throw new Error('Invalid save file format');
+        }
+
+        // Load terrain data
+        G.terrain = gameState.terrain;
+        G.water = gameState.water || [];
+        G.fire = gameState.fire || [];
+
+        // Load vehicles
+        if (gameState.vehicles) {
+            Object.keys(gameState.vehicles).forEach(id => {
+                if (G.vehicles[id]) {
+                    Object.assign(G.vehicles[id], gameState.vehicles[id]);
+                }
+            });
+        }
+
+        // Load game state
+        G.score = gameState.score || 0;
+        G.tool = gameState.currentTool || 'sand';
+        G.brushSize = gameState.brushSize || 20;
+        G.soundEnabled = gameState.soundEnabled !== undefined ? gameState.soundEnabled : true;
+        G.depthEnabled = gameState.depthEnabled || false;
+
+        // Load mission state
+        if (gameState.mission) {
+            const mission = MISSIONS.find(m => m.id === gameState.mission.id);
+            if (mission) {
+                G.currentMission = mission;
+                G.missionTimer = gameState.mission.timer;
+                G.missionComplete = gameState.mission.complete;
+
+                // Update mission UI
+                document.getElementById('missionTitle').textContent = mission.title;
+                document.getElementById('missionObjective').textContent = mission.objective;
+            }
+        }
+
+        // Load settings
+        if (gameState.settings) {
+            G.masterVolume = gameState.settings.masterVolume || 0.3;
+        }
+
+        // Update UI
+        document.getElementById('currentTool').textContent = G.tool.toUpperCase();
+        document.getElementById('brushSize').textContent = G.brushSize;
+        document.getElementById('missionScore').textContent = G.score;
+
+        // Update tool buttons
+        document.querySelectorAll('#toolHUD .btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelector(`[onclick="setTool('${G.tool}')"]`)?.classList.add('active');
+
+        // Update sound button
+        const soundBtn = document.getElementById('soundBtn');
+        if (soundBtn) {
+            soundBtn.textContent = G.soundEnabled ? '🔊 SOUND' : '🔇 MUTED';
+            soundBtn.style.background = G.soundEnabled ? '#333' : '#f00';
+        }
+
+        // Clear particles
+        G.particles = [];
+
+        console.log('📁 Game loaded successfully');
+        playSound('clear', 0.8);
+
+        // Show load confirmation
+        const originalText = document.querySelector('[onclick="loadGame()"]').textContent;
+        document.querySelector('[onclick="loadGame()"]').textContent = '✅ LOADED';
+        setTimeout(() => {
+            document.querySelector('[onclick="loadGame()"]').textContent = originalText;
+        }, 2000);
+
+    } catch(e) {
+        console.error('❌ Load state failed:', e);
+        alert('Failed to load game state!');
+    }
+}
+
+// Auto-save functionality
+function autoSave() {
+    if (Math.random() < 0.01) { // Auto-save occasionally
+        try {
+            const quickSave = {
+                terrain: G.terrain,
+                water: G.water,
+                fire: G.fire,
+                vehicles: G.vehicles,
+                timestamp: Date.now()
+            };
+            localStorage.setItem('frankenstein_autosave', JSON.stringify(quickSave));
+        } catch(e) {
+            // Auto-save failed, continue silently
+        }
+    }
+}
+
+// Load auto-save on startup
+function loadAutoSave() {
+    try {
+        const autoSaveData = localStorage.getItem('frankenstein_autosave');
+        if (autoSaveData) {
+            const saveState = JSON.parse(autoSaveData);
+            // Only load if recent (within 1 hour)
+            if (Date.now() - saveState.timestamp < 3600000) {
+                G.terrain = saveState.terrain || G.terrain;
+                G.water = saveState.water || G.water;
+                G.fire = saveState.fire || G.fire;
+                if (saveState.vehicles) {
+                    Object.assign(G.vehicles, saveState.vehicles);
+                }
+                console.log('🔄 Auto-save restored');
+            }
+        }
+    } catch(e) {
+        // Auto-load failed, continue with fresh state
+    }
+}
+
+// START
+window.addEventListener('load', init);
+console.log('🧟 FRANKENSTEIN LOADED');
+</script></body></html>

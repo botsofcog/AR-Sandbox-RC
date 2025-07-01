@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏖️ Simple Sand AR Sandbox</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            color: white;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+        }
+        
+        #container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        #video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 1;
+            opacity: 0.2;
+        }
+        
+        #sand-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            cursor: crosshair;
+        }
+        
+        #controls {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 20px;
+            border-radius: 15px;
+            border: 2px solid #00ff00;
+            z-index: 30;
+            width: 200px;
+        }
+        
+        .big-btn {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .big-btn:hover {
+            transform: scale(1.02);
+        }
+        
+        .big-btn.active {
+            box-shadow: 0 0 15px currentColor;
+        }
+        
+        #calibrate-btn { background: #ff6b6b; color: white; }
+        #live-btn { background: #4ecdc4; color: white; }
+        #manual-btn { background: #ffa500; color: white; }
+        #reset-btn { background: #a29bfe; color: white; }
+        
+        .slider-group {
+            margin: 10px 0;
+        }
+        
+        .slider-label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 12px;
+            color: #ccc;
+        }
+        
+        .slider {
+            width: 100%;
+            margin-bottom: 5px;
+        }
+        
+        .value-display {
+            font-size: 12px;
+            color: #00ff00;
+            text-align: right;
+        }
+        
+        #status {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 15px;
+            border-radius: 10px;
+            border: 2px solid #00ff00;
+            z-index: 30;
+            font-size: 14px;
+        }
+        
+        .status-value {
+            color: #00ff00;
+            font-weight: bold;
+        }
+        
+        #mode-display {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 15px;
+            border-radius: 10px;
+            border: 2px solid #4ecdc4;
+            z-index: 30;
+            text-align: center;
+            font-size: 16px;
+            font-weight: bold;
+            color: #4ecdc4;
+        }
+        
+        .processing {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            padding: 30px 50px;
+            border-radius: 15px;
+            font-size: 20px;
+            font-weight: bold;
+            color: #00ff00;
+            z-index: 100;
+            border: 3px solid #00ff00;
+            text-align: center;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <video id="video" autoplay muted playsinline></video>
+        <canvas id="sand-canvas"></canvas>
+        
+        <div id="controls">
+            <h3 style="margin-top: 0; color: #00ff00;">🏖️ SAND CONTROLS</h3>
+            
+            <button class="big-btn" id="calibrate-btn" onclick="calibrate()">
+                🎯 CALIBRATE SAND
+            </button>
+            
+            <button class="big-btn active" id="live-btn" onclick="setLiveMode()">
+                📹 LIVE MODE
+            </button>
+            
+            <button class="big-btn" id="manual-btn" onclick="setManualMode()">
+                ✋ MANUAL MODE
+            </button>
+            
+            <div class="slider-group">
+                <label class="slider-label">Sand Sensitivity:</label>
+                <input type="range" class="slider" id="sensitivity" min="1" max="20" value="8">
+                <div class="value-display" id="sensitivity-value">8</div>
+            </div>
+            
+            <div class="slider-group">
+                <label class="slider-label">Water Level:</label>
+                <input type="range" class="slider" id="water-level" min="0" max="50" value="20">
+                <div class="value-display" id="water-value">20</div>
+            </div>
+            
+            <button class="big-btn" id="reset-btn" onclick="reset()">
+                🔄 RESET
+            </button>
+        </div>
+        
+        <div id="mode-display">
+            📹 LIVE SAND MODE
+        </div>
+        
+        <div id="status">
+            <div>📷 Camera: <span class="status-value" id="camera-status">Starting...</span></div>
+            <div>🏖️ Sand: <span class="status-value" id="sand-status">Not calibrated</span></div>
+            <div>💧 Water: <span class="status-value" id="water-status">Flowing</span></div>
+            <div>🗻 Mountains: <span class="status-value" id="mountain-count">0</span></div>
+        </div>
+        
+        <div id="processing" class="processing">
+            <div>🏖️ CALIBRATING SAND...</div>
+            <div style="font-size: 14px; margin-top: 10px;">Keep camera still!</div>
+        </div>
+    </div>
+
+    <script>
+        class SimpleSandAR {
+            constructor() {
+                this.video = document.getElementById('video');
+                this.canvas = document.getElementById('sand-canvas');
+                this.ctx = this.canvas.getContext('2d');
+                
+                // Sand simulation
+                this.sandWidth = 160;
+                this.sandHeight = 120;
+                this.sandMap = new Float32Array(this.sandWidth * this.sandHeight);
+                this.waterMap = new Float32Array(this.sandWidth * this.sandHeight);
+                
+                // Camera processing
+                this.processCanvas = document.createElement('canvas');
+                this.processCtx = this.processCanvas.getContext('2d');
+                this.baselineFrame = null;
+                
+                // Settings
+                this.isLiveMode = true;
+                this.isCalibrated = false;
+                this.sensitivity = 8;
+                this.waterLevel = 20;
+                this.isDrawing = false;
+                
+                this.initialize();
+            }
+            
+            async initialize() {
+                console.log('🏖️ Initializing Simple Sand AR...');
+                
+                this.setupCanvas();
+                this.setupEvents();
+                await this.setupCamera();
+                this.initializeSand();
+                this.startSimulation();
+                
+                console.log('✅ Simple Sand AR ready');
+            }
+            
+            setupCanvas() {
+                this.canvas.width = window.innerWidth;
+                this.canvas.height = window.innerHeight;
+                
+                this.processCanvas.width = this.sandWidth;
+                this.processCanvas.height = this.sandHeight;
+            }
+            
+            async setupCamera() {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({
+                        video: { width: 640, height: 480, facingMode: 'environment' }
+                    });
+                    
+                    this.video.srcObject = stream;
+                    
+                    this.video.addEventListener('loadedmetadata', () => {
+                        document.getElementById('camera-status').textContent = 'Active';
+                        this.showMessage('📷 CAMERA READY!\nMove hand closer to create mountains', 3000);
+                    });
+                    
+                } catch (error) {
+                    console.error('Camera failed:', error);
+                    document.getElementById('camera-status').textContent = 'Failed';
+                }
+            }
+            
+            setupEvents() {
+                document.getElementById('sensitivity').addEventListener('input', (e) => {
+                    this.sensitivity = parseInt(e.target.value);
+                    document.getElementById('sensitivity-value').textContent = this.sensitivity;
+                });
+                
+                document.getElementById('water-level').addEventListener('input', (e) => {
+                    this.waterLevel = parseInt(e.target.value);
+                    document.getElementById('water-value').textContent = this.waterLevel;
+                });
+                
+                // Manual sand editing
+                this.canvas.addEventListener('mousedown', (e) => {
+                    if (!this.isLiveMode) {
+                        this.isDrawing = true;
+                        this.editSand(e);
+                    }
+                });
+                
+                this.canvas.addEventListener('mousemove', (e) => {
+                    if (this.isDrawing && !this.isLiveMode) {
+                        this.editSand(e);
+                    }
+                });
+                
+                this.canvas.addEventListener('mouseup', () => {
+                    this.isDrawing = false;
+                });
+            }
+            
+            initializeSand() {
+                // Create flat sand base
+                for (let i = 0; i < this.sandMap.length; i++) {
+                    this.sandMap[i] = 0.3; // Base sand level
+                    this.waterMap[i] = 0;
+                }
+                
+                // Add some initial water
+                this.addWater();
+            }
+            
+            addWater() {
+                const waterHeight = this.waterLevel / 100;
+                
+                for (let i = 0; i < this.sandMap.length; i++) {
+                    if (this.sandMap[i] < waterHeight) {
+                        this.waterMap[i] = waterHeight - this.sandMap[i];
+                    }
+                }
+            }
+            
+            async calibrateSand() {
+                if (!this.video.readyState === this.video.HAVE_ENOUGH_DATA) {
+                    this.showMessage('❌ NO CAMERA!\nCheck camera connection', 3000);
+                    return;
+                }
+                
+                this.showProcessing(true);
+                
+                await this.delay(2000);
+                
+                // Capture baseline
+                this.processCtx.drawImage(this.video, 0, 0, this.sandWidth, this.sandHeight);
+                this.baselineFrame = this.processCtx.getImageData(0, 0, this.sandWidth, this.sandHeight);
+                
+                this.isCalibrated = true;
+                document.getElementById('sand-status').textContent = 'Calibrated';
+                
+                this.showProcessing(false);
+                this.showMessage('✅ SAND CALIBRATED!\nMove hand to create mountains', 3000);
+            }
+            
+            startSimulation() {
+                const simulate = () => {
+                    // Update sand from camera
+                    if (this.isLiveMode && this.isCalibrated && this.video.readyState === this.video.HAVE_ENOUGH_DATA) {
+                        this.updateSandFromCamera();
+                    }
+                    
+                    // Simulate water flow
+                    this.simulateWater();
+                    
+                    // Render sand
+                    this.renderSand();
+                    
+                    requestAnimationFrame(simulate);
+                };
+                simulate();
+            }
+            
+            updateSandFromCamera() {
+                if (!this.baselineFrame) return;
+                
+                // Capture current frame
+                this.processCtx.drawImage(this.video, 0, 0, this.sandWidth, this.sandHeight);
+                const currentFrame = this.processCtx.getImageData(0, 0, this.sandWidth, this.sandHeight);
+                
+                const currentData = currentFrame.data;
+                const baselineData = this.baselineFrame.data;
+                
+                let mountainCount = 0;
+                
+                // Compare frames to detect hand/object proximity
+                for (let y = 0; y < this.sandHeight; y++) {
+                    for (let x = 0; x < this.sandWidth; x++) {
+                        const index = (y * this.sandWidth + x) * 4;
+                        const sandIndex = y * this.sandWidth + x;
+                        
+                        // Calculate brightness difference
+                        const currentBright = (currentData[index] + currentData[index + 1] + currentData[index + 2]) / 3;
+                        const baseBright = (baselineData[index] + baselineData[index + 1] + baselineData[index + 2]) / 3;
+                        
+                        const difference = Math.abs(currentBright - baseBright);
+                        
+                        // SIMPLE RULE: Big difference = hand close to camera = HIGH SAND
+                        if (difference > 30) {
+                            // Hand detected - create mountain
+                            const mountainHeight = 0.5 + (difference / 255) * (this.sensitivity / 10);
+                            this.sandMap[sandIndex] = Math.min(1, mountainHeight);
+                            mountainCount++;
+                        } else {
+                            // No hand - return to base level
+                            this.sandMap[sandIndex] = Math.max(0.2, this.sandMap[sandIndex] * 0.98);
+                        }
+                    }
+                }
+                
+                document.getElementById('mountain-count').textContent = mountainCount;
+                
+                // Update water based on new sand
+                this.addWater();
+            }
+            
+            simulateWater() {
+                const newWaterMap = new Float32Array(this.waterMap);
+                
+                // Simple water flow
+                for (let y = 1; y < this.sandHeight - 1; y++) {
+                    for (let x = 1; x < this.sandWidth - 1; x++) {
+                        const index = y * this.sandWidth + x;
+                        const water = this.waterMap[index];
+                        
+                        if (water > 0.01) {
+                            const sandHeight = this.sandMap[index];
+                            const totalHeight = sandHeight + water;
+                            
+                            // Check neighbors
+                            const neighbors = [
+                                index - 1,           // left
+                                index + 1,           // right
+                                index - this.sandWidth, // up
+                                index + this.sandWidth  // down
+                            ];
+                            
+                            for (const neighborIndex of neighbors) {
+                                if (neighborIndex >= 0 && neighborIndex < this.sandMap.length) {
+                                    const neighborSand = this.sandMap[neighborIndex];
+                                    const neighborWater = this.waterMap[neighborIndex];
+                                    const neighborTotal = neighborSand + neighborWater;
+                                    
+                                    // Water flows downhill
+                                    if (totalHeight > neighborTotal + 0.02) {
+                                        const flow = Math.min(water * 0.2, (totalHeight - neighborTotal) * 0.3);
+                                        newWaterMap[index] -= flow;
+                                        newWaterMap[neighborIndex] += flow;
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // Evaporation
+                        if (newWaterMap[index] > 0) {
+                            newWaterMap[index] *= 0.995;
+                        }
+                    }
+                }
+                
+                this.waterMap = newWaterMap;
+            }
+            
+            renderSand() {
+                // Clear canvas
+                this.ctx.fillStyle = '#000033';
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                const scaleX = this.canvas.width / this.sandWidth;
+                const scaleY = this.canvas.height / this.sandHeight;
+                
+                // Render sand with topographic colors
+                for (let y = 0; y < this.sandHeight; y++) {
+                    for (let x = 0; x < this.sandWidth; x++) {
+                        const index = y * this.sandWidth + x;
+                        const sand = this.sandMap[index];
+                        const water = this.waterMap[index];
+                        
+                        let color;
+                        
+                        if (water > 0.05) {
+                            // Water - blue
+                            const depth = Math.min(1, water * 3);
+                            color = `rgb(0, ${Math.floor(100 + depth * 100)}, 255)`;
+                        } else {
+                            // Sand - green to red topographic
+                            if (sand < 0.3) {
+                                // Low - dark green
+                                color = `rgb(0, ${Math.floor(sand * 400)}, 0)`;
+                            } else if (sand < 0.6) {
+                                // Medium - yellow
+                                const t = (sand - 0.3) / 0.3;
+                                color = `rgb(${Math.floor(200 + t * 55)}, ${Math.floor(200 - t * 50)}, 0)`;
+                            } else {
+                                // High - red
+                                const t = (sand - 0.6) / 0.4;
+                                color = `rgb(255, ${Math.floor(100 * (1 - t))}, 0)`;
+                            }
+                        }
+                        
+                        this.ctx.fillStyle = color;
+                        this.ctx.fillRect(
+                            Math.floor(x * scaleX),
+                            Math.floor(y * scaleY),
+                            Math.ceil(scaleX),
+                            Math.ceil(scaleY)
+                        );
+                    }
+                }
+                
+                // Draw contour lines
+                this.drawContours();
+            }
+            
+            drawContours() {
+                this.ctx.strokeStyle = 'rgba(0, 0, 0, 0.6)';
+                this.ctx.lineWidth = 1;
+                
+                const scaleX = this.canvas.width / this.sandWidth;
+                const scaleY = this.canvas.height / this.sandHeight;
+                
+                // Draw contour lines every 0.1 height units
+                for (let level = 0.2; level < 1; level += 0.1) {
+                    this.ctx.beginPath();
+                    
+                    for (let y = 0; y < this.sandHeight - 1; y++) {
+                        for (let x = 0; x < this.sandWidth - 1; x++) {
+                            const sand = this.sandMap[y * this.sandWidth + x];
+                            
+                            if (Math.abs(sand - level) < 0.02) {
+                                const screenX = x * scaleX;
+                                const screenY = y * scaleY;
+                                
+                                this.ctx.moveTo(screenX, screenY);
+                                this.ctx.lineTo(screenX + 2, screenY);
+                            }
+                        }
+                    }
+                    
+                    this.ctx.stroke();
+                }
+            }
+            
+            editSand(e) {
+                const rect = this.canvas.getBoundingClientRect();
+                const x = Math.floor((e.clientX - rect.left) / this.canvas.width * this.sandWidth);
+                const y = Math.floor((e.clientY - rect.top) / this.canvas.height * this.sandHeight);
+                
+                // Add sand where clicked
+                const radius = 3;
+                for (let dy = -radius; dy <= radius; dy++) {
+                    for (let dx = -radius; dx <= radius; dx++) {
+                        const nx = x + dx;
+                        const ny = y + dy;
+                        
+                        if (nx >= 0 && nx < this.sandWidth && ny >= 0 && ny < this.sandHeight) {
+                            const distance = Math.sqrt(dx * dx + dy * dy);
+                            if (distance <= radius) {
+                                const index = ny * this.sandWidth + nx;
+                                this.sandMap[index] = Math.min(1, this.sandMap[index] + 0.1);
+                            }
+                        }
+                    }
+                }
+            }
+            
+            setLiveMode() {
+                this.isLiveMode = true;
+                document.getElementById('live-btn').classList.add('active');
+                document.getElementById('manual-btn').classList.remove('active');
+                document.getElementById('mode-display').textContent = '📹 LIVE SAND MODE';
+            }
+            
+            setManualMode() {
+                this.isLiveMode = false;
+                document.getElementById('live-btn').classList.remove('active');
+                document.getElementById('manual-btn').classList.add('active');
+                document.getElementById('mode-display').textContent = '✋ MANUAL SAND MODE';
+            }
+            
+            resetSand() {
+                this.isCalibrated = false;
+                this.baselineFrame = null;
+                this.initializeSand();
+                
+                document.getElementById('sand-status').textContent = 'Not calibrated';
+                document.getElementById('mountain-count').textContent = '0';
+                
+                this.showMessage('🔄 SAND RESET!\nCalibrate to start again', 3000);
+            }
+            
+            showMessage(text, duration) {
+                // Simple message display
+                console.log(text);
+            }
+            
+            showProcessing(show) {
+                document.getElementById('processing').style.display = show ? 'block' : 'none';
+            }
+            
+            delay(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+        }
+        
+        // Global functions
+        function calibrate() {
+            sandbox.calibrateSand();
+        }
+        
+        function setLiveMode() {
+            sandbox.setLiveMode();
+        }
+        
+        function setManualMode() {
+            sandbox.setManualMode();
+        }
+        
+        function reset() {
+            sandbox.resetSand();
+        }
+        
+        // Initialize
+        let sandbox;
+        document.addEventListener('DOMContentLoaded', () => {
+            sandbox = new SimpleSandAR();
+        });
+    </script>
+</body>
+</html>

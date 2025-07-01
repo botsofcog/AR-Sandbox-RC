@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>🎮 ULTIMATE KINECT AR SANDBOX - Real Depth + RC Construction</title>
+  <style>
+    body { 
+      margin: 0; 
+      overflow: hidden; 
+      background: #001122;
+      font-family: 'Courier New', monospace;
+    }
+    #container { 
+      position: relative; 
+      width: 100vw; 
+      height: 100vh; 
+    }
+    #kinectCanvas, #vehicleCanvas { 
+      position: absolute; 
+      top: 0; 
+      left: 0; 
+      width: 100%;
+      height: 100%;
+    }
+    #vehicleCanvas { 
+      pointer-events: auto; 
+      opacity: 0.9;
+      z-index: 10;
+    }
+    #controls {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(0,0,0,0.95);
+      color: #00ff00;
+      padding: 20px;
+      border-radius: 10px;
+      border: 2px solid #00ff00;
+      font-size: 13px;
+      z-index: 100;
+      box-shadow: 0 0 20px rgba(0,255,0,0.3);
+    }
+    #status {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+      background: rgba(0,0,0,0.95);
+      color: #ffff00;
+      padding: 15px;
+      border-radius: 8px;
+      font-size: 12px;
+      border: 1px solid #ffff00;
+    }
+    .kinect-active {
+      border-color: #00ff00 !important;
+      box-shadow: 0 0 20px #00ff00;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0% { box-shadow: 0 0 20px rgba(0,255,0,0.3); }
+      50% { box-shadow: 0 0 30px rgba(0,255,0,0.6); }
+      100% { box-shadow: 0 0 20px rgba(0,255,0,0.3); }
+    }
+    .vehicle-info {
+      background: rgba(0,0,0,0.8);
+      color: #ffffff;
+      padding: 5px 10px;
+      border-radius: 5px;
+      font-size: 10px;
+      margin-top: 5px;
+    }
+  </style>
+</head>
+<body>
+  <div id="container">
+    <canvas id="kinectCanvas"></canvas>
+    <canvas id="vehicleCanvas"></canvas>
+  </div>
+  
+  <div id="controls">
+    <strong>🎮 ULTIMATE KINECT AR SANDBOX</strong><br>
+    <div style="color: #ffff00;">📡 Real Xbox 360 Kinect Depth Sensing</div>
+    <div style="color: #ff6b35;">🚜 AI-Powered RC Construction Fleet</div>
+    <hr style="border-color: #00ff00;">
+    
+    <strong>🎯 KINECT CONTROLS:</strong><br>
+    ✋ Move hands over sensor for terrain<br>
+    📏 Height changes = color changes<br>
+    🌊 Low areas = blue water<br>
+    🏔️ High areas = white peaks<br><br>
+    
+    <strong>🚜 RC VEHICLE CONTROLS:</strong><br>
+    ⌨️ V: Spawn Random Vehicle<br>
+    ⌨️ E: Spawn Excavator<br>
+    ⌨️ B: Spawn Bulldozer<br>
+    ⌨️ D: Spawn Dump Truck<br>
+    ⌨️ C: Spawn Compactor<br>
+    ⌨️ R: Reset All Vehicles<br><br>
+    
+    <div class="vehicle-info">
+      <span id="vehicleCount">Vehicles: 0</span><br>
+      <span id="activeJobs">Active Jobs: 0</span>
+    </div>
+  </div>
+  
+  <div id="status">
+    <strong>📊 SYSTEM STATUS</strong><br>
+    <span id="fps">FPS: --</span><br>
+    <span id="kinectStatus">Kinect: Connecting...</span><br>
+    <span id="depthRange">Depth Range: --</span><br>
+    <span id="terrainStats">Terrain: --</span>
+  </div>
+
+  <script>
+    // ULTIMATE KINECT AR SANDBOX - Real depth + RC construction
+    const kCanvas = document.getElementById('kinectCanvas');
+    const kCtx = kCanvas.getContext('2d');
+    const vCanvas = document.getElementById('vehicleCanvas');
+    const vCtx = vCanvas.getContext('2d');
+    
+    // Resize canvases
+    function resizeCanvases() {
+      kCanvas.width = window.innerWidth;
+      kCanvas.height = window.innerHeight;
+      vCanvas.width = window.innerWidth;
+      vCanvas.height = window.innerHeight;
+    }
+    resizeCanvases();
+    window.addEventListener('resize', resizeCanvases);
+
+    // Real Kinect depth data
+    let kinectConnected = false;
+    let realDepthData = null;
+    let depthImage = new Image();
+    
+    // RC Vehicle System
+    let vehicles = [];
+    let nextVehicleId = 1;
+    
+    const VEHICLE_SPECS = {
+      excavator: { 
+        speed: 0.8, digPower: 4, color: '#FFD700', size: 5,
+        description: 'Heavy excavation & digging',
+        preferredTerrain: 'high'
+      },
+      bulldozer: { 
+        speed: 1.0, digPower: 3, color: '#FF6B35', size: 4,
+        description: 'Terrain flattening & pushing', 
+        preferredTerrain: 'uneven'
+      },
+      dumptruck: { 
+        speed: 1.5, digPower: 1, color: '#4ECDC4', size: 4,
+        description: 'Material transport & filling',
+        preferredTerrain: 'low'
+      },
+      compactor: { 
+        speed: 0.7, digPower: 2, color: '#45B7D1', size: 3,
+        description: 'Surface smoothing & compaction',
+        preferredTerrain: 'medium'
+      }
+    };
+    
+    // Spawn vehicle function
+    function spawnVehicle(type) {
+      const spec = VEHICLE_SPECS[type];
+      const vehicle = {
+        id: nextVehicleId++,
+        type: type,
+        x: Math.random() * vCanvas.width,
+        y: Math.random() * vCanvas.height,
+        targetX: Math.random() * vCanvas.width,
+        targetY: Math.random() * vCanvas.height,
+        angle: Math.random() * Math.PI * 2,
+        speed: spec.speed,
+        digPower: spec.digPower,
+        color: spec.color,
+        size: spec.size,
+        mode: 'idle', // idle, moving, working
+        task: null,
+        actionCooldown: 0,
+        workProgress: 0
+      };
+      vehicles.push(vehicle);
+      updateVehicleInfo();
+      console.log(`🚜 Spawned ${type} (ID: ${vehicle.id})`);
+    }
+    
+    // Initialize with some vehicles
+    spawnVehicle('excavator');
+    spawnVehicle('bulldozer');
+    spawnVehicle('dumptruck');
+    
+    // Fetch real Kinect depth image
+    async function fetchKinectDepth() {
+      try {
+        // Get depth visualization from our Kinect server
+        const response = await fetch('http://localhost:8080/depth_image');
+        if (response.ok) {
+          const blob = await response.blob();
+          const imageUrl = URL.createObjectURL(blob);
+          depthImage.src = imageUrl;
+          kinectConnected = true;
+          document.getElementById('kinectStatus').textContent = 'Kinect: Active ✅';
+          document.getElementById('controls').classList.add('kinect-active');
+        } else {
+          throw new Error('Kinect server not responding');
+        }
+      } catch (error) {
+        kinectConnected = false;
+        document.getElementById('kinectStatus').textContent = 'Kinect: Offline ❌';
+        document.getElementById('controls').classList.remove('kinect-active');
+      }
+    }
+    
+    // Vehicle AI system
+    function updateVehicles() {
+      let activeJobs = 0;
+      
+      vehicles.forEach(vehicle => {
+        // Update cooldowns
+        if (vehicle.actionCooldown > 0) {
+          vehicle.actionCooldown--;
+        }
+        
+        // Simple AI behavior
+        if (vehicle.mode === 'idle' && vehicle.actionCooldown === 0) {
+          // Find work based on vehicle type
+          findWork(vehicle);
+        } else if (vehicle.mode === 'moving') {
+          moveToTarget(vehicle);
+        } else if (vehicle.mode === 'working') {
+          performWork(vehicle);
+          activeJobs++;
+        }
+      });
+      
+      document.getElementById('activeJobs').textContent = `Active Jobs: ${activeJobs}`;
+    }
+    
+    function findWork(vehicle) {
+      // Simple work assignment - move to random location
+      vehicle.targetX = Math.random() * vCanvas.width;
+      vehicle.targetY = Math.random() * vCanvas.height;
+      vehicle.mode = 'moving';
+      vehicle.task = `${vehicle.type}_work`;
+    }
+    
+    function moveToTarget(vehicle) {
+      const dx = vehicle.targetX - vehicle.x;
+      const dy = vehicle.targetY - vehicle.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      
+      if (distance < 10) {
+        vehicle.mode = 'working';
+        vehicle.actionCooldown = 120; // Work for 2 seconds at 60fps
+        vehicle.workProgress = 0;
+      } else {
+        vehicle.angle = Math.atan2(dy, dx);
+        vehicle.x += Math.cos(vehicle.angle) * vehicle.speed;
+        vehicle.y += Math.sin(vehicle.angle) * vehicle.speed;
+      }
+    }
+    
+    function performWork(vehicle) {
+      vehicle.workProgress++;
+      if (vehicle.workProgress >= vehicle.actionCooldown) {
+        vehicle.mode = 'idle';
+        vehicle.task = null;
+        vehicle.actionCooldown = 60; // Rest before next job
+      }
+    }
+    
+    // Keyboard controls
+    document.addEventListener('keydown', (e) => {
+      switch(e.key.toLowerCase()) {
+        case 'v':
+          const types = Object.keys(VEHICLE_SPECS);
+          const randomType = types[Math.floor(Math.random() * types.length)];
+          spawnVehicle(randomType);
+          break;
+        case 'e':
+          spawnVehicle('excavator');
+          break;
+        case 'b':
+          spawnVehicle('bulldozer');
+          break;
+        case 'd':
+          spawnVehicle('dumptruck');
+          break;
+        case 'c':
+          spawnVehicle('compactor');
+          break;
+        case 'r':
+          vehicles = [];
+          updateVehicleInfo();
+          console.log('🔄 All vehicles reset');
+          break;
+      }
+    });
+    
+    function updateVehicleInfo() {
+      document.getElementById('vehicleCount').textContent = `Vehicles: ${vehicles.length}`;
+    }
+    
+    // Main rendering loop
+    let frameCount = 0;
+    let lastTime = performance.now();
+    
+    function render() {
+      // Fetch Kinect depth data every 5 frames
+      if (frameCount % 5 === 0) {
+        fetchKinectDepth();
+      }
+      
+      // Clear vehicle canvas
+      vCtx.clearRect(0, 0, vCanvas.width, vCanvas.height);
+      
+      // Draw Kinect depth image as background
+      if (depthImage.src && depthImage.complete) {
+        kCtx.drawImage(depthImage, 0, 0, kCanvas.width, kCanvas.height);
+      }
+      
+      // Update and render vehicles
+      updateVehicles();
+      
+      vehicles.forEach(vehicle => {
+        const size = vehicle.size * 4;
+        
+        // Vehicle body
+        vCtx.save();
+        vCtx.translate(vehicle.x, vehicle.y);
+        vCtx.rotate(vehicle.angle);
+        
+        // Main body
+        vCtx.fillStyle = vehicle.color;
+        vCtx.fillRect(-size/2, -size/2, size, size);
+        
+        // Direction indicator
+        vCtx.fillStyle = '#000000';
+        vCtx.fillRect(size/4, -size/4, size/2, size/2);
+        
+        // Work indicator
+        if (vehicle.mode === 'working') {
+          vCtx.strokeStyle = '#FFFF00';
+          vCtx.lineWidth = 3;
+          vCtx.beginPath();
+          vCtx.arc(0, 0, size * 0.8, 0, Math.PI * 2);
+          vCtx.stroke();
+          
+          // Progress arc
+          vCtx.strokeStyle = '#00FF00';
+          vCtx.beginPath();
+          vCtx.arc(0, 0, size * 0.8, -Math.PI/2, 
+                   -Math.PI/2 + (vehicle.workProgress / vehicle.actionCooldown) * Math.PI * 2);
+          vCtx.stroke();
+        }
+        
+        vCtx.restore();
+        
+        // Vehicle label
+        vCtx.fillStyle = '#FFFFFF';
+        vCtx.font = 'bold 12px monospace';
+        vCtx.textAlign = 'center';
+        vCtx.strokeStyle = '#000000';
+        vCtx.lineWidth = 3;
+        vCtx.strokeText(vehicle.type.toUpperCase(), vehicle.x, vehicle.y - size - 5);
+        vCtx.fillText(vehicle.type.toUpperCase(), vehicle.x, vehicle.y - size - 5);
+        
+        // Status
+        vCtx.font = '10px monospace';
+        vCtx.strokeText(vehicle.mode.toUpperCase(), vehicle.x, vehicle.y + size + 15);
+        vCtx.fillText(vehicle.mode.toUpperCase(), vehicle.x, vehicle.y + size + 15);
+      });
+      
+      // FPS counter
+      frameCount++;
+      const now = performance.now();
+      if (now - lastTime > 1000) {
+        document.getElementById('fps').textContent = `FPS: ${frameCount}`;
+        frameCount = 0;
+        lastTime = now;
+      }
+
+      requestAnimationFrame(render);
+    }
+
+    // Initialize system
+    updateVehicleInfo();
+    console.log('🎮 Ultimate Kinect AR Sandbox Started!');
+    console.log('📡 Real Xbox 360 Kinect depth sensing');
+    console.log('🚜 AI-powered RC construction fleet');
+    console.log('⌨️ Press V to spawn vehicles, R to reset');
+
+    // Start rendering
+    render();
+  </script>
+
+  <!-- Kinect WebSocket Integration -->
+  <script src="js/kinect_websocket_integration.js"></script>
+  <script>
+    // Initialize Kinect WebSocket connection for Ultimate Kinect AR Sandbox
+    let kinectIntegration;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      kinectIntegration = new KinectWebSocketIntegration({
+        onConnect: () => {
+          console.log('✅ Ultimate Kinect AR Sandbox connected to Kinect');
+          document.getElementById('status').innerHTML += '<br>🔗 KINECT DEPTH SERVER ONLINE';
+        },
+        onDisconnect: () => {
+          console.log('❌ Ultimate Kinect AR Sandbox disconnected from Kinect');
+          document.getElementById('status').innerHTML += '<br>❌ KINECT DEPTH SERVER OFFLINE';
+        },
+        onFrameData: (frameData) => {
+          if (frameData.mesh_data && frameData.mesh_data.data) {
+            updateUltimateTerrainFromKinect(frameData.mesh_data);
+          }
+        },
+        onTopographyData: (topographyData) => {
+          if (topographyData.ai_metadata) {
+            enhanceUltimateWithAI(topographyData.ai_metadata);
+          }
+        }
+      });
+
+      kinectIntegration.connect();
+    });
+
+    function updateUltimateTerrainFromKinect(meshData) {
+      // Update heightMap with real Kinect data
+      const data = meshData.data;
+      const meshWidth = meshData.width || 100;
+      const meshHeight = meshData.height || 75;
+
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          const meshX = Math.floor((x / width) * meshWidth);
+          const meshY = Math.floor((y / height) * meshHeight);
+          const meshIndex = meshY * meshWidth + meshX;
+
+          if (meshIndex < data.length) {
+            const terrainIndex = y * width + x;
+            heightMap[terrainIndex] = data[meshIndex] / 255.0;
+          }
+        }
+      }
+    }
+
+    function enhanceUltimateWithAI(aiMetadata) {
+      if (aiMetadata.terrain_stats) {
+        const stats = aiMetadata.terrain_stats;
+        document.getElementById('status').innerHTML = `
+          🏔️ Elevation: ${stats.min_elevation.toFixed(2)} - ${stats.max_elevation.toFixed(2)}<br>
+          📊 Roughness: ${stats.terrain_roughness.toFixed(3)}<br>
+          🚜 Vehicles: ${vehicles.length}<br>
+          🔗 KINECT DEPTH SERVER ONLINE
+        `;
+      }
+    }
+  </script>
+</body>
+</html>

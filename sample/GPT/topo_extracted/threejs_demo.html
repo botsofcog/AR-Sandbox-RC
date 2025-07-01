@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Webcam Sand Topography Demo</title>
+  <style>
+    body { margin: 0; overflow: hidden; }
+    #container { position: relative; width: 640px; height: 480px; }
+    #videoCanvas, #simCanvas { position: absolute; top: 0; left: 0; }
+    #simCanvas { pointer-events: auto; }
+  </style>
+</head>
+<body>
+  <div id="container">
+    <canvas id="videoCanvas" width="640" height="480"></canvas>
+    <canvas id="simCanvas" width="640" height="480"></canvas>
+  </div>
+  <script>
+    const video = document.createElement('video');
+    video.autoplay = true;
+    navigator.mediaDevices.getUserMedia({ video: true })
+      .then(stream => { video.srcObject = stream; })
+      .catch(err => { console.error("Webcam access error:", err); });
+
+    const vCanvas = document.getElementById('videoCanvas');
+    const vCtx = vCanvas.getContext('2d');
+    const sCanvas = document.getElementById('simCanvas');
+    const sCtx = sCanvas.getContext('2d');
+
+    const cols = 64, rows = 48;
+    let heightmap = Array.from({ length: rows }, () => Array(cols).fill(0));
+
+    sCanvas.addEventListener('click', (e) => {
+      const rect = sCanvas.getBoundingClientRect();
+      const x = Math.floor((e.clientX - rect.left) / vCanvas.width * cols);
+      const y = Math.floor((e.clientY - rect.top) / vCanvas.height * rows);
+      for (let dx = -1; dx <= 1; dx++) {
+        for (let dy = -1; dy <= 1; dy++) {
+          if (y + dy >= 0 && y + dy < rows && x + dx >= 0 && x + dx < cols) {
+            heightmap[y + dy][x + dx] += 10;
+          }
+        }
+      }
+    });
+
+    function update() {
+      vCtx.drawImage(video, 0, 0, vCanvas.width, vCanvas.height);
+
+      // Simple diffusion simulation
+      const newmap = heightmap.map(arr => arr.slice());
+      for (let y = 1; y < rows - 1; y++) {
+        for (let x = 1; x < cols - 1; x++) {
+          newmap[y][x] = (heightmap[y][x] +
+                          heightmap[y-1][x] + heightmap[y+1][x] +
+                          heightmap[y][x-1] + heightmap[y][x+1]) / 5;
+        }
+      }
+      heightmap = newmap;
+
+      // Draw sand overlay
+      sCtx.clearRect(0, 0, sCanvas.width, sCanvas.height);
+      const cellW = sCanvas.width / cols;
+      const cellH = sCanvas.height / rows;
+      for (let y = 0; y < rows; y++) {
+        for (let x = 0; x < cols; x++) {
+          const h = heightmap[y][x];
+          const alpha = Math.min(h / 20, 1);
+          sCtx.fillStyle = `rgba(194,178,128,${alpha})`;
+          sCtx.fillRect(x * cellW, y * cellH, cellW, cellH);
+        }
+      }
+
+      requestAnimationFrame(update);
+    }
+
+    video.addEventListener('play', () => { update(); });
+  </script>
+</body>
+</html>

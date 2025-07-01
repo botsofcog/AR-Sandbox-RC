@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AR Sandbox RC - Vehicle Fleet Test</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: #ffffff;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .test-section {
+            background: rgba(30,30,30,0.85);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.6);
+            border: 2px solid rgba(255,255,255,0.1);
+        }
+        
+        .vehicle-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .vehicle-card {
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+            padding: 15px;
+            border: 2px solid rgba(255,255,255,0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .vehicle-card:hover {
+            border-color: #E0C32A;
+            transform: scale(1.02);
+        }
+        
+        .vehicle-card.active {
+            border-color: #4CAF50;
+            background: rgba(76,175,80,0.2);
+        }
+        
+        .vehicle-icon {
+            font-size: 2rem;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        
+        .vehicle-name {
+            font-weight: bold;
+            color: #E0C32A;
+            text-align: center;
+            margin-bottom: 5px;
+        }
+        
+        .vehicle-stats {
+            font-size: 0.9rem;
+            margin: 5px 0;
+        }
+        
+        .stat-bar {
+            background: rgba(255,255,255,0.2);
+            height: 6px;
+            border-radius: 3px;
+            margin: 5px 0;
+            overflow: hidden;
+        }
+        
+        .stat-fill {
+            height: 100%;
+            background: #4CAF50;
+            transition: width 0.3s ease;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            background: #E0C32A;
+            border: none;
+            color: #000;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+        
+        button:hover {
+            background: #f0d040;
+            transform: scale(1.05);
+        }
+        
+        button:disabled {
+            background: #666;
+            color: #999;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .test-result {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 4px;
+            margin: 4px;
+            font-weight: bold;
+        }
+        .success { background: #4CAF50; color: white; }
+        .error { background: #f44336; color: white; }
+        .warning { background: #ff9800; color: white; }
+        .info { background: #2196F3; color: white; }
+        
+        #test-log {
+            background: #000;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        
+        .websocket-status {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        .connected { background: #4CAF50; }
+        .disconnected { background: #f44336; }
+        .connecting { background: #ff9800; animation: pulse 1s infinite; }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🚛 AR Sandbox RC - Vehicle Fleet Test</h1>
+        <p>Testing the 5 autonomous RC vehicles and their control systems...</p>
+        
+        <div class="test-section">
+            <h2>📡 Backend Connection Status</h2>
+            <div id="connection-status">
+                <span class="websocket-status connecting"></span>
+                <span>Connecting to telemetry server...</span>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>🚛 Vehicle Fleet Status</h2>
+            <div class="controls">
+                <button onclick="testAllVehicles()">Test All Vehicles</button>
+                <button onclick="startAutonomousMode()">Start Autonomous Mode</button>
+                <button onclick="stopAllVehicles()">Stop All Vehicles</button>
+                <button onclick="resetFleet()">Reset Fleet</button>
+            </div>
+            
+            <div class="vehicle-grid" id="vehicle-grid">
+                <!-- Vehicles will be populated here -->
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h2>📊 Test Results</h2>
+            <div id="test-summary"></div>
+            <div id="test-log"></div>
+        </div>
+    </div>
+
+    <script>
+        // Vehicle Fleet Test System
+        class VehicleFleetTester {
+            constructor() {
+                this.vehicles = new Map();
+                this.websocket = null;
+                this.isConnected = false;
+                this.testResults = [];
+                
+                this.initializeVehicles();
+                this.connectToTelemetryServer();
+                this.startTesting();
+            }
+
+            initializeVehicles() {
+                const vehicleTypes = [
+                    { id: 'EX001', type: 'excavator', icon: '🚜', name: 'Excavator' },
+                    { id: 'BD001', type: 'bulldozer', icon: '🚛', name: 'Bulldozer' },
+                    { id: 'DT001', type: 'dump_truck', icon: '🚚', name: 'Dump Truck' },
+                    { id: 'CR001', type: 'crane', icon: '🏗️', name: 'Crane' },
+                    { id: 'CP001', type: 'compactor', icon: '🛞', name: 'Compactor' }
+                ];
+
+                vehicleTypes.forEach(vehicle => {
+                    this.vehicles.set(vehicle.id, {
+                        ...vehicle,
+                        x: Math.random() * 800 + 100,
+                        y: Math.random() * 600 + 100,
+                        battery: 100,
+                        status: 'idle',
+                        active: false,
+                        lastUpdate: Date.now()
+                    });
+                });
+
+                this.renderVehicles();
+                this.log('🚛 Initialized 5 demo vehicles');
+            }
+
+            renderVehicles() {
+                const grid = document.getElementById('vehicle-grid');
+                grid.innerHTML = '';
+
+                this.vehicles.forEach((vehicle, id) => {
+                    const card = document.createElement('div');
+                    card.className = `vehicle-card ${vehicle.active ? 'active' : ''}`;
+                    card.innerHTML = `
+                        <div class="vehicle-icon">${vehicle.icon}</div>
+                        <div class="vehicle-name">${id} - ${vehicle.name}</div>
+                        <div class="vehicle-stats">
+                            <div>Status: ${vehicle.status}</div>
+                            <div>Battery: ${vehicle.battery}%</div>
+                            <div class="stat-bar">
+                                <div class="stat-fill" style="width: ${vehicle.battery}%"></div>
+                            </div>
+                            <div>Position: (${Math.round(vehicle.x)}, ${Math.round(vehicle.y)})</div>
+                        </div>
+                    `;
+                    
+                    card.addEventListener('click', () => this.selectVehicle(id));
+                    grid.appendChild(card);
+                });
+            }
+
+            async connectToTelemetryServer() {
+                try {
+                    this.websocket = new WebSocket('ws://localhost:8766');
+                    
+                    this.websocket.onopen = () => {
+                        this.isConnected = true;
+                        this.updateConnectionStatus('connected', 'Connected to telemetry server');
+                        this.log('✅ Connected to telemetry server');
+                    };
+                    
+                    this.websocket.onmessage = (event) => {
+                        try {
+                            const data = JSON.parse(event.data);
+                            this.handleTelemetryData(data);
+                        } catch (error) {
+                            this.log(`⚠️ Invalid telemetry data: ${error.message}`);
+                        }
+                    };
+                    
+                    this.websocket.onclose = () => {
+                        this.isConnected = false;
+                        this.updateConnectionStatus('disconnected', 'Disconnected from telemetry server');
+                        this.log('❌ Disconnected from telemetry server');
+                    };
+                    
+                    this.websocket.onerror = (error) => {
+                        this.updateConnectionStatus('disconnected', 'Connection error');
+                        this.log(`❌ WebSocket error: ${error}`);
+                    };
+                    
+                } catch (error) {
+                    this.updateConnectionStatus('disconnected', 'Failed to connect');
+                    this.log(`❌ Failed to connect to telemetry server: ${error.message}`);
+                }
+            }
+
+            updateConnectionStatus(status, message) {
+                const statusElement = document.getElementById('connection-status');
+                statusElement.innerHTML = `
+                    <span class="websocket-status ${status}"></span>
+                    <span>${message}</span>
+                `;
+            }
+
+            handleTelemetryData(data) {
+                if (data.type === 'vehicle_update' && data.vehicle_id) {
+                    const vehicle = this.vehicles.get(data.vehicle_id);
+                    if (vehicle) {
+                        Object.assign(vehicle, data);
+                        vehicle.lastUpdate = Date.now();
+                        this.renderVehicles();
+                    }
+                }
+            }
+
+            selectVehicle(vehicleId) {
+                const vehicle = this.vehicles.get(vehicleId);
+                if (vehicle) {
+                    vehicle.active = !vehicle.active;
+                    this.renderVehicles();
+                    this.log(`${vehicle.active ? '✅' : '⏹️'} ${vehicleId} ${vehicle.active ? 'activated' : 'deactivated'}`);
+                }
+            }
+
+            log(message) {
+                const logElement = document.getElementById('test-log');
+                const timestamp = new Date().toLocaleTimeString();
+                logElement.textContent += `[${timestamp}] ${message}\n`;
+                logElement.scrollTop = logElement.scrollHeight;
+            }
+
+            test(name, testFunction) {
+                try {
+                    const result = testFunction();
+                    if (result) {
+                        this.testResults.push({ name, status: 'success' });
+                        this.log(`✅ ${name}: PASSED`);
+                    } else {
+                        this.testResults.push({ name, status: 'error' });
+                        this.log(`❌ ${name}: FAILED`);
+                    }
+                } catch (error) {
+                    this.testResults.push({ name, status: 'error' });
+                    this.log(`❌ ${name}: ERROR - ${error.message}`);
+                }
+            }
+
+            startTesting() {
+                this.log('🧪 Starting vehicle fleet tests...');
+                
+                this.test('Vehicle Initialization', () => this.vehicles.size === 5);
+                this.test('Vehicle Types', () => {
+                    const types = Array.from(this.vehicles.values()).map(v => v.type);
+                    return types.includes('excavator') && types.includes('bulldozer') && 
+                           types.includes('dump_truck') && types.includes('crane') && 
+                           types.includes('compactor');
+                });
+                this.test('Vehicle Positioning', () => {
+                    return Array.from(this.vehicles.values()).every(v => v.x > 0 && v.y > 0);
+                });
+                this.test('Battery Systems', () => {
+                    return Array.from(this.vehicles.values()).every(v => v.battery === 100);
+                });
+
+                this.updateTestSummary();
+                this.log('🎉 Vehicle fleet tests complete!');
+            }
+
+            updateTestSummary() {
+                const passed = this.testResults.filter(r => r.status === 'success').length;
+                const failed = this.testResults.filter(r => r.status === 'error').length;
+                const total = this.testResults.length;
+
+                document.getElementById('test-summary').innerHTML = `
+                    <span class="test-result success">${passed} Passed</span>
+                    <span class="test-result error">${failed} Failed</span>
+                    <span class="test-result info">${total} Total</span>
+                `;
+            }
+        }
+
+        // Global test functions
+        function testAllVehicles() {
+            tester.vehicles.forEach((vehicle, id) => {
+                vehicle.active = true;
+                vehicle.status = 'testing';
+                setTimeout(() => {
+                    vehicle.status = 'idle';
+                    tester.renderVehicles();
+                }, 2000);
+            });
+            tester.renderVehicles();
+            tester.log('🧪 Testing all vehicles...');
+        }
+
+        function startAutonomousMode() {
+            tester.vehicles.forEach((vehicle, id) => {
+                vehicle.status = 'autonomous';
+                vehicle.active = true;
+            });
+            tester.renderVehicles();
+            tester.log('🤖 Autonomous mode activated');
+        }
+
+        function stopAllVehicles() {
+            tester.vehicles.forEach((vehicle, id) => {
+                vehicle.status = 'idle';
+                vehicle.active = false;
+            });
+            tester.renderVehicles();
+            tester.log('⏹️ All vehicles stopped');
+        }
+
+        function resetFleet() {
+            tester.vehicles.forEach((vehicle, id) => {
+                vehicle.battery = 100;
+                vehicle.status = 'idle';
+                vehicle.active = false;
+                vehicle.x = Math.random() * 800 + 100;
+                vehicle.y = Math.random() * 600 + 100;
+            });
+            tester.renderVehicles();
+            tester.log('🔄 Fleet reset complete');
+        }
+
+        // Initialize the tester when page loads
+        let tester;
+        window.addEventListener('load', () => {
+            tester = new VehicleFleetTester();
+        });
+    </script>
+</body>
+</html>

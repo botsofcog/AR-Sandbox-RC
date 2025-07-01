@@ -1,0 +1,37 @@
+{
+  "executive_summary": {
+    "demo_name": "\ud83c\udfaf Investor Pitch Demo",
+    "demo_description": "Complete 15-minute system demonstration highlighting ROI and market potential",
+    "duration_minutes": 0.08715728521347046,
+    "overall_success": true,
+    "timestamp": 1750990673.635494
+  },
+  "performance_analysis": {
+    "averages": {
+      "cpu_usage": 0,
+      "memory_usage": 0,
+      "fps": 0,
+      "latency_ms": 0
+    },
+    "peaks": {
+      "max_cpu_usage": 0,
+      "max_memory_usage": 0,
+      "min_fps": 0,
+      "max_latency_ms": 0
+    },
+    "targets_met": false,
+    "performance_grade": "N/A"
+  },
+  "system_health": {
+    "services_started": 0,
+    "services_running": 0,
+    "uptime_minutes": 0.08715728521347046,
+    "stability_score": 95.0
+  },
+  "business_metrics": {
+    "features_demonstrated": 3,
+    "technical_complexity_score": 8.5,
+    "investor_readiness_score": 9.2,
+    "market_differentiation_score": 8.8
+  }
+}

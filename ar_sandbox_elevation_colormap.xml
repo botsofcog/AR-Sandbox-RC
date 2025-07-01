@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- AR Sandbox RC - Elevation-Based Color Map -->
+<!-- Based on Magic Sand ColorMap format -->
+<!-- Colors: Navy→Blue→Sand→Orange→Green→Red→Yellow→White -->
+<keys>
+    <!-- Deep Water - Navy/Purple/Black (Lowest points) -->
+    <key>
+        <height>-200.000000000</height>
+        <color-r>0</color-r>
+        <color-g>0</color-g>
+        <color-b>0</color-b>
+    </key>
+    <key>
+        <height>-150.000000000</height>
+        <color-r>25</color-r>
+        <color-g>25</color-g>
+        <color-b>112</color-b>
+    </key>
+    <key>
+        <height>-100.000000000</height>
+        <color-r>0</color-r>
+        <color-g>0</color-g>
+        <color-b>128</color-b>
+    </key>
+    
+    <!-- Sea Level Water - Blue -->
+    <key>
+        <height>-50.000000000</height>
+        <color-r>0</color-r>
+        <color-g>0</color-g>
+        <color-b>255</color-b>
+    </key>
+    <key>
+        <height>-25.000000000</height>
+        <color-r>30</color-r>
+        <color-g>144</color-g>
+        <color-b>255</color-b>
+    </key>
+    
+    <!-- Shores - Sand mixed with blue -->
+    <key>
+        <height>-10.000000000</height>
+        <color-r>135</color-r>
+        <color-g>206</color-g>
+        <color-b>235</color-b>
+    </key>
+    <key>
+        <height>-2.000000000</height>
+        <color-r>222</color-r>
+        <color-g>184</color-g>
+        <color-b>135</color-b>
+    </key>
+    
+    <!-- Base Level - Sand -->
+    <key>
+        <height>0.000000000</height>
+        <color-r>194</color-r>
+        <color-g>178</color-g>
+        <color-b>128</color-b>
+    </key>
+    <key>
+        <height>15.000000000</height>
+        <color-r>210</color-r>
+        <color-g>180</color-g>
+        <color-b>140</color-b>
+    </key>
+    
+    <!-- Low Elevation - Orange (Dirt) -->
+    <key>
+        <height>30.000000000</height>
+        <color-r>255</color-r>
+        <color-g>140</color-g>
+        <color-b>0</color-b>
+    </key>
+    <key>
+        <height>50.000000000</height>
+        <color-r>255</color-r>
+        <color-g>165</color-g>
+        <color-b>0</color-b>
+    </key>
+    
+    <!-- Medium Elevation - Green (Grass/Vegetation) -->
+    <key>
+        <height>70.000000000</height>
+        <color-r>34</color-r>
+        <color-g>139</color-g>
+        <color-b>34</color-b>
+    </key>
+    <key>
+        <height>90.000000000</height>
+        <color-r>0</color-r>
+        <color-g>128</color-g>
+        <color-b>0</color-b>
+    </key>
+    
+    <!-- Higher Elevation - Red/Orange (Sediment/Stone) -->
+    <key>
+        <height>110.000000000</height>
+        <color-r>255</color-r>
+        <color-g>69</color-g>
+        <color-b>0</color-b>
+    </key>
+    <key>
+        <height>130.000000000</height>
+        <color-r>255</color-r>
+        <color-g>99</color-g>
+        <color-b>71</color-b>
+    </key>
+    
+    <!-- Rock Level - Yellow -->
+    <key>
+        <height>150.000000000</height>
+        <color-r>255</color-r>
+        <color-g>215</color-g>
+        <color-b>0</color-b>
+    </key>
+    <key>
+        <height>170.000000000</height>
+        <color-r>255</color-r>
+        <color-g>255</color-g>
+        <color-b>0</color-b>
+    </key>
+    
+    <!-- Snow Peaks - White (Highest points) -->
+    <key>
+        <height>190.000000000</height>
+        <color-r>240</color-r>
+        <color-g>248</color-g>
+        <color-b>255</color-b>
+    </key>
+    <key>
+        <height>220.000000000</height>
+        <color-r>255</color-r>
+        <color-g>255</color-g>
+        <color-b>255</color-b>
+    </key>
+</keys>

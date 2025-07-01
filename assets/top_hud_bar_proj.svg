@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="100">
+  <rect x="2" y="2" width="796" height="96" rx="15" fill="none" stroke="#FFFFFF" stroke-width="4"/>
+  <!-- Speed -->
+  <rect x="20" y="20" width="120" height="60" fill="none" stroke="#FFFFFF" stroke-width="3"/>
+  <text x="80" y="55" fill="#FFFFFF" font-family="Arial" font-size="24" text-anchor="middle">SPEED</text>
+  <!-- Currency/XP -->
+  <rect x="320" y="20" width="160" height="60" fill="none" stroke="#FFFFFF" stroke-width="3"/>
+  <text x="400" y="55" fill="#FFFFFF" font-family="Arial" font-size="24" text-anchor="middle">XP</text>
+  <!-- Notifications -->
+  <circle cx="740" cy="50" r="30" fill="none" stroke="#FFFFFF" stroke-width="3"/>
+  <text x="740" y="55" fill="#FFFFFF" font-family="Arial" font-size="24" text-anchor="middle">!</text>
+</svg>

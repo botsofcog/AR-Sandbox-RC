@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Enhanced AR Sandbox - Stolen & Enhanced</title>
+  <style>
+    body { 
+      margin: 0; 
+      overflow: hidden; 
+      background: #001122;
+      font-family: 'Courier New', monospace;
+    }
+    #container { 
+      position: relative; 
+      width: 100vw; 
+      height: 100vh; 
+    }
+    #videoCanvas, #simCanvas { 
+      position: absolute; 
+      top: 0; 
+      left: 0; 
+      width: 100%;
+      height: 100%;
+    }
+    #simCanvas { 
+      pointer-events: auto; 
+      opacity: 0.8;
+    }
+    #controls {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(0,0,0,0.8);
+      color: #00ff00;
+      padding: 15px;
+      border-radius: 8px;
+      border: 1px solid #00ff00;
+      font-size: 12px;
+      z-index: 100;
+    }
+    #status {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+      background: rgba(0,0,0,0.8);
+      color: #ffff00;
+      padding: 10px;
+      border-radius: 5px;
+      font-size: 11px;
+    }
+  </style>
+</head>
+<body>
+  <div id="container">
+    <canvas id="videoCanvas"></canvas>
+    <canvas id="simCanvas"></canvas>
+  </div>
+  
+  <div id="controls">
+    <strong>🏗️ ENHANCED AR SANDBOX</strong><br>
+    🖱️ Left Click: Add Sand<br>
+    🖱️ Right Click: Remove Sand<br>
+    🖱️ Drag: Sculpt Terrain<br>
+    ⌨️ Space: Reset Terrain<br>
+    ⌨️ +/-: Brush Size<br>
+    ⌨️ W: Water Mode | F: Fire Mode | S: Steam Mode<br>
+    ⌨️ C: Calibrate Webcam | V: Toggle 3D View<br>
+    ⌨️ 1-4: Spawn RC Vehicles<br>
+    <br>
+    <span id="brushInfo">Brush: 3px | Mode: Sand</span><br>
+    <span id="cameraInfo">Camera: Not Calibrated | View: Top-Down | Mode: Live</span><br>
+    <span id="cameraInfo">Camera: Not Calibrated | View: Top-Down</span>
+  </div>
+  
+  <div id="status">
+    <span id="fps">FPS: --</span><br>
+    <span id="webcam">Webcam: Loading...</span>
+  </div>
+
+  <script>
+    // Stolen and enhanced from your working demos!
+    const video = document.createElement('video');
+    video.autoplay = true;
+    video.muted = true;
+    
+    // Enhanced webcam setup
+    navigator.mediaDevices.getUserMedia({ 
+      video: { 
+        width: { ideal: 1280 }, 
+        height: { ideal: 720 },
+        facingMode: 'environment'
+      } 
+    })
+    .then(stream => { 
+      video.srcObject = stream; 
+      document.getElementById('webcam').textContent = 'Webcam: Active';
+    })
+    .catch(err => { 
+      console.error("Webcam access error:", err);
+      document.getElementById('webcam').textContent = 'Webcam: Failed';
+    });
+
+    const vCanvas = document.getElementById('videoCanvas');
+    const vCtx = vCanvas.getContext('2d');
+    const sCanvas = document.getElementById('simCanvas');
+    const sCtx = sCanvas.getContext('2d');
+    
+    // Resize canvases to full screen
+    function resizeCanvases() {
+      vCanvas.width = window.innerWidth;
+      vCanvas.height = window.innerHeight;
+      sCanvas.width = window.innerWidth;
+      sCanvas.height = window.innerHeight;
+    }
+    resizeCanvases();
+    window.addEventListener('resize', resizeCanvases);
+
+    // Enhanced terrain system (stolen from your demos)
+    const cols = 128, rows = 96;
+    let heightmap = Array.from({ length: rows }, () => Array(cols).fill(0));
+    let watermap = Array.from({ length: rows }, () => Array(cols).fill(0));
+    let firemap = Array.from({ length: rows }, () => Array(cols).fill(0));
+    let steammap = Array.from({ length: rows }, () => Array(cols).fill(0));
+    let temperaturemap = Array.from({ length: rows }, () => Array(cols).fill(20)); // Room temp
+
+    // Webcam height detection
+    let baselineFrame = null;
+    let isCalibrated = false;
+
+    // Physics constants (stolen from your constants.ts!)
+    const PHYSICS = {
+      SLUMP_FACTOR: 0.15,
+      TALUS_ANGLE: 8,
+      FLOW_SPEED: 0.3,
+      EROSION_FACTOR: 0.001,
+      FIRE_SPREAD_RATE: 0.05,
+      STEAM_RISE_SPEED: 0.8,
+      EVAPORATION_RATE: 0.002
+    };
+
+    // 3D Camera settings
+    let cameraAngle = 0; // 0 = top-down, 45 = isometric, 90 = side
+    let heightScale = 3;
+
+    // RC Vehicle System (stolen from your React demo!)
+    let vehicles = [];
+    let nextVehicleId = 1;
+
+    // Vehicle types and specs (stolen from your constants)
+    const VEHICLE_SPECS = {
+      excavator: { speed: 0.5, digPower: 3, color: '#FFD700', size: 4 },
+      bulldozer: { speed: 0.8, digPower: 2, color: '#FF6B35', size: 3 },
+      dumptruck: { speed: 1.2, digPower: 0.5, color: '#4ECDC4', size: 3 },
+      compactor: { speed: 0.6, digPower: 1, color: '#45B7D1', size: 2 }
+    };
+
+    // Spawn initial RC vehicles
+    function spawnVehicle(type, x, y) {
+      const spec = VEHICLE_SPECS[type];
+      vehicles.push({
+        id: nextVehicleId++,
+        type: type,
+        x: x,
+        y: y,
+        targetX: x,
+        targetY: y,
+        angle: Math.random() * Math.PI * 2,
+        speed: spec.speed,
+        digPower: spec.digPower,
+        color: spec.color,
+        size: spec.size,
+        mode: 'idle', // idle, moving, digging
+        task: null,
+        actionCooldown: 0
+      });
+    }
+
+    // Initialize some RC vehicles
+    spawnVehicle('excavator', 30, 30);
+    spawnVehicle('bulldozer', 90, 30);
+    spawnVehicle('dumptruck', 30, 70);
+    spawnVehicle('compactor', 90, 70);
+    
+    // Enhanced controls
+    let brushSize = 3;
+    let isMouseDown = false;
+    let currentMode = 'sand'; // sand, water, fire, steam
+    let is3DView = false;
+
+    // Camera system
+    let cameraMode = 'live'; // 'live', 'snapshot', 'hybrid'
+    let isCalibrated = false;
+    let baselineFrame = null;
+    let snapshotTaken = false;
+    let lastMouseX = 0, lastMouseY = 0;
+
+    // Mouse interaction (enhanced from your working code)
+    sCanvas.addEventListener('mousedown', (e) => {
+      isMouseDown = true;
+      handleTerrainEdit(e);
+    });
+    
+    sCanvas.addEventListener('mouseup', () => {
+      isMouseDown = false;
+    });
+    
+    sCanvas.addEventListener('mousemove', (e) => {
+      if (isMouseDown) {
+        handleTerrainEdit(e);
+      }
+    });
+    
+    sCanvas.addEventListener('contextmenu', (e) => e.preventDefault());
+
+    function handleTerrainEdit(e) {
+      const rect = sCanvas.getBoundingClientRect();
+      const x = Math.floor((e.clientX - rect.left) / sCanvas.width * cols);
+      const y = Math.floor((e.clientY - rect.top) / sCanvas.height * rows);
+      
+      const isRightClick = e.button === 2;
+      const strength = isRightClick ? -15 : 15;
+      
+      // Enhanced brush system
+      for (let dx = -brushSize; dx <= brushSize; dx++) {
+        for (let dy = -brushSize; dy <= brushSize; dy++) {
+          const distance = Math.sqrt(dx*dx + dy*dy);
+          if (distance <= brushSize && 
+              y + dy >= 0 && y + dy < rows && 
+              x + dx >= 0 && x + dx < cols) {
+            
+            const influence = Math.cos((distance / brushSize) * Math.PI * 0.5);
+            const change = strength * influence;
+
+            // Enhanced mode system (using your physics constants)
+            switch(currentMode) {
+              case 'water':
+                watermap[y + dy][x + dx] = Math.max(0, watermap[y + dy][x + dx] + change);
+                temperaturemap[y + dy][x + dx] = Math.max(0, temperaturemap[y + dy][x + dx] - 5); // Cool down
+                break;
+              case 'fire':
+                firemap[y + dy][x + dx] = Math.max(0, Math.min(100, firemap[y + dy][x + dx] + Math.abs(change)));
+                temperaturemap[y + dy][x + dx] = Math.min(100, temperaturemap[y + dy][x + dx] + 20); // Heat up
+                break;
+              case 'steam':
+                steammap[y + dy][x + dx] = Math.max(0, Math.min(50, steammap[y + dy][x + dx] + Math.abs(change)));
+                temperaturemap[y + dy][x + dx] = Math.min(80, temperaturemap[y + dy][x + dx] + 10);
+                break;
+              default: // sand mode
+                heightmap[y + dy][x + dx] = Math.max(0, heightmap[y + dy][x + dx] + change);
+                break;
+            }
+          }
+        }
+      }
+    }
+
+    // Keyboard controls (stolen and enhanced)
+    document.addEventListener('keydown', (e) => {
+      switch(e.key) {
+        case '+':
+        case '=':
+          brushSize = Math.min(brushSize + 1, 10);
+          updateBrushInfo();
+          break;
+        case '-':
+          brushSize = Math.max(brushSize - 1, 1);
+          updateBrushInfo();
+          break;
+        case ' ':
+          // Reset terrain
+          heightmap = Array.from({ length: rows }, () => Array(cols).fill(0));
+          watermap = Array.from({ length: rows }, () => Array(cols).fill(0));
+          e.preventDefault();
+          break;
+        case 'w':
+        case 'W':
+          currentMode = currentMode === 'water' ? 'sand' : 'water';
+          updateBrushInfo();
+          break;
+        case 'f':
+        case 'F':
+          currentMode = currentMode === 'fire' ? 'sand' : 'fire';
+          updateBrushInfo();
+          break;
+        case 's':
+        case 'S':
+          currentMode = currentMode === 'steam' ? 'sand' : 'steam';
+          updateBrushInfo();
+          break;
+        case 'c':
+        case 'C':
+          calibrateWebcam();
+          break;
+        case 'v':
+        case 'V':
+          toggle3DView();
+          break;
+        case '1':
+          cameraMode = 'live';
+          updateBrushInfo();
+          console.log('📹 Live camera mode');
+          break;
+        case '2':
+          cameraMode = 'snapshot';
+          updateBrushInfo();
+          console.log('📸 Snapshot mode');
+          break;
+        case '3':
+          cameraMode = 'hybrid';
+          updateBrushInfo();
+          console.log('🖱️ Hybrid mode');
+          break;
+      }
+    });
+
+    function updateBrushInfo() {
+      document.getElementById('brushInfo').textContent =
+        `Brush: ${brushSize}px | Mode: ${currentMode.charAt(0).toUpperCase() + currentMode.slice(1)} | Vehicles: ${vehicles.length}`;
+      document.getElementById('cameraInfo').textContent =
+        `Camera: ${isCalibrated ? 'Calibrated' : 'Not Calibrated'} | View: ${is3DView ? '3D' : 'Top'} | Mode: ${cameraMode.charAt(0).toUpperCase() + cameraMode.slice(1)}`;
+    }
+
+    // Webcam calibration (enhanced from your samples)
+    function calibrateWebcam() {
+      if (!video || video.readyState !== video.HAVE_ENOUGH_DATA) {
+        console.log('❌ No webcam feed available');
+        return;
+      }
+
+      console.log('🎯 Calibrating webcam...');
+
+      // Capture baseline frame for height detection
+      const tempCanvas = document.createElement('canvas');
+      const tempCtx = tempCanvas.getContext('2d');
+      tempCanvas.width = cols;
+      tempCanvas.height = rows;
+
+      tempCtx.drawImage(video, 0, 0, cols, rows);
+      baselineFrame = tempCtx.getImageData(0, 0, cols, rows);
+
+      isCalibrated = true;
+      updateBrushInfo();
+      console.log('✅ Webcam calibrated! Move hand closer to camera to create mountains');
+    }
+
+    // 3D view toggle
+    function toggle3DView() {
+      is3DView = !is3DView;
+      cameraAngle = is3DView ? 45 : 0;
+      updateBrushInfo();
+      console.log(`📐 Switched to ${is3DView ? '3D Isometric' : 'Top-Down'} view`);
+    }
+
+    // Enhanced webcam calibration
+    function calibrateWebcam() {
+      if (!video || video.readyState !== video.HAVE_ENOUGH_DATA) {
+        console.log('❌ No webcam feed available');
+        return;
+      }
+
+      console.log('🎯 Calibrating webcam...');
+
+      // Capture baseline frame for height detection
+      const tempCanvas = document.createElement('canvas');
+      const tempCtx = tempCanvas.getContext('2d');
+      tempCanvas.width = cols;
+      tempCanvas.height = rows;
+
+      tempCtx.drawImage(video, 0, 0, cols, rows);
+      baselineFrame = tempCtx.getImageData(0, 0, cols, rows);
+
+      isCalibrated = true;
+      updateBrushInfo();
+      console.log('✅ Webcam calibrated! Move hand closer to camera to create mountains');
+    }
+
+    // Enhanced webcam height detection with multiple modes
+    function updateHeightFromWebcam() {
+      if (cameraMode === 'snapshot' && !snapshotTaken) return;
+
+      const tempCanvas = document.createElement('canvas');
+      const tempCtx = tempCanvas.getContext('2d');
+      tempCanvas.width = cols;
+      tempCanvas.height = rows;
+
+      tempCtx.drawImage(video, 0, 0, cols, rows);
+      const currentFrame = tempCtx.getImageData(0, 0, cols, rows);
+
+      for (let y = 0; y < rows; y++) {
+        for (let x = 0; x < cols; x++) {
+          const i = (y * cols + x) * 4;
+
+          // Calculate brightness difference
+          const currentBright = (currentFrame.data[i] + currentFrame.data[i+1] + currentFrame.data[i+2]) / 3;
+          const baseBright = (baselineFrame.data[i] + baselineFrame.data[i+1] + baselineFrame.data[i+2]) / 3;
+
+          const diff = Math.abs(currentBright - baseBright);
+
+          // Different behavior based on camera mode
+          if (cameraMode === 'live') {
+            // Live mode: continuous real-time updates
+            if (diff > 25) {
+              const targetHeight = 5 + (diff / 255) * 35;
+              heightmap[y][x] = heightmap[y][x] * 0.7 + targetHeight * 0.3;
+            } else {
+              heightmap[y][x] = heightmap[y][x] * 0.98 + 3 * 0.02;
+            }
+          } else if (cameraMode === 'hybrid') {
+            // Hybrid mode: webcam movement acts like mouse editing
+            if (diff > 30) {
+              const strength = (diff / 255) * 2;
+              heightmap[y][x] = Math.max(0, Math.min(50, heightmap[y][x] + strength));
+            }
+          }
+          // Snapshot mode: no real-time updates, only manual editing
+        }
+      }
+    }
+
+    // RC Vehicle AI System (stolen and enhanced from your React demo)
+    function updateVehicles() {
+      vehicles.forEach(vehicle => {
+        // Update cooldowns
+        if (vehicle.actionCooldown > 0) {
+          vehicle.actionCooldown--;
+        }
+
+        // AI behavior based on vehicle type
+        if (vehicle.mode === 'idle' && vehicle.actionCooldown === 0) {
+          // Find work to do
+          const workSite = findNearestWork(vehicle);
+          if (workSite) {
+            vehicle.targetX = workSite.x;
+            vehicle.targetY = workSite.y;
+            vehicle.mode = 'moving';
+            vehicle.task = workSite.task;
+          }
+        }
+
+        // Movement
+        if (vehicle.mode === 'moving') {
+          const dx = vehicle.targetX - vehicle.x;
+          const dy = vehicle.targetY - vehicle.y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+
+          if (distance < 2) {
+            // Arrived at target
+            vehicle.mode = 'digging';
+            vehicle.actionCooldown = 60; // Work for 60 frames
+          } else {
+            // Move towards target
+            vehicle.angle = Math.atan2(dy, dx);
+            vehicle.x += Math.cos(vehicle.angle) * vehicle.speed;
+            vehicle.y += Math.sin(vehicle.angle) * vehicle.speed;
+          }
+        }
+
+        // Work action
+        if (vehicle.mode === 'digging' && vehicle.actionCooldown > 0) {
+          performVehicleWork(vehicle);
+        } else if (vehicle.mode === 'digging' && vehicle.actionCooldown === 0) {
+          vehicle.mode = 'idle';
+          vehicle.task = null;
+        }
+      });
+    }
+
+    function findNearestWork(vehicle) {
+      // Simple AI: find areas that need work based on vehicle type
+      const searchRadius = 50;
+      let bestWork = null;
+      let bestDistance = Infinity;
+
+      for (let attempts = 0; attempts < 20; attempts++) {
+        const x = Math.floor(Math.random() * cols);
+        const y = Math.floor(Math.random() * rows);
+        const height = heightmap[y][x];
+
+        let needsWork = false;
+        let task = '';
+
+        switch (vehicle.type) {
+          case 'excavator':
+            // Excavators like to dig in high areas
+            if (height > 20) {
+              needsWork = true;
+              task = 'excavate';
+            }
+            break;
+          case 'bulldozer':
+            // Bulldozers like to flatten uneven terrain
+            const neighbors = getNeighborHeights(x, y);
+            const variance = Math.max(...neighbors) - Math.min(...neighbors);
+            if (variance > 10) {
+              needsWork = true;
+              task = 'flatten';
+            }
+            break;
+          case 'dumptruck':
+            // Dump trucks like to fill low areas
+            if (height < 5) {
+              needsWork = true;
+              task = 'fill';
+            }
+            break;
+          case 'compactor':
+            // Compactors work on medium height areas
+            if (height > 5 && height < 15) {
+              needsWork = true;
+              task = 'compact';
+            }
+            break;
+        }
+
+        if (needsWork) {
+          const distance = Math.sqrt((x - vehicle.x) ** 2 + (y - vehicle.y) ** 2);
+          if (distance < bestDistance) {
+            bestDistance = distance;
+            bestWork = { x, y, task };
+          }
+        }
+      }
+
+      return bestWork;
+    }
+
+    function getNeighborHeights(x, y) {
+      const heights = [];
+      for (let dx = -1; dx <= 1; dx++) {
+        for (let dy = -1; dy <= 1; dy++) {
+          const nx = x + dx;
+          const ny = y + dy;
+          if (nx >= 0 && nx < cols && ny >= 0 && ny < rows) {
+            heights.push(heightmap[ny][nx]);
+          }
+        }
+      }
+      return heights;
+    }
+
+    function performVehicleWork(vehicle) {
+      const x = Math.floor(vehicle.x);
+      const y = Math.floor(vehicle.y);
+
+      if (x < 0 || x >= cols || y < 0 || y >= rows) return;
+
+      const workRadius = 2;
+      const strength = vehicle.digPower * 0.3;
+
+      for (let dx = -workRadius; dx <= workRadius; dx++) {
+        for (let dy = -workRadius; dy <= workRadius; dy++) {
+          const nx = x + dx;
+          const ny = y + dy;
+
+          if (nx >= 0 && nx < cols && ny >= 0 && ny < rows) {
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            if (distance <= workRadius) {
+              const influence = Math.cos((distance / workRadius) * Math.PI * 0.5);
+
+              switch (vehicle.task) {
+                case 'excavate':
+                  heightmap[ny][nx] = Math.max(0, heightmap[ny][nx] - strength * influence);
+                  break;
+                case 'fill':
+                  heightmap[ny][nx] += strength * influence;
+                  break;
+                case 'flatten':
+                  const avgHeight = getNeighborHeights(nx, ny).reduce((a, b) => a + b, 0) / 9;
+                  heightmap[ny][nx] = heightmap[ny][nx] * 0.9 + avgHeight * 0.1;
+                  break;
+                case 'compact':
+                  // Compacting reduces height slightly but makes terrain more stable
+                  heightmap[ny][nx] *= 0.98;
+                  break;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // Enhanced rendering with topographic colors (stolen from your concepts)
+    let frameCount = 0;
+    let lastTime = performance.now();
+    
+    function getTopoColor(height, water) {
+      if (water > 5) return [0, 100, 255, 0.8];      // Water
+      if (height < 5) return [194, 178, 128, 0.6];   // Sand
+      if (height < 15) return [34, 139, 34, 0.7];    // Grass
+      if (height < 30) return [139, 69, 19, 0.8];    // Hills
+      return [255, 255, 255, 0.9];                   // Snow
+    }
+
+    // Enhanced topographic colors: Blue water → Sand → White peaks
+    function getEnhancedTopoColor(height, water) {
+      if (water > 3) {
+        // Water - blue
+        return [0, Math.floor(100 + water * 20), 255, 0.8];
+      } else if (height < 8) {
+        // Sand - tan/brown
+        const t = height / 8;
+        return [Math.floor(194 + t * 61), Math.floor(178 + t * 77), Math.floor(128 + t * 127), 0.7];
+      } else if (height < 25) {
+        // Medium elevation - green to yellow (topographic)
+        const t = (height - 8) / 17;
+        return [Math.floor(t * 255), Math.floor(100 + t * 155), 0, 0.8];
+      } else if (height < 40) {
+        // High elevation - red (topographic)
+        const t = (height - 25) / 15;
+        return [255, Math.floor(255 - t * 255), 0, 0.9];
+      } else {
+        // Peaks - white
+        return [255, 255, 255, 0.9];
+      }
+    }
+
+    // Draw topographic contour lines
+    function drawContourLines() {
+      sCtx.strokeStyle = 'rgba(0, 0, 0, 0.6)';
+      sCtx.lineWidth = 1;
+
+      const cellW = sCanvas.width / cols;
+      const cellH = sCanvas.height / rows;
+
+      // Draw contour lines at regular height intervals
+      for (let contourLevel = 5; contourLevel < 50; contourLevel += 5) {
+        sCtx.beginPath();
+
+        for (let y = 1; y < rows - 1; y++) {
+          for (let x = 1; x < cols - 1; x++) {
+            const height = heightmap[y][x];
+
+            // Check if this point crosses the contour level
+            if (Math.abs(height - contourLevel) < 1) {
+              const screenX = x * cellW + cellW/2;
+              const screenY = y * cellH + cellH/2;
+
+              // Draw small contour segment
+              sCtx.moveTo(screenX - 2, screenY);
+              sCtx.lineTo(screenX + 2, screenY);
+            }
+          }
+        }
+
+        sCtx.stroke();
+      }
+    }
+
+    function update() {
+      // Draw webcam background
+      if (video.readyState >= 2) {
+        vCtx.drawImage(video, 0, 0, vCanvas.width, vCanvas.height);
+
+        // ENHANCED WEBCAM HEIGHT DETECTION with multiple modes
+        if (isCalibrated && baselineFrame) {
+          updateHeightFromWebcam();
+        }
+      }
+
+      // Enhanced diffusion simulation (stolen from your working code)
+      const newHeightmap = heightmap.map(arr => arr.slice());
+      const newWatermap = watermap.map(arr => arr.slice());
+      
+      for (let y = 1; y < rows - 1; y++) {
+        for (let x = 1; x < cols - 1; x++) {
+          // Height diffusion
+          newHeightmap[y][x] = (heightmap[y][x] * 0.6 +
+                               (heightmap[y-1][x] + heightmap[y+1][x] +
+                                heightmap[y][x-1] + heightmap[y][x+1]) * 0.1);
+          
+          // Water flow simulation
+          if (watermap[y][x] > 1) {
+            const flow = watermap[y][x] * 0.1;
+            newWatermap[y][x] -= flow;
+            newWatermap[y-1][x] += flow * 0.25;
+            newWatermap[y+1][x] += flow * 0.25;
+            newWatermap[y][x-1] += flow * 0.25;
+            newWatermap[y][x+1] += flow * 0.25;
+          }
+        }
+      }
+      
+      heightmap = newHeightmap;
+      watermap = newWatermap;
+
+      // Enhanced terrain rendering with 3D support
+      sCtx.clearRect(0, 0, sCanvas.width, sCanvas.height);
+
+      if (is3DView) {
+        render3DTerrain();
+      } else {
+        renderTopDownTerrain();
+      }
+    }
+
+    function renderTopDownTerrain() {
+      const cellW = sCanvas.width / cols;
+      const cellH = sCanvas.height / rows;
+
+      for (let y = 0; y < rows; y++) {
+        for (let x = 0; x < cols; x++) {
+          const h = heightmap[y][x];
+          const w = watermap[y][x];
+
+          if (h > 0.5 || w > 0.5) {
+            const [r, g, b, a] = getEnhancedTopoColor(h, w);
+            sCtx.fillStyle = `rgba(${r},${g},${b},${a})`;
+            sCtx.fillRect(x * cellW, y * cellH, cellW, cellH);
+          }
+        }
+      }
+
+      // Draw topographic contour lines
+      drawContourLines();
+    }
+
+    function render3DTerrain() {
+      const centerX = sCanvas.width / 2;
+      const centerY = sCanvas.height * 0.7;
+      const scale = 4;
+      const heightScale = 3;
+
+      // Render back to front for proper depth
+      for (let y = rows - 1; y >= 0; y--) {
+        for (let x = 0; x < cols; x++) {
+          const h = heightmap[y][x];
+          const w = watermap[y][x];
+
+          if (h > 1 || w > 1) {
+            // Isometric projection
+            const worldX = (x - cols / 2) * scale;
+            const worldY = (y - rows / 2) * scale;
+            const worldZ = h * heightScale;
+
+            const isoX = (worldX - worldY) * 0.866; // cos(30°)
+            const isoY = (worldX + worldY) * 0.5 - worldZ; // sin(30°)
+
+            const screenX = centerX + isoX;
+            const screenY = centerY + isoY;
+
+            const [r, g, b, a] = getEnhancedTopoColor(h, w);
+
+            // Draw 3D block
+            const blockSize = 6;
+            sCtx.fillStyle = `rgba(${r},${g},${b},${a})`;
+
+            // Main face
+            sCtx.fillRect(screenX - blockSize/2, screenY - blockSize/2, blockSize, Math.max(2, worldZ));
+
+            // Right face (darker)
+            sCtx.fillStyle = `rgba(${Math.floor(r*0.7)},${Math.floor(g*0.7)},${Math.floor(b*0.7)},${a})`;
+            sCtx.fillRect(screenX + blockSize/2, screenY - blockSize/2, blockSize/2, Math.max(2, worldZ));
+
+            // Top face (lighter)
+            sCtx.fillStyle = `rgba(${Math.min(255, Math.floor(r*1.2))},${Math.min(255, Math.floor(g*1.2))},${Math.min(255, Math.floor(b*1.2))},${a})`;
+            sCtx.fillRect(screenX - blockSize/2, screenY - Math.max(2, worldZ), blockSize, blockSize/2);
+          }
+        }
+      }
+
+      // Update and render RC vehicles (stolen from your React demo!)
+      updateVehicles();
+
+      // Render vehicles
+      vehicles.forEach(vehicle => {
+        const screenX = (vehicle.x / cols) * sCanvas.width;
+        const screenY = (vehicle.y / rows) * sCanvas.height;
+        const size = vehicle.size * 3;
+
+        sCtx.save();
+        sCtx.translate(screenX, screenY);
+        sCtx.rotate(vehicle.angle);
+
+        // Vehicle body
+        sCtx.fillStyle = vehicle.color;
+        sCtx.fillRect(-size/2, -size/2, size, size);
+
+        // Vehicle direction indicator
+        sCtx.fillStyle = '#000000';
+        sCtx.fillRect(size/4, -size/4, size/2, size/2);
+
+        // Work indicator
+        if (vehicle.mode === 'digging') {
+          sCtx.strokeStyle = '#FFFF00';
+          sCtx.lineWidth = 2;
+          sCtx.beginPath();
+          sCtx.arc(0, 0, size, 0, Math.PI * 2);
+          sCtx.stroke();
+        }
+
+        sCtx.restore();
+
+        // Vehicle label
+        sCtx.fillStyle = '#FFFFFF';
+        sCtx.font = '10px monospace';
+        sCtx.textAlign = 'center';
+        sCtx.fillText(vehicle.type.toUpperCase(), screenX, screenY - size);
+        sCtx.fillText(vehicle.mode.toUpperCase(), screenX, screenY + size + 10);
+      });
+
+      // FPS counter
+      frameCount++;
+      const now = performance.now();
+      if (now - lastTime > 1000) {
+        document.getElementById('fps').textContent = `FPS: ${frameCount}`;
+        frameCount = 0;
+        lastTime = now;
+      }
+
+      requestAnimationFrame(update);
+    }
+
+    // Start the enhanced system
+    video.addEventListener('play', () => { 
+      update(); 
+      console.log('🏗️ Enhanced AR Sandbox Started - Code Stolen & Improved!');
+    });
+    
+    // Initialize
+    updateBrushInfo();
+  </script>
+</body>
+</html>

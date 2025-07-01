@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏗️ Simple AR Construction Sandbox</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            color: white;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+            user-select: none;
+        }
+        
+        #container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        #video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0.5;
+            z-index: 1;
+        }
+        
+        #canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            cursor: crosshair;
+            z-index: 10;
+        }
+        
+        #tools {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 15px;
+            z-index: 20;
+            border: 3px solid #00ff00;
+        }
+        
+        .tool-btn {
+            display: block;
+            width: 120px;
+            padding: 15px;
+            margin: 10px 0;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .tool-btn:hover {
+            transform: scale(1.1);
+        }
+        
+        .tool-btn.active {
+            transform: scale(1.2);
+            box-shadow: 0 0 20px currentColor;
+        }
+        
+        #dig { background: #ff6b6b; color: white; }
+        #build { background: #4ecdc4; color: white; }
+        #road { background: #333; color: white; }
+        #water { background: #74b9ff; color: white; }
+        
+        #info {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 10px;
+            z-index: 20;
+            font-size: 18px;
+        }
+        
+        #controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 15px;
+            z-index: 20;
+        }
+        
+        .slider {
+            width: 150px;
+            margin: 10px 0;
+        }
+        
+        .control-label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        
+        #message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            padding: 20px 40px;
+            border-radius: 15px;
+            font-size: 24px;
+            font-weight: bold;
+            color: #00ff00;
+            z-index: 100;
+            display: none;
+            border: 2px solid #00ff00;
+        }
+        
+        .reset-btn {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            background: #ff6b6b;
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            z-index: 20;
+        }
+        
+        .reset-btn:hover {
+            background: #ff5252;
+            transform: scale(1.1);
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <video id="video" autoplay muted playsinline></video>
+        <canvas id="canvas"></canvas>
+        
+        <div id="tools">
+            <h3 style="margin-top: 0; color: #00ff00;">🏗️ TOOLS</h3>
+            <button class="tool-btn active" id="dig" onclick="setTool('dig')">
+                ⛏️ DIG
+            </button>
+            <button class="tool-btn" id="build" onclick="setTool('build')">
+                🏗️ BUILD
+            </button>
+            <button class="tool-btn" id="road" onclick="setTool('road')">
+                🛣️ ROAD
+            </button>
+            <button class="tool-btn" id="water" onclick="setTool('water')">
+                💧 WATER
+            </button>
+        </div>
+        
+        <div id="controls">
+            <h3 style="margin-top: 0; color: #00ff00;">⚙️ SIZE</h3>
+            <label class="control-label">Brush Size:</label>
+            <input type="range" class="slider" id="brushSize" min="10" max="50" value="25">
+            <div id="brushValue">25</div>
+        </div>
+        
+        <div id="info">
+            <div>🛠️ Tool: <span id="currentTool">DIG</span></div>
+            <div>📍 Position: <span id="position">--</span></div>
+            <div>🎯 Click and drag to use!</div>
+        </div>
+        
+        <button class="reset-btn" onclick="resetAll()">🔄 RESET</button>
+        
+        <div id="message"></div>
+    </div>
+
+    <script>
+        class SimpleSandbox {
+            constructor() {
+                this.canvas = document.getElementById('canvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.video = document.getElementById('video');
+                
+                // Simple grid system
+                this.gridSize = 8; // Bigger pixels for better visibility
+                this.cols = 0;
+                this.rows = 0;
+                this.grid = [];
+                
+                this.currentTool = 'dig';
+                this.brushSize = 25;
+                this.isDrawing = false;
+                
+                // Material types
+                this.materials = {
+                    empty: { color: '#001122', height: 0 },
+                    dirt: { color: '#8B4513', height: 1 },
+                    concrete: { color: '#C0C0C0', height: 2 },
+                    asphalt: { color: '#2F2F2F', height: 2 },
+                    water: { color: '#4A90E2', height: 0.5 }
+                };
+                
+                this.initialize();
+            }
+            
+            initialize() {
+                this.setupCanvas();
+                this.setupGrid();
+                this.setupCamera();
+                this.setupEvents();
+                this.startAnimation();
+                
+                this.showMessage('🏗️ AR SANDBOX READY!', 2000);
+                console.log('✅ Simple Sandbox initialized');
+            }
+            
+            setupCanvas() {
+                this.canvas.width = window.innerWidth;
+                this.canvas.height = window.innerHeight;
+                
+                this.cols = Math.floor(this.canvas.width / this.gridSize);
+                this.rows = Math.floor(this.canvas.height / this.gridSize);
+            }
+            
+            setupGrid() {
+                this.grid = [];
+                for (let y = 0; y < this.rows; y++) {
+                    this.grid[y] = [];
+                    for (let x = 0; x < this.cols; x++) {
+                        // Create initial terrain
+                        let material = 'dirt';
+                        
+                        // Add some variation
+                        if (Math.random() < 0.1) material = 'empty';
+                        if (Math.random() < 0.05) material = 'water';
+                        
+                        this.grid[y][x] = {
+                            material: material,
+                            height: this.materials[material].height + Math.random() * 0.5
+                        };
+                    }
+                }
+            }
+            
+            async setupCamera() {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ 
+                        video: { width: 640, height: 480 } 
+                    });
+                    this.video.srcObject = stream;
+                    console.log('📷 Camera ready');
+                } catch (error) {
+                    console.log('No camera available');
+                    this.video.style.display = 'none';
+                }
+            }
+            
+            setupEvents() {
+                // Mouse events
+                this.canvas.addEventListener('mousedown', (e) => {
+                    this.isDrawing = true;
+                    this.handleDraw(e);
+                });
+                
+                this.canvas.addEventListener('mousemove', (e) => {
+                    this.updatePosition(e);
+                    if (this.isDrawing) {
+                        this.handleDraw(e);
+                    }
+                });
+                
+                this.canvas.addEventListener('mouseup', () => {
+                    this.isDrawing = false;
+                });
+                
+                this.canvas.addEventListener('mouseleave', () => {
+                    this.isDrawing = false;
+                });
+                
+                // Touch events for mobile
+                this.canvas.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    this.isDrawing = true;
+                    const touch = e.touches[0];
+                    this.handleDraw(touch);
+                });
+                
+                this.canvas.addEventListener('touchmove', (e) => {
+                    e.preventDefault();
+                    if (this.isDrawing) {
+                        const touch = e.touches[0];
+                        this.handleDraw(touch);
+                    }
+                });
+                
+                this.canvas.addEventListener('touchend', (e) => {
+                    e.preventDefault();
+                    this.isDrawing = false;
+                });
+                
+                // Brush size slider
+                document.getElementById('brushSize').addEventListener('input', (e) => {
+                    this.brushSize = parseInt(e.target.value);
+                    document.getElementById('brushValue').textContent = this.brushSize;
+                });
+                
+                // Window resize
+                window.addEventListener('resize', () => {
+                    this.setupCanvas();
+                    this.setupGrid();
+                });
+            }
+            
+            updatePosition(e) {
+                const rect = this.canvas.getBoundingClientRect();
+                const x = Math.floor((e.clientX - rect.left) / this.gridSize);
+                const y = Math.floor((e.clientY - rect.top) / this.gridSize);
+                document.getElementById('position').textContent = `${x}, ${y}`;
+            }
+            
+            handleDraw(e) {
+                const rect = this.canvas.getBoundingClientRect();
+                const centerX = Math.floor((e.clientX - rect.left) / this.gridSize);
+                const centerY = Math.floor((e.clientY - rect.top) / this.gridSize);
+                
+                const radius = Math.floor(this.brushSize / this.gridSize / 2);
+                
+                for (let dy = -radius; dy <= radius; dy++) {
+                    for (let dx = -radius; dx <= radius; dx++) {
+                        const x = centerX + dx;
+                        const y = centerY + dy;
+                        
+                        if (x >= 0 && x < this.cols && y >= 0 && y < this.rows) {
+                            const distance = Math.sqrt(dx * dx + dy * dy);
+                            if (distance <= radius) {
+                                this.modifyCell(x, y);
+                            }
+                        }
+                    }
+                }
+            }
+            
+            modifyCell(x, y) {
+                const cell = this.grid[y][x];
+                
+                switch (this.currentTool) {
+                    case 'dig':
+                        cell.material = 'empty';
+                        cell.height = 0;
+                        break;
+                        
+                    case 'build':
+                        cell.material = 'concrete';
+                        cell.height = Math.min(3, cell.height + 0.5);
+                        break;
+                        
+                    case 'road':
+                        cell.material = 'asphalt';
+                        cell.height = 1;
+                        break;
+                        
+                    case 'water':
+                        cell.material = 'water';
+                        cell.height = 0.5;
+                        break;
+                }
+            }
+            
+            startAnimation() {
+                const animate = () => {
+                    this.render();
+                    requestAnimationFrame(animate);
+                };
+                animate();
+            }
+            
+            render() {
+                // Clear canvas
+                this.ctx.fillStyle = '#000011';
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                // Draw grid
+                for (let y = 0; y < this.rows; y++) {
+                    for (let x = 0; x < this.cols; x++) {
+                        const cell = this.grid[y][x];
+                        const material = this.materials[cell.material];
+                        
+                        // Calculate color based on height
+                        let color = material.color;
+                        if (cell.height > 0) {
+                            const brightness = 0.5 + (cell.height / 3) * 0.5;
+                            color = this.adjustBrightness(color, brightness);
+                        }
+                        
+                        this.ctx.fillStyle = color;
+                        this.ctx.fillRect(
+                            x * this.gridSize, 
+                            y * this.gridSize, 
+                            this.gridSize, 
+                            this.gridSize
+                        );
+                        
+                        // Add some texture for higher terrain
+                        if (cell.height > 1.5) {
+                            this.ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+                            this.ctx.fillRect(
+                                x * this.gridSize + 1, 
+                                y * this.gridSize + 1, 
+                                this.gridSize - 2, 
+                                this.gridSize - 2
+                            );
+                        }
+                    }
+                }
+            }
+            
+            adjustBrightness(color, factor) {
+                // Simple brightness adjustment
+                const hex = color.replace('#', '');
+                const r = Math.min(255, Math.floor(parseInt(hex.substr(0, 2), 16) * factor));
+                const g = Math.min(255, Math.floor(parseInt(hex.substr(2, 2), 16) * factor));
+                const b = Math.min(255, Math.floor(parseInt(hex.substr(4, 2), 16) * factor));
+                
+                return `rgb(${r}, ${g}, ${b})`;
+            }
+            
+            showMessage(text, duration = 3000) {
+                const messageDiv = document.getElementById('message');
+                messageDiv.textContent = text;
+                messageDiv.style.display = 'block';
+                
+                setTimeout(() => {
+                    messageDiv.style.display = 'none';
+                }, duration);
+            }
+            
+            reset() {
+                this.setupGrid();
+                this.showMessage('🔄 TERRAIN RESET!', 1500);
+            }
+        }
+        
+        // Global functions
+        function setTool(tool) {
+            // Update button states
+            document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(tool).classList.add('active');
+            
+            // Update tool
+            sandbox.currentTool = tool;
+            document.getElementById('currentTool').textContent = tool.toUpperCase();
+            
+            // Show message
+            const messages = {
+                dig: '⛏️ DIGGING MODE!',
+                build: '🏗️ BUILDING MODE!',
+                road: '🛣️ ROAD MODE!',
+                water: '💧 WATER MODE!'
+            };
+            sandbox.showMessage(messages[tool], 1500);
+        }
+        
+        function resetAll() {
+            sandbox.reset();
+        }
+        
+        // Initialize
+        let sandbox;
+        document.addEventListener('DOMContentLoaded', () => {
+            sandbox = new SimpleSandbox();
+        });
+    </script>
+
+    <!-- Kinect WebSocket Integration -->
+    <script src="js/kinect_websocket_integration.js"></script>
+    <script>
+        // Initialize Kinect WebSocket connection for Simple Working Sandbox
+        let kinectIntegration;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            kinectIntegration = new KinectWebSocketIntegration({
+                onConnect: () => {
+                    console.log('✅ Simple Working Sandbox connected to Kinect');
+                    sandbox.showMessage('🔗 Kinect Connected!', 2000);
+                },
+                onDisconnect: () => {
+                    console.log('❌ Simple Working Sandbox disconnected from Kinect');
+                    sandbox.showMessage('❌ Kinect Disconnected', 2000);
+                },
+                onFrameData: (frameData) => {
+                    if (sandbox && sandbox.updateFromKinectFrame) {
+                        sandbox.updateFromKinectFrame(frameData);
+                    }
+                },
+                onTopographyData: (topographyData) => {
+                    if (sandbox && sandbox.enhanceWithTopography) {
+                        sandbox.enhanceWithTopography(topographyData);
+                    }
+                }
+            });
+
+            kinectIntegration.connect();
+        });
+    </script>
+</body>
+</html>

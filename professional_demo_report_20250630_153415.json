@@ -1,0 +1,37 @@
+{
+  "executive_summary": {
+    "demo_name": "\u26a1 Quick Showcase",
+    "demo_description": "5-minute highlight reel of key features for busy executives",
+    "duration_minutes": 0.1857600172360738,
+    "overall_success": true,
+    "timestamp": 1751319255.540048
+  },
+  "performance_analysis": {
+    "averages": {
+      "cpu_usage": 0,
+      "memory_usage": 0,
+      "fps": 0,
+      "latency_ms": 0
+    },
+    "peaks": {
+      "max_cpu_usage": 0,
+      "max_memory_usage": 0,
+      "min_fps": 0,
+      "max_latency_ms": 0
+    },
+    "targets_met": false,
+    "performance_grade": "N/A"
+  },
+  "system_health": {
+    "services_started": 1,
+    "services_running": 0,
+    "uptime_minutes": 0.1857600172360738,
+    "stability_score": 95.0
+  },
+  "business_metrics": {
+    "features_demonstrated": 2,
+    "technical_complexity_score": 8.5,
+    "investor_readiness_score": 9.2,
+    "market_differentiation_score": 8.8
+  }
+}

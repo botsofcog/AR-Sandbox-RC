@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🍺 Drunk-Friendly AR Sandbox</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            color: white;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+            cursor: crosshair;
+        }
+        
+        #terrain-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, #1a4d66 0%, #0d2633 100%);
+        }
+        
+        #instructions {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.9);
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+            border: 3px solid #00ff00;
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+        
+        @keyframes glow {
+            from { box-shadow: 0 0 20px #00ff00; }
+            to { box-shadow: 0 0 40px #00ff00, 0 0 60px #00ff00; }
+        }
+        
+        #big-buttons {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 20px;
+        }
+        
+        .big-button {
+            width: 120px;
+            height: 80px;
+            font-size: 20px;
+            font-weight: bold;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+        }
+        
+        .big-button:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 30px currentColor;
+        }
+        
+        .big-button.active {
+            transform: scale(1.2);
+            box-shadow: 0 0 40px currentColor;
+            animation: pulse 1s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        #raise-btn {
+            background: linear-gradient(45deg, #ff6b6b, #ff8e8e);
+            color: white;
+        }
+        
+        #lower-btn {
+            background: linear-gradient(45deg, #4ecdc4, #45b7b8);
+            color: white;
+        }
+        
+        #water-btn {
+            background: linear-gradient(45deg, #74b9ff, #0984e3);
+            color: white;
+        }
+        
+        #explode-btn {
+            background: linear-gradient(45deg, #fd79a8, #e84393);
+            color: white;
+        }
+        
+        #status {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 18px;
+            border: 2px solid #ffff00;
+        }
+        
+        #drunk-mode {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 48px;
+            font-weight: bold;
+            color: #ff00ff;
+            text-shadow: 0 0 20px #ff00ff;
+            animation: rainbow 3s linear infinite;
+            pointer-events: none;
+            opacity: 0;
+        }
+        
+        @keyframes rainbow {
+            0% { color: #ff0000; }
+            16% { color: #ff8000; }
+            33% { color: #ffff00; }
+            50% { color: #00ff00; }
+            66% { color: #0080ff; }
+            83% { color: #8000ff; }
+            100% { color: #ff0000; }
+        }
+        
+        .explosion {
+            position: absolute;
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: radial-gradient(circle, #ffff00 0%, #ff4500 50%, transparent 70%);
+            animation: explode 1s ease-out forwards;
+            pointer-events: none;
+        }
+        
+        @keyframes explode {
+            0% {
+                transform: scale(0);
+                opacity: 1;
+            }
+            100% {
+                transform: scale(5);
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="terrain-canvas"></canvas>
+    
+    <div id="instructions">
+        🎮 CLICK AND DRAG TO BUILD STUFF! 🎮<br>
+        <small>Pick a tool below, then draw on the screen!</small>
+    </div>
+    
+    <div id="big-buttons">
+        <button class="big-button active" id="raise-btn" onclick="setTool('raise')">
+            ⬆️<br>BUILD UP
+        </button>
+        <button class="big-button" id="lower-btn" onclick="setTool('lower')">
+            ⬇️<br>DIG DOWN
+        </button>
+        <button class="big-button" id="water-btn" onclick="setTool('water')">
+            🌊<br>ADD WATER
+        </button>
+        <button class="big-button" id="explode-btn" onclick="setTool('explode')">
+            💥<br>EXPLODE!
+        </button>
+    </div>
+    
+    <div id="status">
+        🛠️ Tool: <span id="current-tool">BUILD UP</span><br>
+        🎯 Click and drag to use!<br>
+        🍺 Drunk Mode: <span id="drunk-level">ACTIVATED</span>
+    </div>
+    
+    <div id="drunk-mode">PARTY MODE!</div>
+
+    <script>
+        class DrunkFriendlySandbox {
+            constructor() {
+                this.canvas = document.getElementById('terrain-canvas');
+                this.ctx = this.canvas.getContext('2d');
+
+                // Make it SIMPLE
+                this.pixels = [];
+                this.currentTool = 'raise';
+                this.isDrawing = false;
+                this.brushSize = 30;
+
+                this.initialize();
+            }
+
+            initialize() {
+                this.setupCanvas();
+                this.setupEvents();
+                this.startRenderLoop();
+                this.startDrunkEffects();
+
+                console.log('🍺 DRUNK-FRIENDLY SANDBOX READY TO PARTY!');
+            }
+
+            setupCanvas() {
+                this.canvas.width = window.innerWidth;
+                this.canvas.height = window.innerHeight;
+
+                // Fill with initial terrain
+                this.ctx.fillStyle = '#2E8B57'; // Sea green
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+                // Add some initial hills
+                for (let i = 0; i < 10; i++) {
+                    const x = Math.random() * this.canvas.width;
+                    const y = Math.random() * this.canvas.height;
+                    const size = 50 + Math.random() * 100;
+
+                    this.ctx.fillStyle = '#8B4513'; // Brown hills
+                    this.ctx.beginPath();
+                    this.ctx.arc(x, y, size, 0, Math.PI * 2);
+                    this.ctx.fill();
+                }
+            }
+            
+            generateSimpleTerrain() {
+                // Super simple terrain - just some hills
+                for (let y = 0; y < this.height; y++) {
+                    for (let x = 0; x < this.width; x++) {
+                        const index = y * this.width + x;
+                        
+                        // Create some simple hills
+                        const centerX = this.width / 2;
+                        const centerY = this.height / 2;
+                        const distance = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
+                        const maxDistance = Math.sqrt(centerX ** 2 + centerY ** 2);
+                        
+                        let height = 0.3 + 0.4 * (1 - distance / maxDistance);
+                        height += Math.sin(x * 0.2) * 0.1;
+                        height += Math.cos(y * 0.2) * 0.1;
+                        
+                        this.heightMap[index] = Math.max(0, Math.min(1, height));
+                    }
+                }
+            }
+            
+            setupEvents() {
+                let lastX = 0, lastY = 0;
+                
+                this.canvas.addEventListener('mousedown', (e) => {
+                    this.isDrawing = true;
+                    const pos = this.getMousePos(e);
+                    lastX = pos.x;
+                    lastY = pos.y;
+                    this.modifyTerrain(pos.x, pos.y);
+                    this.showDrunkMessage();
+                });
+                
+                this.canvas.addEventListener('mousemove', (e) => {
+                    if (!this.isDrawing) return;
+                    
+                    const pos = this.getMousePos(e);
+                    
+                    // Draw line from last position to current
+                    this.drawLine(lastX, lastY, pos.x, pos.y);
+                    
+                    lastX = pos.x;
+                    lastY = pos.y;
+                });
+                
+                this.canvas.addEventListener('mouseup', () => {
+                    this.isDrawing = false;
+                });
+                
+                this.canvas.addEventListener('mouseleave', () => {
+                    this.isDrawing = false;
+                });
+                
+                // Touch events for mobile drunk people
+                this.canvas.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    const touch = e.touches[0];
+                    const mouseEvent = new MouseEvent('mousedown', {
+                        clientX: touch.clientX,
+                        clientY: touch.clientY
+                    });
+                    this.canvas.dispatchEvent(mouseEvent);
+                });
+                
+                this.canvas.addEventListener('touchmove', (e) => {
+                    e.preventDefault();
+                    const touch = e.touches[0];
+                    const mouseEvent = new MouseEvent('mousemove', {
+                        clientX: touch.clientX,
+                        clientY: touch.clientY
+                    });
+                    this.canvas.dispatchEvent(mouseEvent);
+                });
+                
+                this.canvas.addEventListener('touchend', (e) => {
+                    e.preventDefault();
+                    const mouseEvent = new MouseEvent('mouseup', {});
+                    this.canvas.dispatchEvent(mouseEvent);
+                });
+            }
+            
+            getMousePos(e) {
+                const rect = this.canvas.getBoundingClientRect();
+                return {
+                    x: Math.floor((e.clientX - rect.left) / this.scale),
+                    y: Math.floor((e.clientY - rect.top) / this.scale)
+                };
+            }
+            
+            drawLine(x1, y1, x2, y2) {
+                const dx = Math.abs(x2 - x1);
+                const dy = Math.abs(y2 - y1);
+                const sx = x1 < x2 ? 1 : -1;
+                const sy = y1 < y2 ? 1 : -1;
+                let err = dx - dy;
+                
+                let x = x1;
+                let y = y1;
+                
+                while (true) {
+                    this.modifyTerrain(x, y);
+                    
+                    if (x === x2 && y === y2) break;
+                    
+                    const e2 = 2 * err;
+                    if (e2 > -dy) {
+                        err -= dy;
+                        x += sx;
+                    }
+                    if (e2 < dx) {
+                        err += dx;
+                        y += sy;
+                    }
+                }
+            }
+            
+            modifyTerrain(x, y) {
+                const brushSize = 8; // Big brush for drunk people
+                const strength = 0.1;
+                
+                for (let dy = -brushSize; dy <= brushSize; dy++) {
+                    for (let dx = -brushSize; dx <= brushSize; dx++) {
+                        const nx = x + dx;
+                        const ny = y + dy;
+                        
+                        if (nx >= 0 && nx < this.width && ny >= 0 && ny < this.height) {
+                            const distance = Math.sqrt(dx * dx + dy * dy);
+                            if (distance <= brushSize) {
+                                const falloff = 1 - (distance / brushSize);
+                                const effect = strength * falloff;
+                                const index = ny * this.width + nx;
+                                
+                                switch (this.currentTool) {
+                                    case 'raise':
+                                        this.heightMap[index] = Math.min(1, this.heightMap[index] + effect);
+                                        break;
+                                    case 'lower':
+                                        this.heightMap[index] = Math.max(0, this.heightMap[index] - effect);
+                                        break;
+                                    case 'water':
+                                        this.waterMap[index] = Math.min(1, this.waterMap[index] + effect * 2);
+                                        break;
+                                    case 'explode':
+                                        this.createExplosion(nx * this.scale, ny * this.scale);
+                                        this.heightMap[index] = Math.max(0, this.heightMap[index] - effect * 3);
+                                        break;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            createExplosion(x, y) {
+                const explosion = document.createElement('div');
+                explosion.className = 'explosion';
+                explosion.style.left = (x - 50) + 'px';
+                explosion.style.top = (y - 50) + 'px';
+                document.body.appendChild(explosion);
+                
+                setTimeout(() => {
+                    explosion.remove();
+                }, 1000);
+                
+                // Add some screen shake for drunk effect
+                document.body.style.transform = `translate(${Math.random() * 10 - 5}px, ${Math.random() * 10 - 5}px)`;
+                setTimeout(() => {
+                    document.body.style.transform = '';
+                }, 100);
+            }
+            
+            showDrunkMessage() {
+                const messages = [
+                    'WOOOOO!', 'PARTY TIME!', 'AWESOME!', 'HELL YEAH!', 
+                    'BUILDING STUFF!', 'SO COOL!', 'AMAZING!', 'EPIC!'
+                ];
+                
+                const drunkMode = document.getElementById('drunk-mode');
+                drunkMode.textContent = messages[Math.floor(Math.random() * messages.length)];
+                drunkMode.style.opacity = '1';
+                
+                setTimeout(() => {
+                    drunkMode.style.opacity = '0';
+                }, 2000);
+            }
+            
+            startDrunkEffects() {
+                // Random color changes
+                setInterval(() => {
+                    const hue = Math.random() * 360;
+                    document.body.style.filter = `hue-rotate(${hue}deg) saturate(1.5)`;
+                }, 3000);
+                
+                // Random encouraging messages
+                setInterval(() => {
+                    if (Math.random() < 0.3) {
+                        this.showDrunkMessage();
+                    }
+                }, 5000);
+            }
+            
+            startRenderLoop() {
+                const loop = () => {
+                    this.render();
+                    requestAnimationFrame(loop);
+                };
+                requestAnimationFrame(loop);
+            }
+            
+            render() {
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                // Render terrain with BIG pixels
+                for (let y = 0; y < this.height; y++) {
+                    for (let x = 0; x < this.width; x++) {
+                        const index = y * this.width + x;
+                        const height = this.heightMap[index];
+                        const water = this.waterMap[index];
+                        
+                        let r, g, b;
+                        
+                        if (water > 0.1) {
+                            // Water - bright blue
+                            r = 0; g = 150; b = 255;
+                        } else if (height < 0.3) {
+                            // Low areas - dark blue
+                            r = 0; g = 50; b = 150;
+                        } else if (height < 0.5) {
+                            // Sand - yellow
+                            r = 255; g = 255; b = 100;
+                        } else if (height < 0.7) {
+                            // Grass - bright green
+                            r = 50; g = 255; b = 50;
+                        } else {
+                            // Mountains - white/gray
+                            r = 200; g = 200; b = 255;
+                        }
+                        
+                        // Make it brighter and more colorful for drunk people
+                        const brightness = 1.2;
+                        r = Math.min(255, r * brightness);
+                        g = Math.min(255, g * brightness);
+                        b = Math.min(255, b * brightness);
+                        
+                        this.ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+                        this.ctx.fillRect(x * this.scale, y * this.scale, this.scale, this.scale);
+                        
+                        // Add some sparkle effect
+                        if (Math.random() < 0.01) {
+                            this.ctx.fillStyle = 'white';
+                            this.ctx.fillRect(x * this.scale + this.scale/2, y * this.scale + this.scale/2, 2, 2);
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Global functions for buttons
+        function setTool(tool) {
+            sandbox.currentTool = tool;
+            
+            // Update button states
+            document.querySelectorAll('.big-button').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(tool + '-btn').classList.add('active');
+            
+            // Update status
+            const toolNames = {
+                'raise': 'BUILD UP',
+                'lower': 'DIG DOWN', 
+                'water': 'ADD WATER',
+                'explode': 'EXPLODE!'
+            };
+            document.getElementById('current-tool').textContent = toolNames[tool];
+            
+            // Show drunk message
+            sandbox.showDrunkMessage();
+        }
+        
+        // Initialize the drunk-friendly sandbox
+        const sandbox = new DrunkFriendlySandbox();
+        
+        // Welcome message
+        setTimeout(() => {
+            alert('🍺 WELCOME TO DRUNK-FRIENDLY SANDBOX! 🍺\n\nJust click and drag to build stuff!\nBig buttons, bright colors, lots of fun!\n\nHave a blast! 🎉');
+        }, 1000);
+    </script>
+</body>
+</html>

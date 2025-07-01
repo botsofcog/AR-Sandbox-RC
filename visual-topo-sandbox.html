@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>👁️ Visual Topology Sandbox</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            color: white;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+        }
+        
+        #container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            width: 100vw;
+            height: 100vh;
+            gap: 2px;
+        }
+        
+        .panel {
+            position: relative;
+            border: 2px solid #00ff00;
+            background: #000;
+        }
+        
+        #camera-panel {
+            grid-column: 1;
+            grid-row: 1;
+        }
+        
+        #shadow-panel {
+            grid-column: 2;
+            grid-row: 1;
+        }
+        
+        #height-panel {
+            grid-column: 1;
+            grid-row: 2;
+        }
+        
+        #topo-panel {
+            grid-column: 2;
+            grid-row: 2;
+        }
+        
+        .panel-title {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 14px;
+            font-weight: bold;
+            color: #00ff00;
+            z-index: 10;
+        }
+        
+        .panel-canvas {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        #controls {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.9);
+            padding: 15px;
+            border-radius: 10px;
+            border: 2px solid #00ff00;
+            z-index: 20;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        
+        .big-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .big-btn:hover {
+            transform: scale(1.1);
+        }
+        
+        .big-btn.active {
+            box-shadow: 0 0 15px currentColor;
+        }
+        
+        #start-btn { background: #4ecdc4; color: white; }
+        #analyze-btn { background: #ff6b6b; color: white; }
+        #clear-btn { background: #ffa500; color: white; }
+        
+        .slider-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .slider-label {
+            font-size: 12px;
+            color: #ccc;
+        }
+        
+        .slider {
+            width: 80px;
+        }
+        
+        .value-display {
+            font-size: 12px;
+            color: #00ff00;
+            font-weight: bold;
+        }
+        
+        #status {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.9);
+            padding: 10px 20px;
+            border-radius: 10px;
+            border: 2px solid #00ff00;
+            z-index: 20;
+            text-align: center;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        
+        .status-good { color: #00ff00; }
+        .status-working { color: #ffa500; }
+        .status-error { color: #ff6b6b; }
+        
+        .height-dot {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 5;
+        }
+        
+        .contour-svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 5;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <!-- Camera Feed Panel -->
+        <div class="panel" id="camera-panel">
+            <div class="panel-title">📷 LIVE CAMERA FEED</div>
+            <video id="video" class="panel-canvas" autoplay muted playsinline></video>
+        </div>
+        
+        <!-- Shadow Analysis Panel -->
+        <div class="panel" id="shadow-panel">
+            <div class="panel-title">🔍 SHADOW DETECTION</div>
+            <canvas id="shadow-canvas" class="panel-canvas"></canvas>
+        </div>
+        
+        <!-- Height Map Panel -->
+        <div class="panel" id="height-panel">
+            <div class="panel-title">⛰️ HEIGHT MAP</div>
+            <canvas id="height-canvas" class="panel-canvas"></canvas>
+        </div>
+        
+        <!-- Topographic Map Panel -->
+        <div class="panel" id="topo-panel">
+            <div class="panel-title">🗺️ TOPOGRAPHIC MAP</div>
+            <canvas id="topo-canvas" class="panel-canvas"></canvas>
+            <svg class="contour-svg" id="contour-svg"></svg>
+        </div>
+    </div>
+    
+    <div id="controls">
+        <button class="big-btn" id="start-btn" onclick="startAnalysis()">
+            ▶️ START
+        </button>
+        
+        <button class="big-btn" id="analyze-btn" onclick="analyzeNow()">
+            🔍 ANALYZE
+        </button>
+        
+        <button class="big-btn" id="clear-btn" onclick="clearAll()">
+            🗑️ CLEAR
+        </button>
+        
+        <div class="slider-group">
+            <label class="slider-label">Sensitivity</label>
+            <input type="range" class="slider" id="sensitivity" min="1" max="20" value="10">
+            <div class="value-display" id="sensitivity-value">10</div>
+        </div>
+        
+        <div class="slider-group">
+            <label class="slider-label">Threshold</label>
+            <input type="range" class="slider" id="threshold" min="10" max="100" value="50">
+            <div class="value-display" id="threshold-value">50</div>
+        </div>
+    </div>
+    
+    <div id="status" class="status-good">
+        📷 Camera ready - Click START to begin analysis
+    </div>
+
+    <script>
+        class VisualTopoSandbox {
+            constructor() {
+                this.video = document.getElementById('video');
+                this.shadowCanvas = document.getElementById('shadow-canvas');
+                this.shadowCtx = this.shadowCanvas.getContext('2d');
+                this.heightCanvas = document.getElementById('height-canvas');
+                this.heightCtx = this.heightCanvas.getContext('2d');
+                this.topoCanvas = document.getElementById('topo-canvas');
+                this.topoCtx = this.topoCanvas.getContext('2d');
+                this.contourSvg = document.getElementById('contour-svg');
+                
+                // Processing canvas
+                this.processCanvas = document.createElement('canvas');
+                this.processCtx = this.processCanvas.getContext('2d');
+                
+                // State
+                this.isRunning = false;
+                this.sensitivity = 10;
+                this.threshold = 50;
+                this.heightData = [];
+                this.lastAnalysisTime = 0;
+                
+                this.initialize();
+            }
+            
+            async initialize() {
+                console.log('👁️ Initializing Visual Topology Sandbox...');
+                
+                this.setupCanvases();
+                this.setupEvents();
+                await this.setupCamera();
+                
+                this.updateStatus('📷 Camera ready - Click START to begin analysis', 'good');
+                console.log('✅ Visual Topology Sandbox ready');
+            }
+            
+            setupCanvases() {
+                const panelWidth = window.innerWidth / 2 - 2;
+                const panelHeight = window.innerHeight / 2 - 2;
+                
+                this.shadowCanvas.width = panelWidth;
+                this.shadowCanvas.height = panelHeight;
+                this.heightCanvas.width = panelWidth;
+                this.heightCanvas.height = panelHeight;
+                this.topoCanvas.width = panelWidth;
+                this.topoCanvas.height = panelHeight;
+                
+                this.processCanvas.width = 320;
+                this.processCanvas.height = 240;
+                
+                // Initialize canvases with placeholder content
+                this.drawPlaceholder(this.shadowCtx, '🔍 Shadow analysis will appear here');
+                this.drawPlaceholder(this.heightCtx, '⛰️ Height map will appear here');
+                this.drawPlaceholder(this.topoCtx, '🗺️ Topographic map will appear here');
+            }
+            
+            drawPlaceholder(ctx, text) {
+                ctx.fillStyle = '#111';
+                ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+                
+                ctx.fillStyle = '#333';
+                ctx.font = '16px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(text, ctx.canvas.width / 2, ctx.canvas.height / 2);
+            }
+            
+            async setupCamera() {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({
+                        video: {
+                            width: { ideal: 1280 },
+                            height: { ideal: 720 },
+                            facingMode: 'environment'
+                        }
+                    });
+                    
+                    this.video.srcObject = stream;
+                    console.log('📷 Camera initialized');
+                    
+                } catch (error) {
+                    console.error('Camera failed:', error);
+                    this.updateStatus('❌ Camera failed - Please allow camera access', 'error');
+                }
+            }
+            
+            setupEvents() {
+                document.getElementById('sensitivity').addEventListener('input', (e) => {
+                    this.sensitivity = parseInt(e.target.value);
+                    document.getElementById('sensitivity-value').textContent = this.sensitivity;
+                });
+                
+                document.getElementById('threshold').addEventListener('input', (e) => {
+                    this.threshold = parseInt(e.target.value);
+                    document.getElementById('threshold-value').textContent = this.threshold;
+                });
+            }
+            
+            start() {
+                if (this.isRunning) return;
+                
+                this.isRunning = true;
+                document.getElementById('start-btn').classList.add('active');
+                this.updateStatus('🔄 Analysis running - Watch the panels update!', 'working');
+                
+                this.startProcessingLoop();
+            }
+            
+            stop() {
+                this.isRunning = false;
+                document.getElementById('start-btn').classList.remove('active');
+                this.updateStatus('⏸️ Analysis stopped', 'good');
+            }
+            
+            startProcessingLoop() {
+                const process = () => {
+                    if (this.isRunning && this.video.readyState === this.video.HAVE_ENOUGH_DATA) {
+                        this.processFrame();
+                    }
+                    
+                    if (this.isRunning) {
+                        requestAnimationFrame(process);
+                    }
+                };
+                process();
+            }
+            
+            processFrame() {
+                // Throttle to 5 FPS for clear visual updates
+                const now = Date.now();
+                if (now - this.lastAnalysisTime < 200) return;
+                this.lastAnalysisTime = now;
+                
+                if (!this.video.videoWidth || !this.video.videoHeight) return;
+                
+                // Step 1: Capture and process video frame
+                this.processCtx.drawImage(this.video, 0, 0, this.processCanvas.width, this.processCanvas.height);
+                
+                // Step 2: Analyze shadows (visible in shadow panel)
+                this.analyzeShadows();
+                
+                // Step 3: Generate height map (visible in height panel)
+                this.generateHeightMap();
+                
+                // Step 4: Create topographic visualization (visible in topo panel)
+                this.generateTopography();
+            }
+            
+            analyzeShadows() {
+                // Draw processed frame to shadow canvas
+                this.shadowCtx.drawImage(
+                    this.processCanvas,
+                    0, 0,
+                    this.shadowCanvas.width,
+                    this.shadowCanvas.height
+                );
+                
+                // Get image data for analysis
+                const imageData = this.shadowCtx.getImageData(0, 0, this.shadowCanvas.width, this.shadowCanvas.height);
+                const data = imageData.data;
+                
+                // Apply shadow detection filter - VERY VISIBLE
+                for (let i = 0; i < data.length; i += 4) {
+                    const r = data[i];
+                    const g = data[i + 1];
+                    const b = data[i + 2];
+                    
+                    // Calculate luminance
+                    const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
+                    
+                    // Make shadows VERY obvious
+                    if (luminance < this.threshold) {
+                        // Shadow areas = bright red
+                        data[i] = 255;
+                        data[i + 1] = 0;
+                        data[i + 2] = 0;
+                    } else {
+                        // Non-shadow areas = blue tint
+                        data[i] = Math.floor(r * 0.3);
+                        data[i + 1] = Math.floor(g * 0.3);
+                        data[i + 2] = Math.min(255, b + 50);
+                    }
+                }
+                
+                this.shadowCtx.putImageData(imageData, 0, 0);
+                
+                // Add analysis overlay
+                this.shadowCtx.fillStyle = '#00ff00';
+                this.shadowCtx.font = 'bold 16px Arial';
+                this.shadowCtx.fillText('RED = SHADOWS DETECTED', 10, 30);
+                this.shadowCtx.fillText(`Threshold: ${this.threshold}`, 10, 50);
+            }
+            
+            generateHeightMap() {
+                // Clear height canvas
+                this.heightCtx.fillStyle = '#000';
+                this.heightCtx.fillRect(0, 0, this.heightCanvas.width, this.heightCanvas.height);
+                
+                // Get shadow data
+                const shadowData = this.shadowCtx.getImageData(0, 0, this.shadowCanvas.width, this.shadowCanvas.height);
+                const data = shadowData.data;
+                
+                this.heightData = [];
+                
+                // Sample every 10 pixels for performance and visibility
+                for (let y = 0; y < this.shadowCanvas.height; y += 10) {
+                    for (let x = 0; x < this.shadowCanvas.width; x += 10) {
+                        const index = (y * this.shadowCanvas.width + x) * 4;
+                        const r = data[index];
+                        
+                        // Red pixels from shadow analysis = height
+                        if (r > 200) { // Shadow detected
+                            const height = this.sensitivity * 5; // Convert to height
+                            
+                            this.heightData.push({
+                                x: x,
+                                y: y,
+                                height: height
+                            });
+                            
+                            // Draw height point - color based on height
+                            const intensity = Math.min(255, height * 2);
+                            this.heightCtx.fillStyle = `rgb(${intensity}, ${255 - intensity}, 0)`;
+                            this.heightCtx.fillRect(x - 2, y - 2, 4, 4);
+                        }
+                    }
+                }
+                
+                // Add height map info
+                this.heightCtx.fillStyle = '#00ff00';
+                this.heightCtx.font = 'bold 16px Arial';
+                this.heightCtx.fillText(`HEIGHT POINTS: ${this.heightData.length}`, 10, 30);
+                this.heightCtx.fillText('RED = HIGH, GREEN = LOW', 10, 50);
+            }
+            
+            generateTopography() {
+                // Clear topo canvas
+                this.topoCtx.fillStyle = '#001122';
+                this.topoCtx.fillRect(0, 0, this.topoCanvas.width, this.topoCanvas.height);
+                
+                if (this.heightData.length === 0) return;
+                
+                // Draw terrain points
+                for (const point of this.heightData) {
+                    const size = Math.max(2, point.height / 10);
+                    const alpha = 0.8;
+                    
+                    // Color based on height
+                    const hue = (point.height / 100) * 240; // Blue to red
+                    this.topoCtx.fillStyle = `hsla(${hue}, 100%, 50%, ${alpha})`;
+                    this.topoCtx.beginPath();
+                    this.topoCtx.arc(point.x, point.y, size, 0, Math.PI * 2);
+                    this.topoCtx.fill();
+                }
+                
+                // Generate and draw contour lines
+                this.drawContourLines();
+                
+                // Add topo info
+                this.topoCtx.fillStyle = '#00ff00';
+                this.topoCtx.font = 'bold 16px Arial';
+                this.topoCtx.fillText('TOPOGRAPHIC MAP', 10, 30);
+                this.topoCtx.fillText(`Terrain Features: ${this.heightData.length}`, 10, 50);
+            }
+            
+            drawContourLines() {
+                if (this.heightData.length < 3) return;
+                
+                // Find height range
+                const heights = this.heightData.map(p => p.height);
+                const minHeight = Math.min(...heights);
+                const maxHeight = Math.max(...heights);
+                
+                if (maxHeight - minHeight < 10) return;
+                
+                // Draw contour lines at regular intervals
+                const interval = (maxHeight - minHeight) / 5;
+                
+                for (let level = minHeight + interval; level < maxHeight; level += interval) {
+                    this.drawContourAtLevel(level);
+                }
+            }
+            
+            drawContourAtLevel(targetHeight) {
+                const tolerance = 15;
+                const contourPoints = [];
+                
+                // Find points near this height level
+                for (const point of this.heightData) {
+                    if (Math.abs(point.height - targetHeight) < tolerance) {
+                        contourPoints.push(point);
+                    }
+                }
+                
+                if (contourPoints.length < 2) return;
+                
+                // Draw contour line
+                this.topoCtx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+                this.topoCtx.lineWidth = 2;
+                this.topoCtx.beginPath();
+                
+                // Connect nearby points
+                for (let i = 0; i < contourPoints.length - 1; i++) {
+                    const p1 = contourPoints[i];
+                    const p2 = contourPoints[i + 1];
+                    
+                    const distance = Math.sqrt((p2.x - p1.x) ** 2 + (p2.y - p1.y) ** 2);
+                    
+                    if (distance < 50) { // Only connect nearby points
+                        this.topoCtx.moveTo(p1.x, p1.y);
+                        this.topoCtx.lineTo(p2.x, p2.y);
+                    }
+                }
+                
+                this.topoCtx.stroke();
+                
+                // Add elevation label
+                if (contourPoints.length > 0) {
+                    const labelPoint = contourPoints[0];
+                    this.topoCtx.fillStyle = 'white';
+                    this.topoCtx.font = '12px Arial';
+                    this.topoCtx.fillText(
+                        Math.round(targetHeight) + 'mm',
+                        labelPoint.x + 5,
+                        labelPoint.y - 5
+                    );
+                }
+            }
+            
+            analyzeNow() {
+                if (!this.video.readyState === this.video.HAVE_ENOUGH_DATA) {
+                    this.updateStatus('❌ No camera feed available', 'error');
+                    return;
+                }
+                
+                this.updateStatus('🔍 Performing detailed analysis...', 'working');
+                
+                // Force immediate analysis
+                this.processFrame();
+                
+                setTimeout(() => {
+                    this.updateStatus(`✅ Analysis complete - Found ${this.heightData.length} terrain features`, 'good');
+                }, 1000);
+            }
+            
+            clear() {
+                this.heightData = [];
+                
+                this.drawPlaceholder(this.shadowCtx, '🔍 Shadow analysis will appear here');
+                this.drawPlaceholder(this.heightCtx, '⛰️ Height map will appear here');
+                this.drawPlaceholder(this.topoCtx, '🗺️ Topographic map will appear here');
+                
+                this.updateStatus('🗑️ All data cleared', 'good');
+            }
+            
+            updateStatus(message, type) {
+                const statusDiv = document.getElementById('status');
+                statusDiv.textContent = message;
+                statusDiv.className = `status-${type}`;
+            }
+        }
+        
+        // Global functions
+        function startAnalysis() {
+            if (sandbox.isRunning) {
+                sandbox.stop();
+                document.getElementById('start-btn').textContent = '▶️ START';
+            } else {
+                sandbox.start();
+                document.getElementById('start-btn').textContent = '⏸️ STOP';
+            }
+        }
+        
+        function analyzeNow() {
+            sandbox.analyzeNow();
+        }
+        
+        function clearAll() {
+            sandbox.clear();
+        }
+        
+        // Initialize
+        let sandbox;
+        document.addEventListener('DOMContentLoaded', () => {
+            sandbox = new VisualTopoSandbox();
+        });
+    </script>
+
+    <!-- Kinect WebSocket Integration -->
+    <script src="js/kinect_websocket_integration.js"></script>
+    <script>
+        // Initialize Kinect WebSocket connection for Visual Topology Sandbox
+        let kinectIntegration;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            kinectIntegration = new KinectWebSocketIntegration({
+                onConnect: () => {
+                    console.log('✅ Visual Topology Sandbox connected to Kinect');
+                    updatePanelStatus('Connected to Kinect depth server');
+                },
+                onDisconnect: () => {
+                    console.log('❌ Visual Topology Sandbox disconnected from Kinect');
+                    updatePanelStatus('Disconnected from Kinect');
+                },
+                onFrameData: (frameData) => {
+                    if (sandbox && sandbox.updateAllPanelsFromKinect) {
+                        sandbox.updateAllPanelsFromKinect(frameData);
+                    }
+                },
+                onTopographyData: (topographyData) => {
+                    if (sandbox && sandbox.updateVisualAnalysis) {
+                        sandbox.updateVisualAnalysis(topographyData);
+                    }
+                }
+            });
+
+            kinectIntegration.connect();
+        });
+
+        function updatePanelStatus(message) {
+            const panels = document.querySelectorAll('.panel');
+            panels.forEach(panel => {
+                const statusDiv = panel.querySelector('.kinect-status') || document.createElement('div');
+                statusDiv.className = 'kinect-status';
+                statusDiv.style.cssText = 'position: absolute; top: 5px; right: 5px; font-size: 10px; color: #00ff00; background: rgba(0,0,0,0.8); padding: 2px 5px; border-radius: 3px;';
+                statusDiv.textContent = message;
+                if (!panel.contains(statusDiv)) {
+                    panel.appendChild(statusDiv);
+                }
+            });
+        }
+    </script>
+</body>
+</html>

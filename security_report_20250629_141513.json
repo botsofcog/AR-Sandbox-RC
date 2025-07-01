@@ -1,0 +1,372 @@
+{
+  "scan_info": {
+    "timestamp": "2025-06-29T14:15:13.466702",
+    "scan_type": "comprehensive_security_analysis"
+  },
+  "findings": [
+    {
+      "category": "file_permissions",
+      "sensitive_files": 64,
+      "permission_issues": 63,
+      "details": {
+        "sensitive_files": [
+          {
+            "path": ".\\external_libs\\leaflet\\spec\\suites\\map\\handler\\Map.KeyboardSpec.js",
+            "type": "sensitive_file",
+            "risk": "medium"
+          },
+          {
+            "path": ".\\external_libs\\leaflet\\src\\map\\handler\\Map.Keyboard.js",
+            "type": "sensitive_file",
+            "risk": "medium"
+          },
+          {
+            "path": ".\\external_libs\\Tabler\\preview\\pages\\forgot-password.html",
+            "type": "sensitive_file",
+            "risk": "medium"
+          },
+          {
+            "path": ".\\external_libs\\Tabler\\shared\\includes\\cards\\forgot-password.html",
+            "type": "sensitive_file",
+            "risk": "medium"
+          },
+          {
+            "path": ".\\external_libs\\Tabler\\shared\\static\\emails\\access-token-dark-full.jpg",
+            "type": "sensitive_file",
+            "risk": "medium"
+          },
+          {
+            "path": ".\\external_libs\\Tabler\\shared\\static\\emails\\access-token-dark.jpg",
+            "type": "sensitive_file",
+            "risk": "medium"
+          },
+          {
+            "path": ".\\external_libs\\Tabler\\shared\\static\\emails\\access-token-full.jpg",
+            "type": "sensitive_file",
+            "risk": "medium"
+          },
+          {
+            "path": ".\\external_libs\\Tabler\\shared\\static\\emails\\access-token.jpg",
+            "type": "sensitive_file",
+            "risk": "medium"
+          },
+          {
+            "path": ".\\external_libs\\Tabler\\shared\\static\\emails\\password-dark-full.jpg",
+            "type": "sensitive_file",
+            "risk": "medium"
+          },
+          {
+            "path": ".\\external_libs\\Tabler\\shared\\static\\emails\\password-dark.jpg",
+            "type": "sensitive_file",
+            "risk": "medium"
+          }
+        ],
+        "permission_issues": [
+          {
+            "path": ".\\external_libs\\d3\\prebuild.sh",
+            "issue": "executable_in_unexpected_location",
+            "risk": "low"
+          },
+          {
+            "path": ".\\external_libs\\opencv-python\\travis_config.sh",
+            "issue": "executable_in_unexpected_location",
+            "risk": "low"
+          },
+          {
+            "path": ".\\external_libs\\opencv-python\\travis_multibuild_customize.sh",
+            "issue": "executable_in_unexpected_location",
+            "risk": "low"
+          },
+          {
+            "path": ".\\external_libs\\opencv-python\\travis_osx_brew_cache.sh",
+            "issue": "executable_in_unexpected_location",
+            "risk": "low"
+          },
+          {
+            "path": ".\\external_libs\\openlayers\\tasks\\build-website.sh",
+            "issue": "executable_in_unexpected_location",
+            "risk": "low"
+          },
+          {
+            "path": ".\\external_libs\\openlayers\\tasks\\changelog.sh",
+            "issue": "executable_in_unexpected_location",
+            "risk": "low"
+          },
+          {
+            "path": ".\\external_libs\\openlayers\\tasks\\publish.sh",
+            "issue": "executable_in_unexpected_location",
+            "risk": "low"
+          },
+          {
+            "path": ".\\external_libs\\shader-web-background\\gradlew.bat",
+            "issue": "executable_in_unexpected_location",
+            "risk": "low"
+          },
+          {
+            "path": ".\\external_libs\\tfjs-examples\\deploy.sh",
+            "issue": "executable_in_unexpected_location",
+            "risk": "low"
+          },
+          {
+            "path": ".\\external_libs\\tfjs-examples\\update_yarn_lock.sh",
+            "issue": "executable_in_unexpected_location",
+            "risk": "low"
+          }
+        ]
+      }
+    },
+    {
+      "category": "dependency_security",
+      "dependency_files": 3,
+      "outdated_patterns": 1,
+      "details": {
+        "files": [
+          {
+            "file": "requirements.txt",
+            "type": "dependency_manifest",
+            "exists": true
+          },
+          {
+            "file": "package.json",
+            "type": "dependency_manifest",
+            "exists": true
+          },
+          {
+            "file": "package-lock.json",
+            "type": "dependency_manifest",
+            "exists": true
+          }
+        ],
+        "patterns": [
+          {
+            "file": "requirements.txt",
+            "issue": "unpinned_versions",
+            "count": 41,
+            "risk": "medium"
+          }
+        ]
+      }
+    },
+    {
+      "category": "code_security",
+      "files_scanned": 9624,
+      "total_issues": 4048,
+      "high_severity": 69,
+      "medium_severity": 3979,
+      "low_severity": 0,
+      "sample_issues": [
+        {
+          "file": ".\\continuous_optimization_bot.py",
+          "line": 283,
+          "category": "insecure_protocols",
+          "pattern": "http://(?!localhost|127\\.0\\.0\\.1)",
+          "match": "http://",
+          "severity": "medium"
+        },
+        {
+          "file": ".\\mission_gamification_test.html",
+          "line": 393,
+          "category": "xss_risks",
+          "pattern": "innerHTML\\s*=\\s*[^;]+\\+",
+          "match": "innerHTML = `\n                        <div class=\"mission-title\">${mission.name}</div>\n             ",
+          "severity": "medium"
+        },
+        {
+          "file": ".\\security_analyzer.py",
+          "line": 41,
+          "category": "insecure_protocols",
+          "pattern": "http://(?!localhost|127\\.0\\.0\\.1)",
+          "match": "http://",
+          "severity": "medium"
+        },
+        {
+          "file": ".\\security_analyzer.py",
+          "line": 42,
+          "category": "insecure_protocols",
+          "pattern": "ftp://",
+          "match": "ftp://",
+          "severity": "medium"
+        },
+        {
+          "file": ".\\security_analyzer.py",
+          "line": 43,
+          "category": "insecure_protocols",
+          "pattern": "telnet://",
+          "match": "telnet://",
+          "severity": "medium"
+        },
+        {
+          "file": ".\\archive\\old_demos\\3d-perspective-sandbox.html",
+          "line": 372,
+          "category": "insecure_protocols",
+          "pattern": "http://(?!localhost|127\\.0\\.0\\.1)",
+          "match": "http://",
+          "severity": "medium"
+        },
+        {
+          "file": ".\\archive\\old_demos\\3d-perspective-sandbox.html",
+          "line": 382,
+          "category": "insecure_protocols",
+          "pattern": "http://(?!localhost|127\\.0\\.0\\.1)",
+          "match": "http://",
+          "severity": "medium"
+        },
+        {
+          "file": ".\\external_libs\\AdminLTE\\dist\\index.html",
+          "line": 45,
+          "category": "insecure_protocols",
+          "pattern": "http://(?!localhost|127\\.0\\.0\\.1)",
+          "match": "http://",
+          "severity": "medium"
+        },
+        {
+          "file": ".\\external_libs\\AdminLTE\\dist\\index.html",
+          "line": 46,
+          "category": "insecure_protocols",
+          "pattern": "http://(?!localhost|127\\.0\\.0\\.1)",
+          "match": "http://",
+          "severity": "medium"
+        },
+        {
+          "file": ".\\external_libs\\AdminLTE\\dist\\index.html",
+          "line": 47,
+          "category": "insecure_protocols",
+          "pattern": "http://(?!localhost|127\\.0\\.0\\.1)",
+          "match": "http://",
+          "severity": "medium"
+        },
+        {
+          "file": ".\\external_libs\\AdminLTE\\dist\\index.html",
+          "line": 48,
+          "category": "insecure_protocols",
+          "pattern": "http://(?!localhost|127\\.0\\.0\\.1)",
+          "match": "http://",
+          "severity": "medium"
+        },
+        {
+          "file": ".\\external_libs\\AdminLTE\\dist\\index3.html",
+          "line": 75,
+          "category": "insecure_protocols",
+          "pattern": "http://(?!localhost|127\\.0\\.0\\.1)",
+          "match": "http://",
+          "severity": "medium"
+        },
+        {
+          "file": ".\\external_libs\\AdminLTE\\dist\\index3.html",
+          "line": 76,
+          "category": "insecure_protocols",
+          "pattern": "http://(?!localhost|127\\.0\\.0\\.1)",
+          "match": "http://",
+          "severity": "medium"
+        },
+        {
+          "file": ".\\external_libs\\AdminLTE\\dist\\index3.html",
+          "line": 77,
+          "category": "insecure_protocols",
+          "pattern": "http://(?!localhost|127\\.0\\.0\\.1)",
+          "match": "http://",
+          "severity": "medium"
+        },
+        {
+          "file": ".\\external_libs\\AdminLTE\\dist\\widgets\\small-box.html",
+          "line": 45,
+          "category": "insecure_protocols",
+          "pattern": "http://(?!localhost|127\\.0\\.0\\.1)",
+          "match": "http://",
+          "severity": "medium"
+        },
+        {
+          "file": ".\\external_libs\\AdminLTE\\dist\\widgets\\small-box.html",
+          "line": 46,
+          "category": "insecure_protocols",
+          "pattern": "http://(?!localhost|127\\.0\\.0\\.1)",
+          "match": "http://",
+          "severity": "medium"
+        },
+        {
+          "file": ".\\external_libs\\AdminLTE\\dist\\widgets\\small-box.html",
+          "line": 47,
+          "category": "insecure_protocols",
+          "pattern": "http://(?!localhost|127\\.0\\.0\\.1)",
+          "match": "http://",
+          "severity": "medium"
+        },
+        {
+          "file": ".\\external_libs\\AdminLTE\\dist\\widgets\\small-box.html",
+          "line": 48,
+          "category": "insecure_protocols",
+          "pattern": "http://(?!localhost|127\\.0\\.0\\.1)",
+          "match": "http://",
+          "severity": "medium"
+        },
+        {
+          "file": ".\\external_libs\\cannon.js\\index.html",
+          "line": 44,
+          "category": "insecure_protocols",
+          "pattern": "http://(?!localhost|127\\.0\\.0\\.1)",
+          "match": "http://",
+          "severity": "medium"
+        },
+        {
+          "file": ".\\external_libs\\cannon.js\\index.html",
+          "line": 61,
+          "category": "insecure_protocols",
+          "pattern": "http://(?!localhost|127\\.0\\.0\\.1)",
+          "match": "http://",
+          "severity": "medium"
+        }
+      ]
+    }
+  ],
+  "recommendations": [
+    {
+      "priority": "high",
+      "category": "file_security",
+      "title": "Secure 64 sensitive files",
+      "description": "Found files that may contain sensitive information",
+      "action": "Review file permissions and consider encryption"
+    },
+    {
+      "priority": "medium",
+      "category": "dependency_security",
+      "title": "Pin dependency versions",
+      "description": "Found unpinned dependency versions",
+      "action": "Pin all dependency versions to prevent supply chain attacks"
+    },
+    {
+      "priority": "critical",
+      "category": "code_security",
+      "title": "Address 69 high-severity security issues",
+      "description": "Found potential hardcoded secrets or SQL injection vulnerabilities",
+      "action": "Review and fix high-severity security issues immediately"
+    },
+    {
+      "priority": "high",
+      "category": "code_security",
+      "title": "Review 3979 medium-severity security issues",
+      "description": "Found potential XSS vulnerabilities or insecure protocols",
+      "action": "Implement input validation and use secure protocols"
+    },
+    {
+      "priority": "medium",
+      "category": "general_security",
+      "title": "Implement security headers",
+      "description": "Add security headers to web applications",
+      "action": "Implement CSP, HSTS, and other security headers"
+    },
+    {
+      "priority": "low",
+      "category": "monitoring",
+      "title": "Set up security monitoring",
+      "description": "Implement security event logging and monitoring",
+      "action": "Add security logging and alerting systems"
+    }
+  ],
+  "summary": {
+    "total_findings": 3,
+    "total_recommendations": 6,
+    "critical_issues": 1,
+    "high_priority_issues": 2,
+    "medium_priority_issues": 2
+  }
+}

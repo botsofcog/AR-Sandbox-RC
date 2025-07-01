@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>🏗️ WORKING AR SANDBOX - FIXED</title>
+    <style>
+        body { 
+            margin: 0; 
+            background: #000; 
+            color: white; 
+            font-family: monospace; 
+            overflow: hidden;
+        }
+        #container { 
+            position: relative; 
+            width: 100vw; 
+            height: 100vh; 
+        }
+        #video { 
+            position: absolute; 
+            width: 100%; 
+            height: 100%; 
+            object-fit: cover; 
+            opacity: 0.3; 
+            z-index: 1;
+        }
+        #canvas { 
+            position: absolute; 
+            width: 100%; 
+            height: 100%; 
+            z-index: 10; 
+            cursor: crosshair;
+        }
+        #controls {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.9);
+            padding: 20px;
+            border-radius: 10px;
+            border: 2px solid #00ff00;
+            z-index: 20;
+            font-size: 14px;
+        }
+        #status {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.9);
+            padding: 15px;
+            border-radius: 10px;
+            border: 2px solid #ffff00;
+            z-index: 20;
+            font-size: 12px;
+        }
+        .btn {
+            background: #333;
+            color: white;
+            border: 1px solid #666;
+            padding: 8px 12px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .btn:hover { background: #555; }
+        .btn.active { background: #00ff00; color: black; }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <video id="video" autoplay muted playsinline></video>
+        <canvas id="canvas"></canvas>
+        
+        <div id="controls">
+            <h3 style="margin-top: 0; color: #00ff00;">🏗️ AR SANDBOX</h3>
+            
+            <button class="btn" onclick="calibrate()">📷 CALIBRATE</button>
+            <button class="btn" onclick="takeSnapshot()">📸 SNAPSHOT</button>
+            <button class="btn" onclick="setLiveMode()">🎥 LIVE</button>
+            <button class="btn" onclick="setHybridMode()">🖱️ HYBRID</button>
+            <button class="btn" onclick="toggle3D()">📐 3D VIEW</button>
+            <button class="btn" onclick="reset()">🔄 RESET</button>
+            
+            <div style="margin: 10px 0;">
+                <div>🖱️ Left Click: Raise Terrain</div>
+                <div>🖱️ Right Click: Lower Terrain</div>
+                <div>⌨️ C: Calibrate | V: 3D View | R: Reset</div>
+            </div>
+            
+            <div>Brush Size: <span id="brush-size">15</span>px</div>
+        </div>
+        
+        <div id="status">
+            <div>📷 Camera: <span id="camera-status">Starting...</span></div>
+            <div>🎯 Calibrated: <span id="calibration-status">No</span></div>
+            <div>👁️ View: <span id="view-status">Top-Down</span></div>
+            <div>🎮 FPS: <span id="fps">--</span></div>
+        </div>
+    </div>
+
+    <script>
+        class SimpleARSandbox {
+            constructor() {
+                this.video = document.getElementById('video');
+                this.canvas = document.getElementById('canvas');
+                this.ctx = this.canvas.getContext('2d');
+                
+                // Terrain data (more resolution for better 3D)
+                this.width = 120;
+                this.height = 90;
+                this.terrain = new Float32Array(this.width * this.height);
+                
+                // Settings
+                this.brushSize = 15;
+                this.isDrawing = false;
+                this.is3D = false;
+                this.isCalibrated = false;
+                this.baseline = null;
+
+                // Camera modes
+                this.cameraMode = 'snapshot'; // 'snapshot', 'live', or 'hybrid'
+                this.snapshotTaken = false;
+                
+                // Initialize
+                this.setupCanvas();
+                this.setupCamera();
+                this.setupEvents();
+                this.initTerrain();
+                this.startLoop();
+                
+                console.log('🏗️ AR Sandbox initialized');
+            }
+            
+            setupCanvas() {
+                this.canvas.width = window.innerWidth;
+                this.canvas.height = window.innerHeight;
+            }
+            
+            async setupCamera() {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({
+                        video: { width: 640, height: 480 }
+                    });
+                    
+                    this.video.srcObject = stream;
+                    document.getElementById('camera-status').textContent = 'Ready';
+                    console.log('📷 Camera ready');
+                    
+                } catch (error) {
+                    console.error('Camera failed:', error);
+                    document.getElementById('camera-status').textContent = 'Failed';
+                }
+            }
+            
+            setupEvents() {
+                // Mouse events
+                this.canvas.addEventListener('mousedown', (e) => {
+                    this.isDrawing = true;
+                    this.editTerrain(e);
+                });
+                
+                this.canvas.addEventListener('mousemove', (e) => {
+                    if (this.isDrawing) this.editTerrain(e);
+                });
+                
+                this.canvas.addEventListener('mouseup', () => {
+                    this.isDrawing = false;
+                });
+                
+                this.canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+                
+                // Keyboard events
+                document.addEventListener('keydown', (e) => {
+                    switch(e.key.toLowerCase()) {
+                        case 'c': this.calibrate(); break;
+                        case 'v': this.toggle3D(); break;
+                        case 'r': this.reset(); break;
+                    }
+                });
+                
+                // Window resize
+                window.addEventListener('resize', () => this.setupCanvas());
+            }
+            
+            initTerrain() {
+                for (let i = 0; i < this.terrain.length; i++) {
+                    this.terrain[i] = 0.3; // Base level
+                }
+            }
+            
+            editTerrain(e) {
+                const rect = this.canvas.getBoundingClientRect();
+                const x = Math.floor((e.clientX - rect.left) / this.canvas.width * this.width);
+                const y = Math.floor((e.clientY - rect.top) / this.canvas.height * this.height);
+                
+                const strength = e.button === 2 ? -0.1 : 0.1; // Right click = lower
+                const radius = Math.floor(this.brushSize / 8);
+                
+                for (let dy = -radius; dy <= radius; dy++) {
+                    for (let dx = -radius; dx <= radius; dx++) {
+                        const nx = x + dx;
+                        const ny = y + dy;
+                        
+                        if (nx >= 0 && nx < this.width && ny >= 0 && ny < this.height) {
+                            const distance = Math.sqrt(dx * dx + dy * dy);
+                            if (distance <= radius) {
+                                const index = ny * this.width + nx;
+                                const influence = 1 - (distance / radius);
+                                this.terrain[index] = Math.max(0, Math.min(1, 
+                                    this.terrain[index] + strength * influence
+                                ));
+                            }
+                        }
+                    }
+                }
+            }
+            
+            calibrate() {
+                if (this.video.readyState !== this.video.HAVE_ENOUGH_DATA) {
+                    console.log('❌ No camera feed - wait for camera to start');
+                    alert('Wait for camera to start, then try calibrating again');
+                    return;
+                }
+
+                console.log('🎯 Calibrating webcam...');
+
+                // Wait a moment for camera to stabilize
+                setTimeout(() => {
+                    const tempCanvas = document.createElement('canvas');
+                    const tempCtx = tempCanvas.getContext('2d');
+                    tempCanvas.width = this.width;
+                    tempCanvas.height = this.height;
+
+                    // Capture baseline with better processing
+                    tempCtx.drawImage(this.video, 0, 0, this.width, this.height);
+                    this.baseline = tempCtx.getImageData(0, 0, this.width, this.height);
+
+                    this.isCalibrated = true;
+                    document.getElementById('calibration-status').textContent = 'Yes';
+                    console.log('✅ Calibrated! Now move your hand closer to the camera to create mountains');
+                    alert('Calibrated! Move your hand closer to the camera to create terrain');
+                }, 500);
+            }
+            
+            toggle3D() {
+                this.is3D = !this.is3D;
+                document.getElementById('view-status').textContent = this.is3D ? '3D Isometric' : 'Top-Down';
+                console.log(`📐 Switched to ${this.is3D ? '3D' : 'top-down'} view`);
+            }
+            
+            reset() {
+                this.initTerrain();
+                console.log('🔄 Reset');
+            }
+            
+            updateFromCamera() {
+                if (!this.isCalibrated || !this.baseline) return;
+                if (this.video.readyState !== this.video.HAVE_ENOUGH_DATA) return;
+                
+                const tempCanvas = document.createElement('canvas');
+                const tempCtx = tempCanvas.getContext('2d');
+                tempCanvas.width = this.width;
+                tempCanvas.height = this.height;
+                
+                tempCtx.drawImage(this.video, 0, 0, this.width, this.height);
+                const current = tempCtx.getImageData(0, 0, this.width, this.height);
+                
+                for (let y = 0; y < this.height; y++) {
+                    for (let x = 0; x < this.width; x++) {
+                        const i = (y * this.width + x) * 4;
+                        const index = y * this.width + x;
+                        
+                        // Calculate brightness difference
+                        const currentBright = (current.data[i] + current.data[i+1] + current.data[i+2]) / 3;
+                        const baseBright = (this.baseline.data[i] + this.baseline.data[i+1] + this.baseline.data[i+2]) / 3;
+                        
+                        const diff = Math.abs(currentBright - baseBright);
+                        
+                        // IMPROVED: Hand detection with better sensitivity
+                        if (diff > 10) {
+                            // More responsive height calculation
+                            const heightBoost = Math.min(1.0, diff / 100); // Scale 0-1 based on difference
+                            const targetHeight = 0.2 + heightBoost * 0.6; // Range 0.2 to 0.8
+
+                            // Much faster response to hand movement
+                            this.terrain[index] = this.terrain[index] * 0.5 + targetHeight * 0.5;
+                        } else {
+                            // Return to base level more slowly
+                            this.terrain[index] = this.terrain[index] * 0.98 + 0.25 * 0.02;
+                        }
+                    }
+                }
+            }
+            
+            render() {
+                this.ctx.fillStyle = '#001122';
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                if (this.is3D) {
+                    this.render3D();
+                } else {
+                    this.renderTopDown();
+                }
+            }
+            
+            renderTopDown() {
+                const scaleX = this.canvas.width / this.width;
+                const scaleY = this.canvas.height / this.height;
+                
+                for (let y = 0; y < this.height; y++) {
+                    for (let x = 0; x < this.width; x++) {
+                        const height = this.terrain[y * this.width + x];
+                        
+                        // BASE TERRAIN: Blue (water) -> Sand -> White (snowy peaks)
+                        let color;
+                        if (height < 0.3) {
+                            // Water - blue
+                            color = `rgb(0, ${Math.floor(height * 200)}, 255)`;
+                        } else if (height < 0.7) {
+                            // Sand - tan/brown
+                            const t = (height - 0.3) / 0.4;
+                            color = `rgb(${Math.floor(194 + t * 61)}, ${Math.floor(178 + t * 77)}, ${Math.floor(128 + t * 127)})`;
+                        } else {
+                            // Snowy peaks - white
+                            color = `rgb(255, 255, 255)`;
+                        }
+                        
+                        this.ctx.fillStyle = color;
+                        this.ctx.fillRect(
+                            Math.floor(x * scaleX),
+                            Math.floor(y * scaleY),
+                            Math.ceil(scaleX),
+                            Math.ceil(scaleY)
+                        );
+                    }
+                }
+
+                // Draw topographic contour lines
+                this.drawContourLines();
+            }
+
+            drawContourLines() {
+                const scaleX = this.canvas.width / this.width;
+                const scaleY = this.canvas.height / this.height;
+
+                this.ctx.strokeStyle = 'rgba(0, 0, 0, 0.8)';
+                this.ctx.lineWidth = 1;
+
+                // Draw contour lines at regular height intervals
+                for (let contourLevel = 0.1; contourLevel < 1; contourLevel += 0.1) {
+                    this.ctx.beginPath();
+
+                    for (let y = 1; y < this.height - 1; y++) {
+                        for (let x = 1; x < this.width - 1; x++) {
+                            const height = this.terrain[y * this.width + x];
+
+                            // Check if this point crosses the contour level
+                            if (Math.abs(height - contourLevel) < 0.02) {
+                                const screenX = x * scaleX;
+                                const screenY = y * scaleY;
+
+                                // Draw small line segment
+                                this.ctx.moveTo(screenX, screenY);
+                                this.ctx.lineTo(screenX + 2, screenY + 2);
+                            }
+                        }
+                    }
+
+                    this.ctx.stroke();
+                }
+            }
+            
+            render3D() {
+                const centerX = this.canvas.width / 2;
+                const centerY = this.canvas.height * 0.7; // Lower viewpoint
+
+                // Better 3D projection parameters
+                const scale = 3;
+                const heightScale = 100;
+                const angle = Math.PI / 6; // 30 degree angle
+
+                // Render back to front for proper depth
+                for (let y = this.height - 1; y >= 0; y--) {
+                    for (let x = 0; x < this.width; x++) {
+                        const height = this.terrain[y * this.width + x];
+
+                        // Proper isometric projection
+                        const worldX = (x - this.width / 2) * scale;
+                        const worldY = (y - this.height / 2) * scale;
+                        const worldZ = height * heightScale;
+
+                        // Isometric transformation
+                        const isoX = (worldX - worldY) * Math.cos(angle);
+                        const isoY = (worldX + worldY) * Math.sin(angle) - worldZ;
+
+                        const screenX = centerX + isoX;
+                        const screenY = centerY + isoY;
+                        
+                        // Same topographic colors: Blue -> Green -> Yellow -> Red -> White
+                        let color;
+                        if (height < 0.2) {
+                            // Water - blue
+                            color = `rgb(0, ${Math.floor(height * 400)}, 255)`;
+                        } else if (height < 0.4) {
+                            // Low land - green
+                            const t = (height - 0.2) / 0.2;
+                            color = `rgb(0, ${Math.floor(100 + t * 155)}, 0)`;
+                        } else if (height < 0.6) {
+                            // Medium land - yellow/orange
+                            const t = (height - 0.4) / 0.2;
+                            color = `rgb(${Math.floor(t * 255)}, 255, 0)`;
+                        } else if (height < 0.8) {
+                            // High land - red
+                            const t = (height - 0.6) / 0.2;
+                            color = `rgb(255, ${Math.floor(255 - t * 255)}, 0)`;
+                        } else {
+                            // Peaks - white
+                            color = `rgb(255, 255, 255)`;
+                        }
+                        
+                        this.ctx.fillStyle = color;
+
+                        // Draw proper 3D terrain blocks
+                        const blockSize = 4;
+                        const groundLevel = centerY + (worldX + worldY) * Math.sin(angle);
+
+                        // Only draw if height is significant
+                        if (height > 0.1) {
+                            // Draw vertical column from ground to height
+                            const columnHeight = Math.max(2, height * heightScale);
+
+                            // Main terrain block
+                            this.ctx.fillRect(
+                                screenX - blockSize/2,
+                                screenY - blockSize/2,
+                                blockSize,
+                                columnHeight
+                            );
+
+                            // Add 3D depth effect (right side)
+                            this.ctx.fillStyle = this.darkenColor(color, 0.7);
+                            this.ctx.fillRect(
+                                screenX + blockSize/2,
+                                screenY - blockSize/2,
+                                blockSize/2,
+                                columnHeight
+                            );
+
+                            // Add 3D depth effect (top)
+                            this.ctx.fillStyle = this.lightenColor(color, 1.2);
+                            this.ctx.fillRect(
+                                screenX - blockSize/2,
+                                screenY - columnHeight,
+                                blockSize,
+                                blockSize/2
+                            );
+                        }
+                    }
+                }
+            }
+
+            darkenColor(color, factor) {
+                const rgb = color.match(/\d+/g);
+                return `rgb(${Math.floor(rgb[0] * factor)}, ${Math.floor(rgb[1] * factor)}, ${Math.floor(rgb[2] * factor)})`;
+            }
+
+            lightenColor(color, factor) {
+                const rgb = color.match(/\d+/g);
+                return `rgb(${Math.min(255, Math.floor(rgb[0] * factor))}, ${Math.min(255, Math.floor(rgb[1] * factor))}, ${Math.min(255, Math.floor(rgb[2] * factor))})`;
+            }
+
+            startLoop() {
+                let frameCount = 0;
+                let lastTime = performance.now();
+                
+                const loop = () => {
+                    // Update from camera
+                    this.updateFromCamera();
+                    
+                    // Render
+                    this.render();
+                    
+                    // FPS counter
+                    frameCount++;
+                    const now = performance.now();
+                    if (now - lastTime >= 1000) {
+                        document.getElementById('fps').textContent = frameCount;
+                        frameCount = 0;
+                        lastTime = now;
+                    }
+                    
+                    requestAnimationFrame(loop);
+                };
+                
+                loop();
+            }
+        }
+        
+        // Global functions for buttons
+        let sandbox;
+        
+        function calibrate() { sandbox.calibrate(); }
+        function takeSnapshot() { sandbox.takeSnapshot(); }
+        function setLiveMode() { sandbox.setLiveMode(); }
+        function setHybridMode() { sandbox.setHybridMode(); }
+        function toggle3D() { sandbox.toggle3D(); }
+        function reset() { sandbox.reset(); }
+        
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            sandbox = new SimpleARSandbox();
+        });
+    </script>
+
+    <!-- Kinect WebSocket Integration -->
+    <script src="js/kinect_websocket_integration.js"></script>
+    <script>
+        // Initialize Kinect WebSocket connection for Working AR Sandbox Fixed
+        let kinectIntegration;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            kinectIntegration = new KinectWebSocketIntegration({
+                onConnect: () => {
+                    console.log('✅ Working AR Sandbox Fixed connected to Kinect');
+                    updateStatus('Kinect Connected');
+                },
+                onDisconnect: () => {
+                    console.log('❌ Working AR Sandbox Fixed disconnected from Kinect');
+                    updateStatus('Kinect Disconnected');
+                },
+                onFrameData: (frameData) => {
+                    if (sandbox && sandbox.updateFromKinectData) {
+                        sandbox.updateFromKinectData(frameData);
+                    }
+                },
+                onTopographyData: (topographyData) => {
+                    if (sandbox && sandbox.displayAIAnalysis) {
+                        sandbox.displayAIAnalysis(topographyData);
+                    }
+                }
+            });
+
+            kinectIntegration.connect();
+        });
+
+        function updateStatus(message) {
+            const statusEl = document.getElementById('status');
+            if (statusEl) {
+                statusEl.innerHTML += `<br>🔗 ${message}`;
+            }
+        }
+    </script>
+</body>
+</html>

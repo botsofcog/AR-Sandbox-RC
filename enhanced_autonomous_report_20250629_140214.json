@@ -1,0 +1,141 @@
+{
+  "session_info": {
+    "start_time": "2025-06-29T14:02:01.431206",
+    "end_time": "2025-06-29T14:02:14.432297",
+    "duration_minutes": 0.21668445,
+    "total_tests": 9,
+    "successful_tests": 9,
+    "failed_tests": 0,
+    "success_rate": 100.0
+  },
+  "test_results": [
+    {
+      "name": "System Test Quick",
+      "success": true,
+      "duration": 0.1193687915802002,
+      "return_code": 0,
+      "timestamp": "2025-06-29T14:02:01.553894"
+    },
+    {
+      "name": "System Test Full",
+      "success": true,
+      "duration": 0.1190643310546875,
+      "return_code": 0,
+      "timestamp": "2025-06-29T14:02:02.673616"
+    },
+    {
+      "name": "File Structure Check",
+      "success": true,
+      "duration": 2.7380290031433105,
+      "return_code": 0,
+      "timestamp": "2025-06-29T14:02:06.411951"
+    },
+    {
+      "name": "Python Syntax Check",
+      "success": true,
+      "duration": 0.11063742637634277,
+      "return_code": 0,
+      "timestamp": "2025-06-29T14:02:07.523347"
+    },
+    {
+      "name": "Requirements Check",
+      "success": true,
+      "duration": 0.6044793128967285,
+      "return_code": 0,
+      "timestamp": "2025-06-29T14:02:09.128219"
+    },
+    {
+      "name": "Demo Suite Validation",
+      "success": true,
+      "duration": 0.1621556282043457,
+      "return_code": 0,
+      "timestamp": "2025-06-29T14:02:10.290976"
+    },
+    {
+      "name": "Markdown Check",
+      "success": true,
+      "duration": 0.04693770408630371,
+      "return_code": 0,
+      "timestamp": "2025-06-29T14:02:11.338471"
+    },
+    {
+      "name": "Backend Files Check",
+      "success": true,
+      "duration": 0.04600787162780762,
+      "return_code": 0,
+      "timestamp": "2025-06-29T14:02:12.385261"
+    },
+    {
+      "name": "Frontend Files Check",
+      "success": true,
+      "duration": 0.045925140380859375,
+      "return_code": 0,
+      "timestamp": "2025-06-29T14:02:13.431574"
+    }
+  ],
+  "issues_found": [],
+  "performance_data": {
+    "system_health": {
+      "timestamp": "2025-06-29T14:02:01.431410",
+      "file_counts": {},
+      "directory_structure": {
+        "frontend": {
+          "exists": true,
+          "file_count": 5
+        },
+        "backend": {
+          "exists": true,
+          "file_count": 6
+        },
+        "assets": {
+          "exists": true,
+          "file_count": 8
+        },
+        "config": {
+          "exists": true,
+          "file_count": 1
+        },
+        "docs": {
+          "exists": true,
+          "file_count": 1
+        },
+        "logs": {
+          "exists": true,
+          "file_count": 24
+        }
+      },
+      "critical_files": {
+        "README.md": {
+          "exists": true,
+          "size": 16432,
+          "size_kb": 16.046875
+        },
+        "requirements.txt": {
+          "exists": true,
+          "size": 1978,
+          "size_kb": 1.931640625
+        },
+        "professional_demo_suite.py": {
+          "exists": true,
+          "size": 31934,
+          "size_kb": 31.185546875
+        },
+        "test_complete_system.py": {
+          "exists": true,
+          "size": 42316,
+          "size_kb": 41.32421875
+        },
+        "DEPLOYMENT_GUIDE.md": {
+          "exists": true,
+          "size": 12113,
+          "size_kb": 11.8291015625
+        },
+        "PROJECT_COMPLETION_SUMMARY.md": {
+          "exists": true,
+          "size": 6963,
+          "size_kb": 6.7998046875
+        }
+      }
+    }
+  }
+}

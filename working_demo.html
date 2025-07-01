@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏗️ AR Sandbox RC - Working Demo</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: white;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+        }
+        
+        .container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+        }
+        
+        .sidebar {
+            width: 300px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3);
+            overflow-y: auto;
+        }
+        
+        .main-area {
+            flex: 1;
+            position: relative;
+            background: #000;
+        }
+        
+        #canvas {
+            width: 100%;
+            height: 100%;
+            cursor: crosshair;
+            background: radial-gradient(circle at center, #1a1a2e, #16213e);
+        }
+        
+        .title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            text-align: center;
+            color: #4CAF50;
+        }
+        
+        .section {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .section h3 {
+            margin: 0 0 10px 0;
+            color: #FFD700;
+        }
+        
+        .vehicle {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px;
+            margin: 5px 0;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+            border-left: 3px solid #4CAF50;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .vehicle:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .vehicle.active {
+            border-left-color: #FF5722;
+            background: rgba(255, 87, 34, 0.1);
+        }
+        
+        .status {
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .status.online { background: #4CAF50; }
+        .status.working { background: #FF9800; }
+        .status.idle { background: #757575; }
+        
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        button {
+            padding: 10px;
+            border: none;
+            border-radius: 6px;
+            background: #4CAF50;
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        
+        button:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .metrics {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            text-align: center;
+        }
+        
+        .metric {
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+        }
+        
+        .metric-value {
+            font-size: 20px;
+            font-weight: bold;
+            color: #4CAF50;
+        }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            background: rgba(76, 175, 80, 0.9);
+            border-radius: 6px;
+            color: white;
+            font-weight: bold;
+            z-index: 1000;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+        }
+        
+        .notification.show {
+            transform: translateX(0);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <div class="title">🏗️ AR Sandbox RC</div>
+            
+            <div class="section">
+                <h3>🚛 Vehicle Fleet</h3>
+                <div id="vehicle-list">
+                    <div class="vehicle active" data-vehicle="EX001">
+                        <span>🚜 Excavator EX001</span>
+                        <span class="status working">WORKING</span>
+                    </div>
+                    <div class="vehicle" data-vehicle="BD001">
+                        <span>🚛 Bulldozer BD001</span>
+                        <span class="status online">ONLINE</span>
+                    </div>
+                    <div class="vehicle" data-vehicle="DT001">
+                        <span>🚚 Dump Truck DT001</span>
+                        <span class="status idle">IDLE</span>
+                    </div>
+                    <div class="vehicle" data-vehicle="CR001">
+                        <span>🏗️ Crane CR001</span>
+                        <span class="status online">ONLINE</span>
+                    </div>
+                    <div class="vehicle" data-vehicle="CP001">
+                        <span>🚧 Compactor CP001</span>
+                        <span class="status idle">IDLE</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="section">
+                <h3>📊 System Metrics</h3>
+                <div class="metrics">
+                    <div class="metric">
+                        <div class="metric-value" id="fps-counter">60</div>
+                        <div>FPS</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value" id="terrain-points">1,247</div>
+                        <div>Terrain Points</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value" id="active-vehicles">2</div>
+                        <div>Active Vehicles</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value" id="system-health">98%</div>
+                        <div>System Health</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="section">
+                <h3>🎮 Controls</h3>
+                <div class="controls">
+                    <button onclick="startMission()">🎯 Start Mission</button>
+                    <button onclick="resetTerrain()">🔄 Reset Terrain</button>
+                    <button onclick="togglePhysics()">⚡ Toggle Physics</button>
+                    <button onclick="addVehicle()">➕ Add Vehicle</button>
+                </div>
+            </div>
+            
+            <div class="section">
+                <h3>🎯 Current Mission</h3>
+                <div style="padding: 10px; background: rgba(255, 193, 7, 0.1); border-radius: 4px; border-left: 3px solid #FFC107;">
+                    <strong>Flood Defense Emergency</strong><br>
+                    Build barriers before water arrives!<br>
+                    <small>Time remaining: <span id="mission-timer">2:45</span></small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="main-area">
+            <canvas id="canvas"></canvas>
+        </div>
+    </div>
+    
+    <div id="notification" class="notification">
+        System initialized successfully!
+    </div>
+
+    <script>
+        // Initialize canvas and context
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        // Set canvas size
+        function resizeCanvas() {
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        // Game state
+        let terrainPoints = [];
+        let vehicles = [
+            { id: 'EX001', x: 100, y: 100, type: '🚜', active: true },
+            { id: 'BD001', x: 200, y: 150, type: '🚛', active: false },
+            { id: 'DT001', x: 300, y: 200, type: '🚚', active: false },
+            { id: 'CR001', x: 400, y: 250, type: '🏗️', active: false },
+            { id: 'CP001', x: 500, y: 300, type: '🚧', active: false }
+        ];
+
+        let missionTime = 165; // 2:45 in seconds
+        let fps = 60;
+        let systemHealth = 98;
+
+        // Animation loop
+        function animate() {
+            // Clear canvas
+            ctx.fillStyle = 'rgba(26, 26, 46, 0.1)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw terrain points
+            terrainPoints.forEach((point, index) => {
+                const age = Date.now() - point.timestamp;
+                const alpha = Math.max(0, 1 - age / 5000); // Fade over 5 seconds
+
+                ctx.fillStyle = `rgba(76, 175, 80, ${alpha})`;
+                ctx.beginPath();
+                ctx.arc(point.x, point.y, 3, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Remove old points
+                if (alpha <= 0) {
+                    terrainPoints.splice(index, 1);
+                }
+            });
+
+            // Draw vehicles
+            vehicles.forEach(vehicle => {
+                // Move vehicles slightly for animation
+                vehicle.x += (Math.random() - 0.5) * 0.5;
+                vehicle.y += (Math.random() - 0.5) * 0.5;
+
+                // Keep vehicles in bounds
+                vehicle.x = Math.max(20, Math.min(canvas.width - 20, vehicle.x));
+                vehicle.y = Math.max(20, Math.min(canvas.height - 20, vehicle.y));
+
+                // Draw vehicle
+                ctx.fillStyle = vehicle.active ? '#FF5722' : '#4CAF50';
+                ctx.fillRect(vehicle.x - 10, vehicle.y - 10, 20, 20);
+
+                // Draw vehicle label
+                ctx.fillStyle = 'white';
+                ctx.font = '12px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(vehicle.type, vehicle.x, vehicle.y + 4);
+                ctx.fillText(vehicle.id, vehicle.x, vehicle.y + 25);
+            });
+
+            // Draw grid
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+            ctx.lineWidth = 1;
+            for (let x = 0; x < canvas.width; x += 50) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+                ctx.stroke();
+            }
+            for (let y = 0; y < canvas.height; y += 50) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        // Mouse interaction
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            // Add terrain point
+            terrainPoints.push({
+                x: x,
+                y: y,
+                timestamp: Date.now()
+            });
+
+            // Update terrain points counter
+            document.getElementById('terrain-points').textContent = terrainPoints.length.toLocaleString();
+
+            showNotification('Terrain modified!');
+        });
+
+        // Control functions
+        function startMission() {
+            showNotification('🎯 Mission started: Flood Defense Emergency!');
+            vehicles.forEach(v => v.active = true);
+            updateVehicleDisplay();
+        }
+
+        function resetTerrain() {
+            terrainPoints = [];
+            document.getElementById('terrain-points').textContent = '0';
+            showNotification('🔄 Terrain reset!');
+        }
+
+        function togglePhysics() {
+            showNotification('⚡ Physics toggled!');
+        }
+
+        function addVehicle() {
+            const newVehicle = {
+                id: `VH${String(vehicles.length + 1).padStart(3, '0')}`,
+                x: Math.random() * (canvas.width || 800),
+                y: Math.random() * (canvas.height || 600),
+                type: '🚜',
+                active: false
+            };
+            vehicles.push(newVehicle);
+            showNotification(`➕ Added vehicle ${newVehicle.id}!`);
+            updateVehicleDisplay();
+        }
+
+        function updateVehicleDisplay() {
+            const activeCount = vehicles.filter(v => v.active).length;
+            document.getElementById('active-vehicles').textContent = activeCount;
+        }
+
+        function showNotification(message) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.classList.add('show');
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        // Update metrics periodically
+        setInterval(() => {
+            // Simulate FPS variation
+            fps = 58 + Math.random() * 4;
+            document.getElementById('fps-counter').textContent = Math.round(fps);
+
+            // Simulate system health variation
+            systemHealth = 96 + Math.random() * 4;
+            document.getElementById('system-health').textContent = Math.round(systemHealth) + '%';
+
+            // Update mission timer
+            if (missionTime > 0) {
+                missionTime--;
+                const minutes = Math.floor(missionTime / 60);
+                const seconds = missionTime % 60;
+                document.getElementById('mission-timer').textContent =
+                    `${minutes}:${String(seconds).padStart(2, '0')}`;
+            }
+        }, 1000);
+
+        // Vehicle click handlers
+        document.querySelectorAll('.vehicle').forEach(vehicleEl => {
+            vehicleEl.addEventListener('click', () => {
+                const vehicleId = vehicleEl.dataset.vehicle;
+                const vehicle = vehicles.find(v => v.id === vehicleId);
+                if (vehicle) {
+                    vehicle.active = !vehicle.active;
+                    vehicleEl.classList.toggle('active', vehicle.active);
+                    updateVehicleDisplay();
+                    showNotification(`${vehicleId} ${vehicle.active ? 'activated' : 'deactivated'}!`);
+                }
+            });
+        });
+
+        // Start animation
+        animate();
+
+        // Show initial notification
+        setTimeout(() => {
+            showNotification('🏗️ AR Sandbox RC System Online!');
+        }, 1000);
+
+        console.log('🏗️ AR Sandbox RC - Working Demo Loaded Successfully!');
+        console.log('Click on the canvas to add terrain points');
+        console.log('Click on vehicles to activate/deactivate them');
+        console.log('Use the control buttons to interact with the system');
+    </script>
+</body>
+</html>

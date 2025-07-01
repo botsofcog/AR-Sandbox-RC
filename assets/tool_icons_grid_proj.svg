@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200">
+  <!-- Transparent grid with white stroke icons -->
+  <rect x="2" y="2" width="196" height="196" rx="15" fill="none" stroke="#FFFFFF" stroke-width="4"/>
+  <!-- 2x2 icons -->
+  <g stroke="#FFFFFF" stroke-width="3" fill="none">
+    <rect x="20" y="20" width="60" height="60" rx="10"/>
+    <rect x="120" y="20" width="60" height="60" rx="10"/>
+    <rect x="20" y="120" width="60" height="60" rx="10"/>
+    <rect x="120" y="120" width="60" height="60" rx="10"/>
+  </g>
+</svg>

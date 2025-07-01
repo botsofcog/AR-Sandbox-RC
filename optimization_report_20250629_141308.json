@@ -1,0 +1,171 @@
+{
+  "session_info": {
+    "start_time": "2025-06-29T14:09:58.308864",
+    "end_time": "2025-06-29T14:13:08.007576",
+    "duration_minutes": 3.16
+  },
+  "findings": [
+    {
+      "category": "large_files",
+      "count": 498,
+      "total_size_gb": 4.63,
+      "top_10_large_files": [
+        {
+          "path": ".\\sample\\KinectDeveloperToolkit-v1.8.0-Setup.exe",
+          "size_mb": 384.35,
+          "extension": ".exe"
+        },
+        {
+          "path": ".\\sample\\KinectSDK-v2.0_1409-Setup.exe",
+          "size_mb": 275.81,
+          "extension": ".exe"
+        },
+        {
+          "path": ".\\sample\\KinectSDK-v1.8-Setup.exe",
+          "size_mb": 222.42,
+          "extension": ".exe"
+        },
+        {
+          "path": ".\\sample\\AR-Sandbox-for-Construction-Planning-master.zip",
+          "size_mb": 139.3,
+          "extension": ".zip"
+        },
+        {
+          "path": ".\\sample\\ofxOpenNI-master.zip",
+          "size_mb": 122.58,
+          "extension": ".zip"
+        },
+        {
+          "path": ".\\sample\\ofxOpenNI-master\\examples\\opeNI-SimpleExamples\\bin\\data\\openni\\config\\Data\\lbsdata.lbd",
+          "size_mb": 91.67,
+          "extension": ".lbd"
+        },
+        {
+          "path": ".\\sample\\KinectRuntime-v2.0_1409-Setup.exe",
+          "size_mb": 88.99,
+          "extension": ".exe"
+        },
+        {
+          "path": ".\\sample\\AR-Sandbox-master.zip",
+          "size_mb": 84.72,
+          "extension": ".zip"
+        },
+        {
+          "path": ".\\sample\\KinectForWindows_UnityPro_2.0.1410.zip",
+          "size_mb": 72.48,
+          "extension": ".zip"
+        },
+        {
+          "path": ".\\sample\\ofxOpenNI-master\\examples\\opeNI-SimpleExamples\\openNISample007.sdf",
+          "size_mb": 64.89,
+          "extension": ".sdf"
+        }
+      ]
+    },
+    {
+      "category": "duplicate_patterns",
+      "potential_duplicates": 265,
+      "file_type_distribution": {
+        ".js": 21682,
+        ".ts": 10006,
+        ".map": 5022,
+        ".html": 3863,
+        ".md": 2251,
+        ".jpg": 1914,
+        ".json": 1822,
+        ".svg": 1803,
+        ".png": 1664,
+        "": 1342,
+        ".meta": 831,
+        ".cs": 518,
+        ".py": 405,
+        ".scss": 403,
+        ".h": 383,
+        ".cjs": 231,
+        ".txt": 215,
+        ".css": 182,
+        ".mjs": 161,
+        ".cpp": 137
+      }
+    },
+    {
+      "category": "code_metrics",
+      "statistics": {
+        "python": {
+          "files": 405,
+          "lines": 86931,
+          "with_docstrings": 215
+        },
+        "javascript": {
+          "files": 21682,
+          "lines": 6574309,
+          "with_comments": 14587
+        },
+        "html": {
+          "files": 3863,
+          "lines": 831022,
+          "with_doctype": 2612
+        },
+        "css": {
+          "files": 182,
+          "lines": 136731
+        },
+        "json": {
+          "files": 1822,
+          "valid": 1754
+        }
+      }
+    },
+    {
+      "category": "test_coverage",
+      "test_files": 3952,
+      "source_files": 20528,
+      "coverage_ratio": 0.193,
+      "coverage_percentage": 19.3
+    },
+    {
+      "category": "documentation",
+      "total_md_files": 2251,
+      "readme_files": 736,
+      "main_readme_exists": true,
+      "main_readme_size_kb": 16.0
+    }
+  ],
+  "improvement_suggestions": [
+    {
+      "priority": "medium",
+      "category": "performance",
+      "title": "Optimize 498 large files",
+      "description": "Found 498 files >1MB that could be compressed or optimized",
+      "safe": true
+    },
+    {
+      "priority": "low",
+      "category": "cleanup",
+      "title": "Review 265 potential duplicate files",
+      "description": "Consider archiving or removing backup/versioned files",
+      "safe": true
+    },
+    {
+      "priority": "medium",
+      "category": "documentation",
+      "title": "Improve Python docstring coverage",
+      "description": "Only 53.1% of Python files have docstrings",
+      "safe": true
+    },
+    {
+      "priority": "high",
+      "category": "testing",
+      "title": "Increase test coverage",
+      "description": "Current test coverage is 19.3% - consider adding more tests",
+      "safe": true
+    }
+  ],
+  "summary": {
+    "total_findings": 5,
+    "total_suggestions": 4,
+    "high_priority_suggestions": 1,
+    "medium_priority_suggestions": 2,
+    "low_priority_suggestions": 1
+  }
+}

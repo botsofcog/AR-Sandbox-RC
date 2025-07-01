@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400">
+  <rect x="0" y="0" width="400" height="400" rx="20" fill="#2ECC71"/>
+  <g transform="translate(75,75)" fill="#27AE60" stroke="#FFFFFF" stroke-width="4">
+    <!-- Plow -->
+    <path d="M0,50 L50,50 L40,20 L10,20 Z"/>
+    <!-- Crane -->
+    <path d="M100,80 L150,80 L140,40 L120,40 Z"/>
+    <!-- Excavator -->
+    <path d="M0,150 L50,150 L45,110 L10,110 Z"/>
+    <!-- Shovel -->
+    <path d="M100,140 L140,140 L170,180 L120,180 Z"/>
+  </g>
+</svg>

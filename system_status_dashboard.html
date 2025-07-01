@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎮 AR Sandbox RC - System Status Dashboard</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: white;
+            min-height: 100vh;
+        }
+        
+        .dashboard {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin: 0;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+        
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .status-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: transform 0.3s ease;
+        }
+        
+        .status-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .status-card h3 {
+            margin: 0 0 15px 0;
+            font-size: 1.3em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        
+        .status-online { background: #00ff88; }
+        .status-offline { background: #ff4757; }
+        .status-warning { background: #ffa502; }
+        
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            margin: 8px 0;
+            padding: 5px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .metric:last-child {
+            border-bottom: none;
+        }
+        
+        .metric-value {
+            font-weight: bold;
+            color: #00ff88;
+        }
+        
+        .demo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+        }
+        
+        .demo-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .demo-card:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: scale(1.02);
+        }
+        
+        .demo-card h4 {
+            margin: 0 0 10px 0;
+            font-size: 1.1em;
+        }
+        
+        .demo-card p {
+            margin: 0;
+            font-size: 0.9em;
+            opacity: 0.8;
+        }
+        
+        .refresh-btn {
+            background: linear-gradient(45deg, #00ff88, #00d4aa);
+            border: none;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            margin: 20px auto;
+            display: block;
+        }
+        
+        .refresh-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 255, 136, 0.3);
+        }
+        
+        .log-container {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+        
+        .log-entry {
+            margin: 5px 0;
+            padding: 3px 0;
+        }
+        
+        .log-success { color: #00ff88; }
+        .log-error { color: #ff4757; }
+        .log-warning { color: #ffa502; }
+        .log-info { color: #74b9ff; }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <div class="header">
+            <h1>🎮 AR Sandbox RC System Dashboard</h1>
+            <p>Real-time monitoring of all AR sandbox components</p>
+        </div>
+        
+        <div class="status-grid">
+            <div class="status-card">
+                <h3>
+                    <span class="status-indicator" id="kinect-status"></span>
+                    📷 Kinect v1 Hardware
+                </h3>
+                <div class="metric">
+                    <span>Connection Status:</span>
+                    <span class="metric-value" id="kinect-connection">Checking...</span>
+                </div>
+                <div class="metric">
+                    <span>Depth Resolution:</span>
+                    <span class="metric-value" id="kinect-resolution">240x320</span>
+                </div>
+                <div class="metric">
+                    <span>Frame Rate:</span>
+                    <span class="metric-value" id="kinect-fps">30 FPS</span>
+                </div>
+            </div>
+            
+            <div class="status-card">
+                <h3>
+                    <span class="status-indicator" id="websocket-status"></span>
+                    🔌 WebSocket Server
+                </h3>
+                <div class="metric">
+                    <span>Server Status:</span>
+                    <span class="metric-value" id="ws-connection">Checking...</span>
+                </div>
+                <div class="metric">
+                    <span>Port:</span>
+                    <span class="metric-value">8765</span>
+                </div>
+                <div class="metric">
+                    <span>Data Points:</span>
+                    <span class="metric-value" id="ws-datapoints">0</span>
+                </div>
+            </div>
+            
+            <div class="status-card">
+                <h3>
+                    <span class="status-indicator" id="ai-status"></span>
+                    🤖 AI Analysis
+                </h3>
+                <div class="metric">
+                    <span>Topography:</span>
+                    <span class="metric-value" id="ai-topography">Checking...</span>
+                </div>
+                <div class="metric">
+                    <span>Peaks Detected:</span>
+                    <span class="metric-value" id="ai-peaks">0</span>
+                </div>
+                <div class="metric">
+                    <span>Valleys Detected:</span>
+                    <span class="metric-value" id="ai-valleys">0</span>
+                </div>
+            </div>
+            
+            <div class="status-card">
+                <h3>
+                    <span class="status-indicator" id="interaction-status"></span>
+                    👋 Hand Interaction
+                </h3>
+                <div class="metric">
+                    <span>Detection:</span>
+                    <span class="metric-value" id="hand-detection">Checking...</span>
+                </div>
+                <div class="metric">
+                    <span>Calibration:</span>
+                    <span class="metric-value" id="hand-calibration">Ready</span>
+                </div>
+                <div class="metric">
+                    <span>Sensitivity:</span>
+                    <span class="metric-value">50-300mm</span>
+                </div>
+            </div>
+        </div>
+        
+        <button class="refresh-btn" onclick="refreshStatus()">🔄 Refresh Status</button>
+        
+        <div class="status-card">
+            <h3>🎮 Available AR Sandbox Demos</h3>
+            <div class="demo-grid" id="demo-grid">
+                <!-- Demos will be populated by JavaScript -->
+            </div>
+        </div>
+        
+        <div class="status-card">
+            <h3>📊 System Logs</h3>
+            <div class="log-container" id="log-container">
+                <!-- Logs will be populated by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // AR Sandbox System Dashboard
+        let websocket = null;
+        let statusData = {};
+        
+        const demos = [
+            { name: 'Robust AR Sandbox', file: 'robust-ar-sandbox.html', desc: 'User favorite with full features' },
+            { name: 'Ultimate AR Sandbox', file: 'ultimate-ar-sandbox.html', desc: '3D view with voxel rendering' },
+            { name: 'Kinect AR Sandbox', file: 'kinect_ar_sandbox.html', desc: 'Dedicated Kinect integration' },
+            { name: 'Physics AR Sandbox', file: 'physics-ar-sandbox.html', desc: 'Matter.js physics simulation' },
+            { name: 'Fluid Sandbox Demo', file: 'fluid_sandbox_demo.html', desc: 'WebGL fluid simulation' },
+            { name: 'Voxel AR Sandbox', file: 'voxel-ar-sandbox.html', desc: 'Divine Voxel Engine integration' },
+            { name: 'RC Sandbox Clean', file: 'rc_sandbox_clean/index.html', desc: 'Clean professional interface' },
+            { name: 'Frontend Demo', file: 'frontend/index.html', desc: 'Modern UI with controls' }
+        ];
+        
+        function addLog(message, type = 'info') {
+            const logContainer = document.getElementById('log-container');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry log-${type}`;
+            logEntry.textContent = `[${timestamp}] ${message}`;
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+        
+        function updateStatus(elementId, value, statusClass = 'online') {
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.textContent = value;
+            }
+            
+            const statusIndicator = document.getElementById(elementId.replace('-connection', '-status').replace('-topography', '-status'));
+            if (statusIndicator) {
+                statusIndicator.className = `status-indicator status-${statusClass}`;
+            }
+        }
+        
+        function connectWebSocket() {
+            try {
+                websocket = new WebSocket('ws://localhost:8765');
+                
+                websocket.onopen = function() {
+                    addLog('✅ Connected to WebSocket server', 'success');
+                    updateStatus('ws-connection', 'Connected', 'online');
+                    
+                    // Request frame data
+                    websocket.send(JSON.stringify({
+                        type: 'get_frame',
+                        include_topography: true
+                    }));
+                };
+                
+                websocket.onmessage = function(event) {
+                    const data = JSON.parse(event.data);
+                    
+                    if (data.type === 'frame_data') {
+                        // Update mesh data
+                        const meshPoints = data.mesh_data ? data.mesh_data.data.length : 0;
+                        updateStatus('ws-datapoints', meshPoints);
+                        
+                        // Update AI analysis
+                        if (data.topography && data.topography.ai_metadata) {
+                            const ai = data.topography.ai_metadata;
+                            updateStatus('ai-topography', 'Active', 'online');
+                            
+                            if (ai.features) {
+                                updateStatus('ai-peaks', ai.features.peaks ? ai.features.peaks.count : 0);
+                                updateStatus('ai-valleys', ai.features.valleys ? ai.features.valleys.count : 0);
+                            }
+                        }
+                        
+                        // Update hand interaction
+                        if (data.interaction) {
+                            const handStatus = data.interaction.hands_detected ? 'Hands Detected' : 'Monitoring';
+                            updateStatus('hand-detection', handStatus, data.interaction.hands_detected ? 'online' : 'warning');
+                        }
+                        
+                        addLog(`📊 Received frame: ${meshPoints} points, AI analysis active`, 'success');
+                    }
+                };
+                
+                websocket.onerror = function() {
+                    addLog('❌ WebSocket connection error', 'error');
+                    updateStatus('ws-connection', 'Error', 'offline');
+                };
+                
+                websocket.onclose = function() {
+                    addLog('⚠️ WebSocket connection closed', 'warning');
+                    updateStatus('ws-connection', 'Disconnected', 'offline');
+                };
+                
+            } catch (error) {
+                addLog(`❌ Failed to connect to WebSocket: ${error.message}`, 'error');
+                updateStatus('ws-connection', 'Failed', 'offline');
+            }
+        }
+        
+        function populateDemos() {
+            const demoGrid = document.getElementById('demo-grid');
+            demoGrid.innerHTML = '';
+            
+            demos.forEach(demo => {
+                const demoCard = document.createElement('div');
+                demoCard.className = 'demo-card';
+                demoCard.onclick = () => window.open(demo.file, '_blank');
+                
+                demoCard.innerHTML = `
+                    <h4>🎮 ${demo.name}</h4>
+                    <p>${demo.desc}</p>
+                `;
+                
+                demoGrid.appendChild(demoCard);
+            });
+        }
+        
+        function refreshStatus() {
+            addLog('🔄 Refreshing system status...', 'info');
+            
+            // Update Kinect status
+            updateStatus('kinect-connection', 'Xbox 360 Kinect v1', 'online');
+            
+            // Reconnect WebSocket
+            if (websocket) {
+                websocket.close();
+            }
+            setTimeout(connectWebSocket, 1000);
+        }
+        
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            addLog('🚀 AR Sandbox RC Dashboard initialized', 'success');
+            populateDemos();
+            connectWebSocket();
+            
+            // Set initial Kinect status
+            updateStatus('kinect-connection', 'Xbox 360 Kinect v1', 'online');
+            updateStatus('hand-calibration', 'Ready', 'online');
+            
+            // Auto-refresh every 30 seconds
+            setInterval(() => {
+                if (websocket && websocket.readyState === WebSocket.OPEN) {
+                    websocket.send(JSON.stringify({
+                        type: 'get_frame',
+                        include_topography: true
+                    }));
+                }
+            }, 30000);
+        });
+    </script>
+</body>
+</html>

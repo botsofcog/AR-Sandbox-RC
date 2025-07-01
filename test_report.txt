@@ -1,0 +1,134 @@
+Could not find platform independent libraries <prefix>
+============================= test session starts =============================
+platform win32 -- Python 3.13.4, pytest-8.4.1, pluggy-1.6.0 -- Z:\AR Sandbox RC\.venv\Scripts\python.exe
+cachedir: .pytest_cache
+rootdir: Z:\AR Sandbox RC
+plugins: anyio-4.9.0, asyncio-1.0.0, cov-6.2.1
+asyncio: mode=Mode.STRICT, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 93 items / 10 errors
+
+=================================== ERRORS ====================================
+______ ERROR collecting external_libs/camera-fusion/tests/test_Camera.py ______
+ImportError while importing test module 'Z:\AR Sandbox RC\external_libs\camera-fusion\tests\test_Camera.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+C:\Users\jkome\AppData\Local\Programs\Python\Python313\Lib\importlib\__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+external_libs\camera-fusion\tests\test_Camera.py:15: in <module>
+    import camera_fusion  # noqa
+    ^^^^^^^^^^^^^^^^^^^^
+external_libs\camera-fusion\camera_fusion\__init__.py:14: in <module>
+    from .CamerasFusion import CamerasFusion
+external_libs\camera-fusion\camera_fusion\CamerasFusion.py:10: in <module>
+    import sortednp as snp
+E   ModuleNotFoundError: No module named 'sortednp'
+_ ERROR collecting external_libs/camera-fusion/tests/test_CameraCorrected.py __
+ImportError while importing test module 'Z:\AR Sandbox RC\external_libs\camera-fusion\tests\test_CameraCorrected.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+C:\Users\jkome\AppData\Local\Programs\Python\Python313\Lib\importlib\__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+external_libs\camera-fusion\tests\test_CameraCorrected.py:15: in <module>
+    import camera_fusion  # noqa
+    ^^^^^^^^^^^^^^^^^^^^
+external_libs\camera-fusion\camera_fusion\__init__.py:14: in <module>
+    from .CamerasFusion import CamerasFusion
+external_libs\camera-fusion\camera_fusion\CamerasFusion.py:10: in <module>
+    import sortednp as snp
+E   ModuleNotFoundError: No module named 'sortednp'
+__ ERROR collecting external_libs/camera-fusion/tests/test_CamerasFusion.py ___
+ImportError while importing test module 'Z:\AR Sandbox RC\external_libs\camera-fusion\tests\test_CamerasFusion.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+C:\Users\jkome\AppData\Local\Programs\Python\Python313\Lib\importlib\__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+external_libs\camera-fusion\tests\test_CamerasFusion.py:9: in <module>
+    import camera_fusion  # noqa
+    ^^^^^^^^^^^^^^^^^^^^
+external_libs\camera-fusion\camera_fusion\__init__.py:14: in <module>
+    from .CamerasFusion import CamerasFusion
+external_libs\camera-fusion\camera_fusion\CamerasFusion.py:10: in <module>
+    import sortednp as snp
+E   ModuleNotFoundError: No module named 'sortednp'
+_ ERROR collecting external_libs/tfjs-examples/iris/python/iris_data_test.py __
+ImportError while importing test module 'Z:\AR Sandbox RC\external_libs\tfjs-examples\iris\python\iris_data_test.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+C:\Users\jkome\AppData\Local\Programs\Python\Python313\Lib\importlib\__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+external_libs\tfjs-examples\iris\python\iris_data_test.py:26: in <module>
+    import iris_data
+E   ModuleNotFoundError: No module named 'iris_data'
+____ ERROR collecting external_libs/tfjs-examples/iris/python/iris_test.py ____
+ImportError while importing test module 'Z:\AR Sandbox RC\external_libs\tfjs-examples\iris\python\iris_test.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+C:\Users\jkome\AppData\Local\Programs\Python\Python313\Lib\importlib\__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+external_libs\tfjs-examples\iris\python\iris_test.py:28: in <module>
+    import iris
+E   ModuleNotFoundError: No module named 'iris'
+_ ERROR collecting external_libs/tfjs-examples/mnist-transfer-cnn/python/mnist_transfer_cnn_test.py _
+ImportError while importing test module 'Z:\AR Sandbox RC\external_libs\tfjs-examples\mnist-transfer-cnn\python\mnist_transfer_cnn_test.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+C:\Users\jkome\AppData\Local\Programs\Python\Python313\Lib\importlib\__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ModuleNotFoundError: No module named 'python.mnist_transfer_cnn_test'
+_ ERROR collecting external_libs/tfjs-examples/sentiment/python/imdb_test.py __
+ImportError while importing test module 'Z:\AR Sandbox RC\external_libs\tfjs-examples\sentiment\python\imdb_test.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+C:\Users\jkome\AppData\Local\Programs\Python\Python313\Lib\importlib\__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ModuleNotFoundError: No module named 'python.imdb_test'
+_ ERROR collecting external_libs/vidgear/vidgear/tests/streamer_tests/asyncio_tests/test_webgear.py _
+ImportError while importing test module 'Z:\AR Sandbox RC\external_libs\vidgear\vidgear\tests\streamer_tests\asyncio_tests\test_webgear.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+C:\Users\jkome\AppData\Local\Programs\Python\Python313\Lib\importlib\__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+external_libs\vidgear\vidgear\tests\streamer_tests\asyncio_tests\test_webgear.py:30: in <module>
+    from starlette.routing import Route
+E   ModuleNotFoundError: No module named 'starlette'
+_ ERROR collecting external_libs/vidgear/vidgear/tests/streamer_tests/asyncio_tests/test_webgear_rtc.py _
+ImportError while importing test module 'Z:\AR Sandbox RC\external_libs\vidgear\vidgear\tests\streamer_tests\asyncio_tests\test_webgear_rtc.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+C:\Users\jkome\AppData\Local\Programs\Python\Python313\Lib\importlib\__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+external_libs\vidgear\vidgear\tests\streamer_tests\asyncio_tests\test_webgear_rtc.py:32: in <module>
+    from starlette.routing import Route
+E   ModuleNotFoundError: No module named 'starlette'
+_ ERROR collecting external_libs/vidgear/vidgear/tests/streamer_tests/test_streamgear_modes.py _
+ImportError while importing test module 'Z:\AR Sandbox RC\external_libs\vidgear\vidgear\tests\streamer_tests\test_streamgear_modes.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+C:\Users\jkome\AppData\Local\Programs\Python\Python313\Lib\importlib\__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+external_libs\vidgear\vidgear\tests\streamer_tests\test_streamgear_modes.py:26: in <module>
+    import m3u8
+E   ModuleNotFoundError: No module named 'm3u8'
+=========================== short test summary info ===========================
+ERROR external_libs/camera-fusion/tests/test_Camera.py
+ERROR external_libs/camera-fusion/tests/test_CameraCorrected.py
+ERROR external_libs/camera-fusion/tests/test_CamerasFusion.py
+ERROR external_libs/tfjs-examples/iris/python/iris_data_test.py
+ERROR external_libs/tfjs-examples/iris/python/iris_test.py
+ERROR external_libs/tfjs-examples/mnist-transfer-cnn/python/mnist_transfer_cnn_test.py
+ERROR external_libs/tfjs-examples/sentiment/python/imdb_test.py
+ERROR external_libs/vidgear/vidgear/tests/streamer_tests/asyncio_tests/test_webgear.py
+ERROR external_libs/vidgear/vidgear/tests/streamer_tests/asyncio_tests/test_webgear_rtc.py
+ERROR external_libs/vidgear/vidgear/tests/streamer_tests/test_streamgear_modes.py
+!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 10 failures !!!!!!!!!!!!!!!!!!!!!!!!!!
+======================= 8 warnings, 10 errors in 7.80s ========================

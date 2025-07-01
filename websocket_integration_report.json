@@ -1,0 +1,28 @@
+{
+  "timestamp": "2025-06-29 12:44:56",
+  "total_tests": 4,
+  "passed_tests": 0,
+  "success_rate": 0.0,
+  "test_results": [
+    {
+      "test": "depth_connection",
+      "status": "FAIL",
+      "error": "received 1011 (internal error); then sent 1011 (internal error)"
+    },
+    {
+      "test": "connection_stability",
+      "status": "FAIL",
+      "error": "received 1011 (internal error); then sent 1011 (internal error)"
+    },
+    {
+      "test": "telemetry_connection",
+      "status": "FAIL",
+      "error": "received 1011 (internal error); then sent 1011 (internal error)"
+    },
+    {
+      "test": "vehicle_control",
+      "status": "FAIL",
+      "error": "received 1011 (internal error); then sent 1011 (internal error)"
+    }
+  ]
+}

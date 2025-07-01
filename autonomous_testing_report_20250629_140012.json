@@ -1,0 +1,1188 @@
+{
+  "session_info": {
+    "start_time": "2025-06-29T13:59:50.058315",
+    "end_time": "2025-06-29T14:00:12.760694",
+    "duration_seconds": 22.702365,
+    "duration_minutes": 0.37837275
+  },
+  "test_summary": {
+    "total_tests": 7,
+    "successful_tests": 2,
+    "failed_tests": 5,
+    "success_rate": 28.57142857142857
+  },
+  "test_results": [
+    {
+      "name": "System Test - Quick",
+      "command": "python test_complete_system.py --quick",
+      "duration": 0.1241457462310791,
+      "return_code": 0,
+      "success": true,
+      "stdout_lines": 7,
+      "stderr_lines": 90,
+      "timestamp": "2025-06-29T13:59:55.538657"
+    },
+    {
+      "name": "System Test - Full",
+      "command": "python test_complete_system.py",
+      "duration": 0.13108611106872559,
+      "return_code": 0,
+      "success": true,
+      "stdout_lines": 7,
+      "stderr_lines": 90,
+      "timestamp": "2025-06-29T13:59:57.670468"
+    },
+    {
+      "name": "Markdown Formatting",
+      "command": "python fix_markdown_formatting.py",
+      "duration": 0.08841919898986816,
+      "return_code": 1,
+      "success": false,
+      "stdout_lines": 1,
+      "stderr_lines": 13,
+      "timestamp": "2025-06-29T13:59:59.759684"
+    },
+    {
+      "name": "Memory Optimization",
+      "command": "python scripts/memory_optimization.py",
+      "duration": 0.04771590232849121,
+      "return_code": 2,
+      "success": false,
+      "stdout_lines": 1,
+      "stderr_lines": 3,
+      "timestamp": "2025-06-29T14:00:04.028329"
+    },
+    {
+      "name": "Performance Monitoring",
+      "command": "python scripts/performance_monitoring.py",
+      "duration": 0.046857595443725586,
+      "return_code": 2,
+      "success": false,
+      "stdout_lines": 1,
+      "stderr_lines": 3,
+      "timestamp": "2025-06-29T14:00:06.076011"
+    },
+    {
+      "name": "Scalability Testing",
+      "command": "python scripts/scalability_testing.py",
+      "duration": 0.6345603466033936,
+      "return_code": 1,
+      "success": false,
+      "stdout_lines": 1,
+      "stderr_lines": 22,
+      "timestamp": "2025-06-29T14:00:08.711024"
+    },
+    {
+      "name": "CI/CD Validation",
+      "command": "python scripts/enhanced_ci_cd.py --validate",
+      "duration": 0.04875826835632324,
+      "return_code": 2,
+      "success": false,
+      "stdout_lines": 1,
+      "stderr_lines": 3,
+      "timestamp": "2025-06-29T14:00:10.760141"
+    }
+  ],
+  "performance_metrics": [
+    {
+      "timestamp": "2025-06-29T13:59:55.414213",
+      "file_statistics": {
+        ".js": {
+          "count": 21682,
+          "total_size": 314515184
+        },
+        "": {
+          "count": 1342,
+          "total_size": 109348417
+        },
+        ".py": {
+          "count": 402,
+          "total_size": 3510646
+        },
+        ".md": {
+          "count": 2211,
+          "total_size": 14918350
+        },
+        ".html": {
+          "count": 3852,
+          "total_size": 34936272
+        },
+        ".json": {
+          "count": 1812,
+          "total_size": 111553219
+        },
+        ".txt": {
+          "count": 213,
+          "total_size": 3427644
+        },
+        ".yaml": {
+          "count": 4,
+          "total_size": 199336
+        },
+        ".svg": {
+          "count": 1803,
+          "total_size": 12976131
+        },
+        ".css": {
+          "count": 182,
+          "total_size": 4864081
+        },
+        ".yml": {
+          "count": 71,
+          "total_size": 53255
+        },
+        ".png": {
+          "count": 1664,
+          "total_size": 344371487
+        },
+        ".jpg": {
+          "count": 1914,
+          "total_size": 284535631
+        },
+        ".map": {
+          "count": 5022,
+          "total_size": 362921321
+        },
+        ".mjs": {
+          "count": 161,
+          "total_size": 6752303
+        },
+        ".ts": {
+          "count": 10006,
+          "total_size": 30631161
+        },
+        ".astro": {
+          "count": 42,
+          "total_size": 414804
+        },
+        ".mdx": {
+          "count": 9,
+          "total_size": 22633
+        },
+        ".scss": {
+          "count": 403,
+          "total_size": 1970754
+        },
+        ".markdown": {
+          "count": 11,
+          "total_size": 41657
+        },
+        ".ico": {
+          "count": 24,
+          "total_size": 3277215
+        },
+        ".gif": {
+          "count": 84,
+          "total_size": 89346138
+        },
+        ".xml": {
+          "count": 116,
+          "total_size": 4153495
+        },
+        ".webp": {
+          "count": 10,
+          "total_size": 384850
+        },
+        ".pug": {
+          "count": 56,
+          "total_size": 498082
+        },
+        ".sh": {
+          "count": 52,
+          "total_size": 147459
+        },
+        ".lock": {
+          "count": 54,
+          "total_size": 8672368
+        },
+        ".vue": {
+          "count": 16,
+          "total_size": 26852
+        },
+        ".csv": {
+          "count": 39,
+          "total_size": 6972714
+        },
+        ".cjs": {
+          "count": 231,
+          "total_size": 6082637
+        },
+        ".tsx": {
+          "count": 39,
+          "total_size": 132968
+        },
+        ".afphoto": {
+          "count": 3,
+          "total_size": 209255
+        },
+        ".bin": {
+          "count": 46,
+          "total_size": 158366490
+        },
+        ".wasm": {
+          "count": 13,
+          "total_size": 17096403
+        },
+        ".vox": {
+          "count": 4,
+          "total_size": 1737925
+        },
+        ".hdr": {
+          "count": 21,
+          "total_size": 121632199
+        },
+        ".mp3": {
+          "count": 96,
+          "total_size": 43490195
+        },
+        ".babylon": {
+          "count": 1,
+          "total_size": 9772
+        },
+        ".manifest": {
+          "count": 3,
+          "total_size": 1301
+        },
+        ".log": {
+          "count": 6,
+          "total_size": 196648
+        },
+        ".obj": {
+          "count": 22,
+          "total_size": 7069728
+        },
+        ".cff": {
+          "count": 4,
+          "total_size": 3160
+        },
+        ".leafdoc": {
+          "count": 6,
+          "total_size": 16239
+        },
+        ".hbs": {
+          "count": 22,
+          "total_size": 32931
+        },
+        ".jpeg": {
+          "count": 19,
+          "total_size": 1673529
+        },
+        ".ipynb": {
+          "count": 133,
+          "total_size": 587983724
+        },
+        ".m": {
+          "count": 10,
+          "total_size": 232169
+        },
+        ".bdf": {
+          "count": 2,
+          "total_size": 49876
+        },
+        ".pbm": {
+          "count": 2,
+          "total_size": 2011
+        },
+        ".pil": {
+          "count": 2,
+          "total_size": 10285
+        },
+        ".ttf": {
+          "count": 65,
+          "total_size": 105500598
+        },
+        ".rmd": {
+          "count": 1,
+          "total_size": 5497
+        },
+        ".eot": {
+          "count": 7,
+          "total_size": 2566047
+        },
+        ".woff": {
+          "count": 10,
+          "total_size": 2145174
+        },
+        ".woff2": {
+          "count": 11,
+          "total_size": 1249193
+        },
+        ".ejs": {
+          "count": 1,
+          "total_size": 2072
+        },
+        ".webmanifest": {
+          "count": 4,
+          "total_size": 1952
+        },
+        ".webm": {
+          "count": 7,
+          "total_size": 13317413
+        },
+        ".glsl": {
+          "count": 10,
+          "total_size": 12516
+        },
+        ".mp4": {
+          "count": 7,
+          "total_size": 10796796
+        },
+        ".pict": {
+          "count": 4,
+          "total_size": 54498800
+        },
+        ".in": {
+          "count": 16,
+          "total_size": 31920
+        },
+        ".toml": {
+          "count": 2,
+          "total_size": 1317
+        },
+        ".tmpl": {
+          "count": 33,
+          "total_size": 63891
+        },
+        ".tif": {
+          "count": 17,
+          "total_size": 9500817
+        },
+        ".geojson": {
+          "count": 9,
+          "total_size": 7165683
+        },
+        ".gpx": {
+          "count": 1,
+          "total_size": 29893
+        },
+        ".igc": {
+          "count": 5,
+          "total_size": 1893955
+        },
+        ".kml": {
+          "count": 8,
+          "total_size": 3778856
+        },
+        ".kmz": {
+          "count": 2,
+          "total_size": 16365
+        },
+        ".pbf": {
+          "count": 11,
+          "total_size": 621843
+        },
+        ".wkt": {
+          "count": 1,
+          "total_size": 6792
+        },
+        ".mvt": {
+          "count": 1,
+          "total_size": 249
+        },
+        ".ogg": {
+          "count": 32,
+          "total_size": 8819006
+        },
+        ".mov": {
+          "count": 5,
+          "total_size": 1465161
+        },
+        ".otf": {
+          "count": 12,
+          "total_size": 1151564
+        },
+        ".frag": {
+          "count": 34,
+          "total_size": 53275
+        },
+        ".vert": {
+          "count": 24,
+          "total_size": 54127
+        },
+        ".ogv": {
+          "count": 2,
+          "total_size": 3848115
+        },
+        ".handlebars": {
+          "count": 1,
+          "total_size": 3319
+        },
+        ".wav": {
+          "count": 67,
+          "total_size": 9300742
+        },
+        ".stl": {
+          "count": 9,
+          "total_size": 3284633
+        },
+        ".mtl": {
+          "count": 9,
+          "total_size": 5472
+        },
+        ".swp": {
+          "count": 1,
+          "total_size": 1024
+        },
+        ".gltf": {
+          "count": 25,
+          "total_size": 45382098
+        },
+        ".blend": {
+          "count": 2,
+          "total_size": 29247572
+        },
+        ".rss": {
+          "count": 2,
+          "total_size": 2274
+        },
+        ".go": {
+          "count": 4,
+          "total_size": 6826
+        },
+        ".mod": {
+          "count": 2,
+          "total_size": 200
+        },
+        ".sum": {
+          "count": 2,
+          "total_size": 442
+        },
+        ".kts": {
+          "count": 2,
+          "total_size": 4314
+        },
+        ".bat": {
+          "count": 17,
+          "total_size": 17123
+        },
+        ".jar": {
+          "count": 4,
+          "total_size": 225391
+        },
+        ".properties": {
+          "count": 7,
+          "total_size": 4733
+        },
+        ".kt": {
+          "count": 1,
+          "total_size": 1386
+        },
+        ".liquid": {
+          "count": 2,
+          "total_size": 867
+        },
+        ".pb": {
+          "count": 1,
+          "total_size": 29755405
+        },
+        ".data-00000-of-00001": {
+          "count": 1,
+          "total_size": 112
+        },
+        ".index": {
+          "count": 1,
+          "total_size": 144
+        },
+        ".gradle": {
+          "count": 9,
+          "total_size": 31761
+        },
+        ".bzl": {
+          "count": 3,
+          "total_size": 1863
+        },
+        ".keystore": {
+          "count": 3,
+          "total_size": 6771
+        },
+        ".pro": {
+          "count": 3,
+          "total_size": 1335
+        },
+        ".java": {
+          "count": 42,
+          "total_size": 108609
+        },
+        ".h": {
+          "count": 383,
+          "total_size": 3578049
+        },
+        ".plist": {
+          "count": 12,
+          "total_size": 9242
+        },
+        ".storyboard": {
+          "count": 3,
+          "total_size": 13425
+        },
+        ".xib": {
+          "count": 2,
+          "total_size": 7504
+        },
+        ".pbxproj": {
+          "count": 5,
+          "total_size": 279666
+        },
+        ".xcworkspacedata": {
+          "count": 6,
+          "total_size": 1069
+        },
+        ".xcscheme": {
+          "count": 6,
+          "total_size": 19780
+        },
+        ".glb": {
+          "count": 56,
+          "total_size": 142021952
+        },
+        ".xcf": {
+          "count": 1,
+          "total_size": 19634
+        },
+        ".ies": {
+          "count": 4,
+          "total_size": 24515
+        },
+        ".cube": {
+          "count": 10,
+          "total_size": 5526200
+        },
+        ".3dl": {
+          "count": 4,
+          "total_size": 994822
+        },
+        ".3dm": {
+          "count": 1,
+          "total_size": 5617729
+        },
+        ".3ds": {
+          "count": 1,
+          "total_size": 119053
+        },
+        ".3mf": {
+          "count": 6,
+          "total_size": 6035862
+        },
+        ".amf": {
+          "count": 1,
+          "total_size": 49369
+        },
+        ".bvh": {
+          "count": 1,
+          "total_size": 764800
+        },
+        ".dae": {
+          "count": 5,
+          "total_size": 11926365
+        },
+        ".drc": {
+          "count": 1,
+          "total_size": 96018
+        },
+        ".fbx": {
+          "count": 8,
+          "total_size": 16360152
+        },
+        ".gcode": {
+          "count": 1,
+          "total_size": 2006519
+        },
+        ".ifc": {
+          "count": 1,
+          "total_size": 43637870
+        },
+        ".mpd": {
+          "count": 16,
+          "total_size": 7323095
+        },
+        ".lwo": {
+          "count": 1,
+          "total_size": 3031402
+        },
+        ".md2": {
+          "count": 14,
+          "total_size": 1656756
+        },
+        ".mdd": {
+          "count": 1,
+          "total_size": 1176
+        },
+        ".nrrd": {
+          "count": 2,
+          "total_size": 8002502
+        },
+        ".pcd": {
+          "count": 4,
+          "total_size": 2191604
+        },
+        ".pdb": {
+          "count": 32,
+          "total_size": 10389474
+        },
+        ".ply": {
+          "count": 5,
+          "total_size": 2070172
+        },
+        ".tilt": {
+          "count": 1,
+          "total_size": 180615
+        },
+        ".usdz": {
+          "count": 1,
+          "total_size": 3842733
+        },
+        ".wrl": {
+          "count": 14,
+          "total_size": 168883
+        },
+        ".vtk": {
+          "count": 2,
+          "total_size": 3830646
+        },
+        ".vtp": {
+          "count": 3,
+          "total_size": 9259
+        },
+        ".xyz": {
+          "count": 1,
+          "total_size": 9467
+        },
+        ".tga": {
+          "count": 5,
+          "total_size": 37877356
+        },
+        ".nfo": {
+          "count": 2,
+          "total_size": 271
+        },
+        ".exr": {
+          "count": 3,
+          "total_size": 4043019
+        },
+        ".ktx2": {
+          "count": 14,
+          "total_size": 863014
+        },
+        ".dds": {
+          "count": 14,
+          "total_size": 4283667
+        },
+        ".zip": {
+          "count": 25,
+          "total_size": 707247305
+        },
+        ".pvr": {
+          "count": 8,
+          "total_size": 503638
+        },
+        ".ktx": {
+          "count": 7,
+          "total_size": 1399368
+        },
+        ".asc": {
+          "count": 6,
+          "total_size": 2218883
+        },
+        ".prj": {
+          "count": 6,
+          "total_size": 720
+        },
+        ".csp": {
+          "count": 3,
+          "total_size": 937402
+        },
+        ".icc": {
+          "count": 3,
+          "total_size": 201891
+        },
+        ".meta": {
+          "count": 831,
+          "total_size": 336262
+        },
+        ".dll": {
+          "count": 85,
+          "total_size": 47667015
+        },
+        ".cginc": {
+          "count": 4,
+          "total_size": 13644
+        },
+        ".compute": {
+          "count": 10,
+          "total_size": 105846
+        },
+        ".mat": {
+          "count": 24,
+          "total_size": 49601
+        },
+        ".physicmaterial": {
+          "count": 4,
+          "total_size": 1186
+        },
+        ".prefab": {
+          "count": 40,
+          "total_size": 408713
+        },
+        ".unity": {
+          "count": 6,
+          "total_size": 7211435
+        },
+        ".cs": {
+          "count": 518,
+          "total_size": 3037920
+        },
+        ".shader": {
+          "count": 25,
+          "total_size": 78686
+        },
+        ".pdn": {
+          "count": 8,
+          "total_size": 219666
+        },
+        ".rendertexture": {
+          "count": 4,
+          "total_size": 2758
+        },
+        ".asset": {
+          "count": 49,
+          "total_size": 133285
+        },
+        ".exe": {
+          "count": 46,
+          "total_size": 1078952624
+        },
+        ".cmake": {
+          "count": 10,
+          "total_size": 31305
+        },
+        ".conf": {
+          "count": 2,
+          "total_size": 782
+        },
+        ".c": {
+          "count": 94,
+          "total_size": 1264262
+        },
+        ".1": {
+          "count": 4,
+          "total_size": 4669
+        },
+        ".cpp": {
+          "count": 137,
+          "total_size": 960201
+        },
+        ".hpp": {
+          "count": 10,
+          "total_size": 71117
+        },
+        ".rules": {
+          "count": 2,
+          "total_size": 1209
+        },
+        ".cat": {
+          "count": 6,
+          "total_size": 66532
+        },
+        ".inf": {
+          "count": 6,
+          "total_size": 48448
+        },
+        ".sys": {
+          "count": 18,
+          "total_size": 1007232
+        },
+        ".as": {
+          "count": 32,
+          "total_size": 144266
+        },
+        ".csproj": {
+          "count": 12,
+          "total_size": 52260
+        },
+        ".sln": {
+          "count": 15,
+          "total_size": 29381
+        },
+        ".pyx": {
+          "count": 4,
+          "total_size": 78402
+        },
+        ".rdoc": {
+          "count": 2,
+          "total_size": 4290
+        },
+        ".rb": {
+          "count": 26,
+          "total_size": 70689
+        },
+        ".gem": {
+          "count": 2,
+          "total_size": 26624
+        },
+        ".opts": {
+          "count": 2,
+          "total_size": 52
+        },
+        ".def": {
+          "count": 9,
+          "total_size": 27719
+        },
+        ".cfg": {
+          "count": 2,
+          "total_size": 2981
+        },
+        ".cmd": {
+          "count": 4,
+          "total_size": 27006
+        },
+        ".sgml": {
+          "count": 5,
+          "total_size": 34223
+        },
+        ".am": {
+          "count": 1,
+          "total_size": 812
+        },
+        ".dsl": {
+          "count": 1,
+          "total_size": 3706
+        },
+        ".rc": {
+          "count": 10,
+          "total_size": 12565
+        },
+        ".iss": {
+          "count": 1,
+          "total_size": 3074
+        },
+        ".vcxproj": {
+          "count": 8,
+          "total_size": 193875
+        },
+        ".cts": {
+          "count": 30,
+          "total_size": 337287
+        },
+        ".mts": {
+          "count": 27,
+          "total_size": 186380
+        },
+        ".proto": {
+          "count": 3,
+          "total_size": 28242
+        },
+        ".bazel": {
+          "count": 8,
+          "total_size": 1448
+        },
+        ".node": {
+          "count": 1,
+          "total_size": 3919360
+        },
+        ".tsbuildinfo": {
+          "count": 2,
+          "total_size": 5348361
+        },
+        ".jst": {
+          "count": 25,
+          "total_size": 49815
+        },
+        ".iml": {
+          "count": 1,
+          "total_size": 411
+        },
+        ".mdown": {
+          "count": 2,
+          "total_size": 4365
+        },
+        ".closure-compiler": {
+          "count": 1,
+          "total_size": 11358
+        },
+        ".esprima": {
+          "count": 1,
+          "total_size": 1231
+        },
+        ".bsd": {
+          "count": 2,
+          "total_size": 2462
+        },
+        ".flow": {
+          "count": 102,
+          "total_size": 173712
+        },
+        ".ls": {
+          "count": 2,
+          "total_size": 7961
+        },
+        ".php": {
+          "count": 1,
+          "total_size": 4613
+        },
+        ".bak": {
+          "count": 1,
+          "total_size": 12034
+        },
+        ".coffee": {
+          "count": 2,
+          "total_size": 1
+        },
+        ".info": {
+          "count": 1,
+          "total_size": 10055
+        },
+        ".bnf": {
+          "count": 1,
+          "total_size": 619
+        },
+        ".apache2": {
+          "count": 1,
+          "total_size": 586
+        },
+        ".mit": {
+          "count": 1,
+          "total_size": 1088
+        },
+        ".applescript": {
+          "count": 1,
+          "total_size": 2691
+        },
+        ".rst": {
+          "count": 33,
+          "total_size": 86861
+        },
+        ".pickle": {
+          "count": 6,
+          "total_size": 113873775
+        },
+        ".pyc": {
+          "count": 49,
+          "total_size": 762847
+        },
+        ".7z": {
+          "count": 1,
+          "total_size": 4908465
+        },
+        ".controller": {
+          "count": 1,
+          "total_size": 1828
+        },
+        ".mb": {
+          "count": 1,
+          "total_size": 385492
+        },
+        ".cache": {
+          "count": 4,
+          "total_size": 8566
+        },
+        ".a": {
+          "count": 6,
+          "total_size": 1615332
+        },
+        ".exp": {
+          "count": 10,
+          "total_size": 293848
+        },
+        ".lib": {
+          "count": 25,
+          "total_size": 20600164
+        },
+        ".make": {
+          "count": 38,
+          "total_size": 7359
+        },
+        ".icns": {
+          "count": 1,
+          "total_size": 472971
+        },
+        ".qbs": {
+          "count": 1,
+          "total_size": 8178
+        },
+        ".filters": {
+          "count": 3,
+          "total_size": 158393
+        },
+        ".xcconfig": {
+          "count": 2,
+          "total_size": 994
+        },
+        ".xccheckout": {
+          "count": 1,
+          "total_size": 2983
+        },
+        ".xcuserstate": {
+          "count": 2,
+          "total_size": 141376
+        },
+        ".xcbkptlist": {
+          "count": 2,
+          "total_size": 29738
+        },
+        ".mk": {
+          "count": 1,
+          "total_size": 2667
+        },
+        ".pdf": {
+          "count": 1,
+          "total_size": 1142
+        },
+        ".cbp": {
+          "count": 2,
+          "total_size": 31816
+        },
+        ".depend": {
+          "count": 1,
+          "total_size": 70818
+        },
+        ".layout": {
+          "count": 1,
+          "total_size": 1647
+        },
+        ".sdf": {
+          "count": 1,
+          "total_size": 68046848
+        },
+        ".suo": {
+          "count": 1,
+          "total_size": 41472
+        },
+        ".user": {
+          "count": 1,
+          "total_size": 629
+        },
+        ".workspace": {
+          "count": 2,
+          "total_size": 752
+        },
+        ".ini": {
+          "count": 4,
+          "total_size": 5363
+        },
+        ".dat": {
+          "count": 3,
+          "total_size": 1500176
+        },
+        ".idx": {
+          "count": 1,
+          "total_size": 53915353
+        },
+        ".lbd": {
+          "count": 3,
+          "total_size": 96279075
+        },
+        ".xcsettings": {
+          "count": 1,
+          "total_size": 266
+        },
+        ".dylib": {
+          "count": 14,
+          "total_size": 22179380
+        },
+        ".icpp": {
+          "count": 1,
+          "total_size": 5093
+        },
+        ".cpt": {
+          "count": 1,
+          "total_size": 285
+        },
+        ".fs": {
+          "count": 17,
+          "total_size": 51844
+        },
+        ".vs": {
+          "count": 5,
+          "total_size": 12745
+        },
+        ".local": {
+          "count": 2,
+          "total_size": 70
+        }
+      },
+      "total_files": 57759,
+      "total_size_mb": 5366.189130783081,
+      "largest_file_types": [
+        [
+          ".exe",
+          {
+            "count": 46,
+            "total_size": 1078952624
+          }
+        ],
+        [
+          ".zip",
+          {
+            "count": 25,
+            "total_size": 707247305
+          }
+        ],
+        [
+          ".ipynb",
+          {
+            "count": 133,
+            "total_size": 587983724
+          }
+        ],
+        [
+          ".map",
+          {
+            "count": 5022,
+            "total_size": 362921321
+          }
+        ],
+        [
+          ".png",
+          {
+            "count": 1664,
+            "total_size": 344371487
+          }
+        ],
+        [
+          ".js",
+          {
+            "count": 21682,
+            "total_size": 314515184
+          }
+        ],
+        [
+          ".jpg",
+          {
+            "count": 1914,
+            "total_size": 284535631
+          }
+        ],
+        [
+          ".bin",
+          {
+            "count": 46,
+            "total_size": 158366490
+          }
+        ],
+        [
+          ".glb",
+          {
+            "count": 56,
+            "total_size": 142021952
+          }
+        ],
+        [
+          ".hdr",
+          {
+            "count": 21,
+            "total_size": 121632199
+          }
+        ]
+      ]
+    }
+  ],
+  "issues_found": [
+    "Markdown Formatting: Return code 1",
+    "Professional Demo List: Exception - 'NoneType' object has no attribute 'split'",
+    "Memory Optimization: Return code 2",
+    "Performance Monitoring: Return code 2",
+    "Scalability Testing: Return code 1",
+    "CI/CD Validation: Return code 2"
+  ],
+  "optimizations_applied": []
+}
